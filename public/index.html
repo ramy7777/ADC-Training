@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ADC Training — A Morning at Abu Dhabi Customs</title>
 <style>
-:root{--navy:#0C2340;--gold:#e0b34c;--green:#2fd08b;--red:#ff5a48;--muted:#9fb0c8;--glass:rgba(10,22,40,.72)}
+:root{--navy:#0C2340;--gold:#e0b34c;--adc:#5c7470;--adcL:#9db8b1;--green:#2fd08b;--red:#ff5a48;--muted:#9fb0c8;--glass:rgba(10,22,40,.72)}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden}
 body{font-family:"Segoe UI",Tahoma,sans-serif;background:#050b14;color:#eef3fb}
@@ -13,20 +13,20 @@ body{font-family:"Segoe UI",Tahoma,sans-serif;background:#050b14;color:#eef3fb}
 #vignette{position:fixed;inset:0;pointer-events:none;z-index:10;background:radial-gradient(ellipse at center,transparent 55%,rgba(3,7,14,.55) 100%)}
 .ov{position:fixed;inset:0;background:rgba(3,8,16,.78);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:40}
 .panel{background:linear-gradient(160deg,#0d1e36,#091528);border:1px solid #274a7a;border-radius:18px;padding:30px 34px;max-width:600px;width:92vw;box-shadow:0 24px 80px rgba(0,0,0,.6)}
-.eyebrow{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px}
+.eyebrow{color:var(--adcL);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px}
 h2{font-size:24px;margin-bottom:12px;font-weight:700}
 label{font-size:12.5px;color:var(--muted);display:block;margin:13px 0 5px}
 input[type=text],input[type=password]{width:100%;padding:11px 13px;border:1px solid #274a7a;border-radius:10px;font-size:14px;font-family:inherit;background:#081426;color:#eef3fb;outline:none}
 input:focus{border-color:var(--gold)}
 button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;font-size:14px}
-.btn{background:linear-gradient(135deg,#e8bd58,#c9922f);color:#081426;padding:12px 24px;font-weight:700;box-shadow:0 4px 18px rgba(224,179,76,.25)}
+.btn{background:linear-gradient(135deg,#84a29a,#54706a);color:#071310;padding:12px 24px;font-weight:700;box-shadow:0 4px 18px rgba(92,116,112,.35)}
 .btn:hover{filter:brightness(1.08)}
 .btn.navy{background:#16355c;color:#eef3fb;font-weight:500;box-shadow:none}
 .btn.small{padding:7px 14px;font-size:12.5px}
 .btn:disabled{opacity:.35;cursor:not-allowed}
 .langrow{display:flex;gap:10px;margin-top:4px}
 .langbtn{padding:10px 24px;border:1.5px solid #274a7a;background:#081426;color:#eef3fb;border-radius:10px}
-.langbtn.sel{border-color:var(--gold);background:linear-gradient(135deg,#e8bd58,#c9922f);color:#081426;font-weight:700}
+.langbtn.sel{border-color:var(--adcL);background:linear-gradient(135deg,#84a29a,#54706a);color:#071310;font-weight:700}
 .levels{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:10px}
 .level{border:1.5px solid #274a7a;border-radius:12px;padding:12px 6px;text-align:center;background:#081426}
 .level .num{font-size:20px;font-weight:700}
@@ -39,26 +39,28 @@ button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;font-si
 .mic-note{display:flex;gap:9px;align-items:center;margin-top:14px;background:rgba(47,208,139,.08);border:1px solid rgba(47,208,139,.3);border-radius:10px;padding:9px 13px;font-size:12px;color:#bfe9d6}
 #hud{position:fixed;top:16px;left:50%;transform:translateX(-50%);display:none;gap:10px;z-index:20;font-size:12.5px;align-items:center}
 #hud .pill{background:var(--glass);border:1px solid #274a7a;border-radius:99px;padding:7px 16px;backdrop-filter:blur(8px)}
-#hud b{color:var(--gold)}
+#hud b{color:var(--adcL)}
 #beatdots{display:flex;gap:4px;align-items:center;background:var(--glass);border:1px solid #274a7a;border-radius:99px;padding:9px 14px}
 #beatdots i{width:7px;height:7px;border-radius:50%;background:#22436e;display:block}
-#beatdots i.ok{background:var(--green)}#beatdots i.no{background:var(--red)}#beatdots i.cur{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+#beatdots i.ok{background:var(--green)}#beatdots i.no{background:var(--red)}#beatdots i.cur{background:var(--adcL);box-shadow:0 0 8px var(--adcL)}
 #topbtns{position:fixed;top:16px;right:16px;display:flex;gap:8px;z-index:41}
 #topbtns .btn{background:var(--glass);color:#eef3fb;border:1px solid #274a7a;font-weight:500;font-size:12.5px;padding:9px 15px;box-shadow:none;backdrop-filter:blur(8px)}
-#brand{position:fixed;top:14px;left:16px;z-index:20;display:flex;gap:10px;align-items:center;pointer-events:none;text-shadow:0 1px 8px #000}
-#brand img{width:38px;height:38px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6))}
-#brand .b1{font-size:12.5px;font-weight:700;letter-spacing:.07em;color:#fff}
-#brand .b1 span{color:var(--gold)}
-#brand .b2{font-size:10px;color:var(--muted);letter-spacing:.14em;margin-top:2px}
+#brand{position:fixed;top:14px;left:16px;z-index:20;display:flex;gap:10px;align-items:center;pointer-events:none}
+#brand .chip{background:#fff;border-radius:10px;padding:6px 10px;display:flex;align-items:center;box-shadow:0 3px 12px rgba(0,0,0,.4)}
+#brand img{height:30px;width:auto;display:block}
+#brand .b2{font-size:10px;color:var(--muted);letter-spacing:.14em;text-shadow:0 1px 8px #000}
 #sub{position:fixed;bottom:142px;left:50%;transform:translateX(-50%);max-width:780px;width:92vw;text-align:center;z-index:20;display:none}
-#sub .who{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-shadow:0 1px 6px #000}
+#sub .who{color:var(--adcL);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-shadow:0 1px 6px #000}
 #sub .txt{background:var(--glass);border:1px solid #274a7a;border-radius:14px;padding:13px 20px;font-size:16.5px;line-height:1.55;margin-top:5px;backdrop-filter:blur(8px);text-shadow:0 1px 2px #000}
 #usub{position:fixed;bottom:114px;left:50%;transform:translateX(-50%);font-size:12.5px;color:#9fd8ff;z-index:20;display:none;background:rgba(8,20,38,.6);border-radius:9px;padding:4px 12px;max-width:70vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 #vstat{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);font-size:11.5px;color:var(--muted);z-index:20;background:rgba(8,20,38,.55);border-radius:8px;padding:3px 12px;max-width:80vw;text-align:center;display:none}
 #voicebar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:12px;z-index:21}
 #orb{width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#37e0a0,#0d7a52);box-shadow:0 0 22px rgba(47,208,139,.5);display:flex;align-items:center;justify-content:center;font-size:20px;transition:transform .1s,box-shadow .2s}
-#orb.ai{background:radial-gradient(circle at 35% 30%,#ffd97a,#b3801f);box-shadow:0 0 26px rgba(224,179,76,.6)}
+#orb.ai{background:radial-gradient(circle at 35% 30%,#b6d2ca,#54706a);box-shadow:0 0 26px rgba(157,184,177,.6)}
 #orb.off{background:radial-gradient(circle at 35% 30%,#5a6b84,#232f42);box-shadow:none}
+#orb.hot{background:radial-gradient(circle at 35% 30%,#ff8a7a,#a2281b);box-shadow:0 0 30px rgba(255,90,72,.65)}
+#orbwrap{display:flex;flex-direction:column;align-items:center;gap:4px}
+#orbcap{font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;background:rgba(8,20,38,.55);padding:2px 8px;border-radius:6px}
 #chatin{display:flex;gap:7px}
 #chatin input{width:240px;padding:10px 13px;border-radius:99px;border:1px solid #274a7a;background:var(--glass);color:#eef3fb;font-size:13px;font-family:inherit;outline:none}
 #ctrlhint{position:fixed;top:66px;left:16px;font-size:10.5px;color:var(--muted);z-index:19;background:var(--glass);padding:8px 12px;border-radius:11px;line-height:1.7;max-width:250px;border:1px solid #1c3a63}
@@ -94,12 +96,12 @@ td{border:1px solid #274a7a;padding:5px 8px}
   <span class="pill" id="ha"></span>
 </div>
 <div id="topbtns"><button class="btn" id="btnAdmin">Admin</button></div>
-<div id="brand" style="display:none"><img id="brandImg" alt=""><div><div class="b1">ABU DHABI CUSTOMS <span>·</span> جمارك أبوظبي</div><div class="b2">TRAINING ACADEMY · أكاديمية التدريب</div></div></div>
+<div id="brand" style="display:none"><span class="chip"><img id="brandImg" src="assets/adc-logo.png" alt="Abu Dhabi Customs"></span><div class="b2">TRAINING ACADEMY · أكاديمية التدريب</div></div>
 <div id="sub"><div class="who" id="subwho"></div><div class="txt" id="subtxt"></div></div>
 <div id="usub"></div>
 <div id="vstat"></div>
 <div id="voicebar">
-  <div id="orb">🎙️</div>
+  <div id="orbwrap"><div id="orb">🎙️</div><div id="orbcap"></div></div>
   <div id="chatin"><input id="chattext" type="text"><button class="btn small" id="chatsend">➤</button></div>
 </div>
 <div id="ctrlhint"></div>
@@ -108,10 +110,10 @@ td{border:1px solid #274a7a;padding:5px 8px}
 <div id="toast"></div>
 
 <div class="ov" id="startOv"><div class="panel">
-  <div style="display:flex;gap:14px;align-items:center;margin-bottom:14px">
-    <img id="emblemImg" alt="" style="width:62px;height:62px">
-    <div><div style="font-size:14px;font-weight:700;letter-spacing:.06em">ABU DHABI CUSTOMS · جمارك أبوظبي</div>
-    <div style="font-size:11px;color:var(--muted);letter-spacing:.14em;margin-top:3px">TRAINING ACADEMY · أكاديمية التدريب</div></div>
+  <div style="display:flex;gap:14px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+    <span style="background:#fff;border-radius:12px;padding:9px 14px;display:flex;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.35)">
+      <img src="assets/adc-logo.png" alt="Abu Dhabi Customs" style="height:44px;width:auto;display:block"></span>
+    <div style="font-size:11px;color:var(--muted);letter-spacing:.16em">TRAINING ACADEMY<br>أكاديمية التدريب</div>
   </div>
   <div class="eyebrow" id="soEyebrow"></div>
   <h2 id="soTitle"></h2>
@@ -165,13 +167,13 @@ const UI={
   desc:"You are a new ADC employee on your orientation morning. Saif, a senior officer, walks with you through six stations of the customs house and simply… talks with you. Answer him with your voice. What you say and do is your assessment — there is no quiz.",
   name:"Your name",lang:"Language",lvl:"Levels",open:"Enter",locked:"Locked",
   micNote:"🎙️ This experience is voice-first: allow microphone access and speak to Saif naturally. No mic? You can type instead — or the app falls back to guided mode.",
-  hint:"Click the world to look around (Esc releases) · WASD / arrows walk · Shift runs · ENTER glides to the active station · speak to Saif any time (or type below) · click the orb to mute; in guided mode hold it to talk",
+  hint:"Click the world to look around (Esc releases) · WASD / arrows walk · Shift runs · ENTER glides to the active station · HOLD the mic button (or SPACE) to talk to Saif · or type below",
   score:"Score",attempt:"Attempt",correct:"+5 — well done",wrong:"+0 — noted",
   passed:"LEVEL PASSED",failed:"NOT PASSED — 96/120 needed",retry:"Try again — different situations",home:"Back to entrance",
   l2:"Level 2 content is project scope. The gate and the admin bypass are the point.",
   saif:"Saif — Senior Officer",you:"You",connecting:"Connecting to Saif…",micDenied:"Mic unavailable — guided mode with narration.",
-  liveFail:"Voice link unavailable — guided mode with narration.",voiceOn:"Open mic — just speak to Saif, or type below. Click the orb to mute.",
-  micMuted:"Mic muted — click the orb to unmute",micOpen:"Open mic — Saif hears you",noSR:"Speech recognition unavailable — please type",holdTalk:"Hold the orb to speak",
+  liveFail:"Voice link unavailable — guided mode with narration.",voiceOn:"Hold the mic button (or SPACE) while you speak — release when done. You can also type below.",
+  noSR:"Speech recognition unavailable — please type",holdTalk:"Hold to talk · Space",listening:"Listening… release when done",
   typed:"Message sent",csv:"Export CSV",unlock:"Bypass: unlock Level 2",unlocked:"Level 2 unlocked",results:"Results",live:"Live",log:"Log",
   pin:"Admin PIN",aname:"Admin name",wrongPin:"Wrong PIN",noresults:"No attempts yet",
   classicPrompt:"Answer by typing (or click Show choices)",showOpts:"Show choices",judging:"Saif is considering…"},
@@ -179,13 +181,13 @@ const UI={
   desc:"أنت موظف جديد في يوم تعريفي. سيف، ضابط أول، يمشي معك عبر ست محطات في دار الجمارك ويتحدث معك ببساطة. أجب بصوتك. ما تقوله وتفعله هو تقييمك — لا يوجد اختبار تقليدي.",
   name:"اسمك",lang:"اللغة",lvl:"المستويات",open:"ادخل",locked:"مقفل",
   micNote:"🎙️ التجربة صوتية أولاً: اسمح بالميكروفون وتحدث مع سيف بشكل طبيعي. لا يوجد ميكروفون؟ يمكنك الكتابة — أو ينتقل التطبيق للوضع الموجّه.",
-  hint:"انقر العالم للنظر (Esc للخروج) · WASD أو الأسهم للمشي · Shift للركض · ENTER للانتقال إلى المحطة · تحدث مع سيف في أي وقت (أو اكتب) · انقر الدائرة للكتم؛ وفي الوضع الموجّه اضغطها مطولاً للتحدث",
+  hint:"انقر العالم للنظر (Esc للخروج) · WASD أو الأسهم للمشي · Shift للركض · ENTER للانتقال إلى المحطة · اضغط زر الميكروفون (أو المسافة) مطولاً للتحدث مع سيف · أو اكتب أدناه",
   score:"النتيجة",attempt:"المحاولة",correct:"+5 — أحسنت",wrong:"+0 — سنكمل",
   passed:"اجتزت المستوى",failed:"لم تجتز — المطلوب ٩٦/١٢٠",retry:"حاول مجدداً — مواقف مختلفة",home:"عودة إلى المدخل",
   l2:"محتوى المستوى ٢ ضمن نطاق المشروع. المهم هنا: القفل وصلاحية المشرف.",
   saif:"سيف — ضابط أول",you:"أنت",connecting:"جارٍ الاتصال بسيف…",micDenied:"الميكروفون غير متاح — الوضع الموجّه مع السرد.",
-  liveFail:"الاتصال الصوتي غير متاح — الوضع الموجّه مع السرد.",voiceOn:"الميكروفون مفتوح — تحدث مع سيف مباشرة أو اكتب أدناه. انقر الدائرة للكتم.",
-  micMuted:"الميكروفون مكتوم — انقر الدائرة للتفعيل",micOpen:"الميكروفون مفتوح — سيف يسمعك",noSR:"التعرف على الصوت غير متاح — اكتب من فضلك",holdTalk:"اضغط مطولاً على الدائرة للتحدث",
+  liveFail:"الاتصال الصوتي غير متاح — الوضع الموجّه مع السرد.",voiceOn:"اضغط زر الميكروفون (أو مسطرة المسافة) أثناء الكلام — واتركه عند الانتهاء. يمكنك الكتابة أيضاً.",
+  noSR:"التعرف على الصوت غير متاح — اكتب من فضلك",holdTalk:"اضغط للتحدث · Space",listening:"يستمع… اترك الزر عند الانتهاء",
   typed:"أُرسلت الرسالة",csv:"تصدير CSV",unlock:"فتح استثنائي: المستوى ٢",unlocked:"المستوى ٢ مفتوح",results:"النتائج",live:"مباشر",log:"السجل",
   pin:"رمز المشرف",aname:"اسم المشرف",wrongPin:"رمز خاطئ",noresults:"لا محاولات بعد",
   classicPrompt:"أجب كتابةً (أو اضغط أظهر الخيارات)",showOpts:"أظهر الخيارات",judging:"سيف يفكر…"}
@@ -226,7 +228,7 @@ const realDis=q=>q.distractors.filter(d=>!d.en.trim().startsWith("("));
 
 // ---------- three world ----------
 // curated ADC brand family: gold, red, steel blue, teal, amber, oasis green
-const ACCENTS=[0xd8a63a,0xc0504a,0x4a90c0,0x35b39a,0xd8763a,0x7fae4a];
+const ACCENTS=[0x7f9d95,0xc0504a,0x4a90c0,0x35b39a,0xd8a63a,0x7fae4a];
 const canvas=document.getElementById("c3d");
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -240,26 +242,22 @@ scene.fog=new THREE.Fog(0x070f1c,30,110);
 scene.add(new THREE.HemisphereLight(0x9dbcf0,0x141f33,1.15));
 const dl=new THREE.DirectionalLight(0xffe2b0,.9);dl.position.set(8,18,6);scene.add(dl);
 
-// ---- ADC emblem (drawn, abstract — geometric octagram + falcon chevrons) ----
+// ---- floor medallion: echo of the ADC mark (three-bar glyph) in brand sage ----
 function emblemCanvas(sz){
  const cv=document.createElement("canvas");cv.width=cv.height=sz;const x=cv.getContext("2d");
  const c=sz/2;
- x.beginPath();x.arc(c,c,sz*.47,0,7);x.fillStyle="#0d2038";x.fill();
- x.lineWidth=sz*.035;x.strokeStyle="#d8a63a";x.beginPath();x.arc(c,c,sz*.455,0,7);x.stroke();
- x.lineWidth=sz*.012;x.strokeStyle="rgba(216,166,58,.55)";x.beginPath();x.arc(c,c,sz*.38,0,7);x.stroke();
- // octagram (two rotated squares)
- x.save();x.translate(c,c);x.strokeStyle="#d8a63a";x.lineWidth=sz*.02;
- for(const rot of[0,Math.PI/4]){x.save();x.rotate(rot);x.strokeRect(-sz*.24,-sz*.24,sz*.48,sz*.48);x.restore()}
- x.restore();
- // falcon chevrons (three ascending wings)
- x.fillStyle="#c0392b";
- for(let k=0;k<3;k++){const w=sz*(.26-k*.07),y=c+sz*.1-k*sz*.11;
-  x.beginPath();x.moveTo(c-w,y);x.lineTo(c,y-sz*.09);x.lineTo(c+w,y);x.lineTo(c,y-sz*.045);x.closePath();x.fill()}
+ x.beginPath();x.arc(c,c,sz*.47,0,7);x.fillStyle="rgba(10,22,30,.85)";x.fill();
+ x.lineWidth=sz*.03;x.strokeStyle="#7f9d95";x.beginPath();x.arc(c,c,sz*.455,0,7);x.stroke();
+ x.lineWidth=sz*.01;x.strokeStyle="rgba(157,184,177,.5)";x.beginPath();x.arc(c,c,sz*.385,0,7);x.stroke();
+ // the three-bar mark: top bar, diagonal, bottom bar
+ x.fillStyle="#8fa8a0";
+ const bw=sz*.30,bh=sz*.075;
+ x.fillRect(c-bw*0.1,c-sz*.26,bw,bh);           // top bar (right-shifted)
+ x.save();x.translate(c,c);x.rotate(-Math.PI/4);
+ x.fillRect(-sz*.20,-bh/2,sz*.40,bh);x.restore(); // diagonal bar
+ x.fillRect(c-bw*0.9,c+sz*.26-bh,bw,bh);         // bottom bar (left-shifted)
  return cv;
 }
-const emblemURL=emblemCanvas(256).toDataURL();
-document.getElementById("brandImg").src=emblemURL;
-const emb2=document.getElementById("emblemImg");if(emb2)emb2.src=emblemURL;
 
 // sky dome (gradient)
 {const cv=document.createElement("canvas");cv.width=32;cv.height=256;const x=cv.getContext("2d");
@@ -311,7 +309,7 @@ let dust;{const g=new THREE.BufferGeometry();const n=350;const p=new Float32Arra
  const med=new THREE.Mesh(new THREE.CircleGeometry(5.2,64),
   new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:.6}));
  med.rotation.x=-Math.PI/2;med.rotation.z=Math.PI;med.position.set(0,.02,0);scene.add(med);
- const mring=new THREE.Mesh(new THREE.TorusGeometry(5.5,.05,8,72),mat(0xd8a63a,0xd8a63a,.8));
+ const mring=new THREE.Mesh(new THREE.TorusGeometry(5.5,.05,8,72),mat(0x7f9d95,0x7f9d95,.8));
  mring.rotation.x=Math.PI/2;mring.position.y=.05;scene.add(mring);}
 
 const R=26,WALK=R-7.2,stations=[];
@@ -321,7 +319,7 @@ function stationPos(i){const a=stationAngle(i);return new THREE.Vector3(Math.sin
 {const curve=new THREE.EllipseCurve(0,0,WALK,WALK,stationAngle(0)-Math.PI/2-.25,stationAngle(5)-Math.PI/2+.25,false,0);
  const pts=curve.getPoints(80).map(p=>new THREE.Vector3(p.x,0.03,p.y));
  const geo=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),80,.06,6,false);
- scene.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0xe0b34c,transparent:true,opacity:.5})));}
+ scene.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x7f9d95,transparent:true,opacity:.55})));}
 
 function mat(c,e=0,ei=.6,extra={}){return new THREE.MeshStandardMaterial(Object.assign({color:c,emissive:e,emissiveIntensity:ei,roughness:.45,metalness:.35},extra))}
 function box(g,w,h,d,c,x,y,z,e){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,e||0,e?.7:0));m.position.set(x,y,z);g.add(m);return m}
@@ -337,7 +335,7 @@ function wrap(x,text,maxw){
  }
  return out.slice(0,7);
 }
-function textTexture(text,{w=512,h=256,size=34,color="#eef3fb",bg="rgba(13,26,46,.9)",border="#e0b34c",pad=26,bold=false,glow=true}={}){
+function textTexture(text,{w=512,h=256,size=34,color="#eef3fb",bg="rgba(13,26,46,.9)",border="#8fa8a0",pad=26,bold=false,glow=true}={}){
  const cv=document.createElement("canvas");cv.width=w;cv.height=h;const x=cv.getContext("2d");
  if(glow){x.shadowColor=border;x.shadowBlur=18}
  x.fillStyle=bg;roundRect(x,6,6,w-12,h-12,20);x.fill();
@@ -367,28 +365,91 @@ function wallTexture(accent,num){
  x.strokeStyle="rgba(120,170,230,.09)";
  for(let i=0;i<24;i++){x.beginPath();x.moveTo(i*44,0);x.lineTo(i*44,512);x.stroke()}
  x.fillStyle="rgba(255,255,255,.045)";x.font="700 420px Segoe UI";x.textAlign="right";x.fillText(String(num),1000,470);
- x.fillStyle="rgba(216,166,58,.5)";x.font="700 34px Segoe UI";x.textAlign="left";x.letterSpacing="6px";x.fillText("ABU DHABI CUSTOMS · TRAINING ACADEMY",28,52);
+ x.fillStyle="rgba(143,168,160,.6)";x.font="700 34px Segoe UI";x.textAlign="left";x.letterSpacing="6px";x.fillText("ABU DHABI CUSTOMS · TRAINING ACADEMY",28,52);
  const ac="#"+accent.toString(16).padStart(6,"0");
  x.fillStyle=ac;x.globalAlpha=.14;x.fillRect(0,492,1024,20);x.globalAlpha=1;
  return new THREE.CanvasTexture(cv);
 }
+
+// ---- per-station pictogram artwork (brand-styled canvas art) ----
+function drawStationArt(i){
+ const w=768,h=512,cv=document.createElement("canvas");cv.width=w;cv.height=h;const x=cv.getContext("2d");
+ const gr=x.createLinearGradient(0,0,0,h);gr.addColorStop(0,"#13241f");gr.addColorStop(1,"#0a1512");
+ x.fillStyle=gr;x.fillRect(0,0,w,h);
+ x.strokeStyle="#7f9d95";x.lineWidth=8;x.strokeRect(10,10,w-20,h-20);
+ x.lineJoin=x.lineCap="round";
+ const S="#d7e5e0",A="#8fa8a0",G="#d8a63a";
+ if(i===0){
+  x.strokeStyle=A;x.lineWidth=8;x.beginPath();x.moveTo(60,360);x.lineTo(708,360);x.stroke();
+  x.fillStyle=A;x.beginPath();x.moveTo(110,360);x.lineTo(150,412);x.lineTo(330,412);x.lineTo(370,360);x.closePath();x.fill();
+  x.fillStyle=S;for(let k=0;k<3;k++)x.fillRect(140+k*62,320,52,36);
+  x.fillStyle=S;x.beginPath();x.moveTo(510,140);x.lineTo(660,182);x.lineTo(510,224);x.lineTo(544,182);x.closePath();x.fill();
+  x.fillStyle=S;x.fillRect(470,318,140,42);x.fillRect(610,330,44,30);
+  x.fillStyle="#0a1512";x.beginPath();x.arc(500,366,13,0,7);x.arc(586,366,13,0,7);x.arc(634,366,13,0,7);x.fill();
+  x.fillStyle=G;x.beginPath();x.arc(150,118,26,0,7);x.fill();
+ }else if(i===1){
+  x.strokeStyle=S;x.lineWidth=10;x.beginPath();x.arc(384,214,88,0,7);x.stroke();
+  x.beginPath();x.moveTo(352,300);x.lineTo(352,344);x.lineTo(416,344);x.lineTo(416,300);x.stroke();
+  x.fillStyle=A;x.fillRect(352,344,64,26);
+  x.strokeStyle=A;for(const a of[-1.1,-.55,0,.55,1.1]){x.beginPath();
+   x.moveTo(384+Math.sin(a)*118,214-Math.cos(a)*118);x.lineTo(384+Math.sin(a)*166,214-Math.cos(a)*166);x.stroke()}
+  x.fillStyle=G;x.beginPath();x.arc(384,214,26,0,7);x.fill();
+  x.fillStyle=A;for(const[cx,cy]of[[120,428],[250,446],[520,440],[652,408]]){x.beginPath();x.arc(cx,cy,10,0,7);x.fill()}
+  x.strokeStyle=A;x.lineWidth=5;x.beginPath();x.moveTo(120,428);x.lineTo(250,446);x.lineTo(520,440);x.lineTo(652,408);x.stroke();
+ }else if(i===2){
+  x.strokeStyle=A;x.lineWidth=14;x.strokeRect(196,88,376,332);
+  x.fillStyle=S;x.fillRect(248,288,224,82);x.fillRect(472,310,72,60);
+  x.fillStyle="#0a1512";x.beginPath();x.arc(298,382,18,0,7);x.arc(420,382,18,0,7);x.arc(512,382,18,0,7);x.fill();
+  x.strokeStyle=G;x.lineWidth=5;x.setLineDash([14,12]);
+  for(let k=0;k<5;k++){x.beginPath();x.moveTo(238+k*72,108);x.lineTo(238+k*72,276);x.stroke()}
+  x.setLineDash([]);
+ }else if(i===3){
+  x.strokeStyle=A;x.lineWidth=8;x.beginPath();x.moveTo(90,380);
+  x.bezierCurveTo(230,180,420,430,678,200);x.stroke();
+  const pts=[[90,380],[236,272],[390,330],[540,292],[678,200]];
+  pts.forEach(([cx,cy],k)=>{x.fillStyle=k===4?G:S;x.beginPath();x.arc(cx,cy,20,0,7);x.fill()});
+  x.fillStyle=G;x.fillRect(368,288,46,32);
+ }else if(i===4){
+  x.fillStyle=A;
+  for(let k=0;k<9;k++){const bw=40+((k*37)%50),bh=60+((k*53)%110);x.fillRect(66+k*72,432-bh,bw,bh)}
+  x.strokeStyle=G;x.lineWidth=7;
+  for(let k=0;k<8;k++){const a=k*Math.PI/4;x.beginPath();
+   x.moveTo(384+Math.cos(a)*54,176+Math.sin(a)*54);x.lineTo(384+Math.cos(a)*94,176+Math.sin(a)*94);x.stroke()}
+  x.fillStyle=G;x.beginPath();x.arc(384,176,34,0,7);x.fill();
+ }else{
+  x.strokeStyle=S;x.lineWidth=9;
+  for(const r of[42,82,122]){x.beginPath();x.arc(272,256,r,0,7);x.stroke()}
+  x.fillStyle=G;x.beginPath();x.arc(272,256,18,0,7);x.fill();
+  x.strokeStyle=A;x.lineWidth=6;x.fillStyle=A;
+  for(const[cx,cy]of[[556,118],[622,258],[556,398]]){
+   x.beginPath();x.moveTo(292,256);x.lineTo(cx,cy);x.stroke();
+   x.beginPath();x.arc(cx,cy,16,0,7);x.fill()}
+ }
+ return cv;
+}
+function artPanel(i,w,h,px,py,pz){
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
+  new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(drawStationArt(i))}));
+ m.position.set(px,py,pz);return m;
+}
 function addTheme(g,i,accent){
  if(i===0){
    for(let k=0;k<3;k++)box(g,1.6,1.1,.7,0x1b3c63,-3+k*3,0.62,-3.1);
-   box(g,3.2,2.2,.12,0x0f2c4e,3.6,2.2,-4.35,accent);
-   for(const[mx,my]of[[-.7,.4],[.4,-.2],[1,.6]]){const dot=new THREE.Mesh(new THREE.SphereGeometry(.09),mat(0xe0b34c,0xe0b34c,1));dot.position.set(3.6+mx,2.2+my,-4.2);g.add(dot)}
+   g.add(artPanel(0,3.2,2.2,3.6,2.2,-4.35));
  }else if(i===1){
-   for(let k=0;k<3;k++){const p=box(g,2.1,1.4,.1,0x0f2c4e,-3.2+k*3.2,3,-4.35,accent);p.userData.spin=.14+k*.07}
-   box(g,.9,1.5,.9,0x1b3c63,3.4,.8,-2.6,0xe0b34c);
+   for(const k of[0,2]){const p=box(g,2.1,1.4,.1,0x0f2c4e,-3.2+k*3.2,3,-4.35,accent);p.userData.spin=.14+k*.07}
+   g.add(artPanel(1,2.2,1.5,0,3,-4.35));
+   box(g,.9,1.5,.9,0x1b3c63,3.4,.8,-2.6,0x7f9d95);
  }else if(i===2){
    const t=new THREE.Group();
    box(t,2.6,1.7,1.5,0x2a4d78,0,1.15,0);box(t,1.1,1.25,1.4,0x1b3c63,1.85,.92,0);
    for(const wx of[-.8,.8,1.9])for(const wz of[-.8,.8]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(.32,.32,.24,18),mat(0x0a1426));wh.rotation.x=Math.PI/2;wh.position.set(wx,.32,wz);t.add(wh)}
    t.position.set(-3.1,0,-2.2);t.rotation.y=.5;g.add(t);
-   box(g,1.7,.95,.8,0x1b3c63,2.6,.55,-2.4);box(g,1.4,1.9,.5,0x0f2c4e,4.1,1,-4.2,accent);
+   box(g,1.7,.95,.8,0x1b3c63,2.6,.55,-2.4);g.add(artPanel(2,2.4,1.6,3.4,2.4,-4.35));
  }else if(i===3){
    for(let k=0;k<5;k++)box(g,1.15,1.15,.14,0x0f2c4e,-4.1+k*2.05,2.35,-4.35,accent);
-   const c=box(g,.8,.55,.5,0xe0b34c,-4.1,1.35,-3.9,0xe0b34c);g.userData.container=c;
+   const c=box(g,.8,.55,.5,0xd8a63a,-4.1,1.35,-3.9,0xd8a63a);g.userData.container=c;
+   g.add(artPanel(3,2.6,1.35,0,1.0,-4.32));
  }else if(i===4){
    for(let k=0;k<3;k++)box(g,1.1,.5+k*.25,1.1,0x1b3c63,-2.4+k*2.4,(.5+k*.25)/2,-2.7);
    box(g,2,1,.7,0x1b3c63,3.6,.55,-1.6);
@@ -396,8 +457,9 @@ function addTheme(g,i,accent){
    const body=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.85,6,14),mat(0x2c6f92,accent,.35));body.position.y=1.05;v.add(body);
    const head=new THREE.Mesh(new THREE.SphereGeometry(.26,18,14),mat(0xd9b58a));head.position.y=1.95;v.add(head);
    v.position.set(3.6,0,-.5);g.add(v);g.userData.visitor=v;
+   g.add(artPanel(4,3.4,2.2,0,2.7,-4.35));
  }else{
-   box(g,3.4,2.4,.14,0x0f2c4e,-2.7,2.1,-4.35,accent);box(g,3.4,2.4,.14,0x0f2c4e,2.7,2.1,-4.35,0xe0b34c);
+   g.add(artPanel(5,3.4,2.2,-2.7,2.1,-4.35));box(g,3.4,2.4,.14,0x0f2c4e,2.7,2.1,-4.35,0xd8a63a);
  }
 }
 function buildStation(i,sk){
@@ -408,14 +470,14 @@ function buildStation(i,sk){
  const ring=new THREE.Mesh(new THREE.TorusGeometry(5.55,.06,10,64),mat(accent,accent,.9));ring.rotation.x=Math.PI/2;ring.position.y=.18;g.add(ring);
  const wall=new THREE.Mesh(new THREE.BoxGeometry(10.5,5.2,.3),new THREE.MeshStandardMaterial({map:wallTexture(accent,i+1),roughness:.5,metalness:.3}));
  wall.position.set(0,2.7,-4.6);g.add(wall);
- const trim=new THREE.Mesh(new THREE.BoxGeometry(10.9,.12,.36),mat(0xe0b34c,0xe0b34c,.9));trim.position.set(0,5.35,-4.6);g.add(trim);
+ const trim=new THREE.Mesh(new THREE.BoxGeometry(10.9,.12,.36),mat(0x8fa8a0,0x8fa8a0,.9));trim.position.set(0,5.35,-4.6);g.add(trim);
  const title=textPanel(`${i+1} · ${L(sk.scene.name)}`,7,1,{size:54,bold:true,bg:"rgba(0,0,0,0)",border:"rgba(0,0,0,0)",glow:false});
  title.position.set(0,4.55,-4.4);g.add(title);
  const pl=new THREE.PointLight(0xffd98a,42,22,1.6);pl.position.set(0,4.2,-1);g.add(pl);
  const al=new THREE.PointLight(accent,14,10,1.8);al.position.set(0,1,-3.8);g.add(al);
  addTheme(g,i,accent);
  const beam=new THREE.Mesh(new THREE.CylinderGeometry(.5,1.5,7.5,24,1,true),
-   new THREE.MeshBasicMaterial({color:0xe0b34c,transparent:true,opacity:.13,side:THREE.DoubleSide,depthWrite:false}));
+   new THREE.MeshBasicMaterial({color:0x8fa8a0,transparent:true,opacity:.13,side:THREE.DoubleSide,depthWrite:false}));
  beam.position.set(0,3.7,2.5);g.add(beam);
  g.userData.beam=beam;
  scene.add(g);
@@ -423,21 +485,21 @@ function buildStation(i,sk){
 }
 // Saif
 const saif=new THREE.Group();
-{const body=new THREE.Mesh(new THREE.CapsuleGeometry(.37,.92,6,18),mat(0x1d4a7a,0x35c4ff,.45,{metalness:.6,roughness:.3}));body.position.y=1.12;saif.add(body);
- const chest=new THREE.Mesh(new THREE.CircleGeometry(.09,16),mat(0xe0b34c,0xe0b34c,1));chest.position.set(0,1.45,.37);saif.add(chest);
+{const body=new THREE.Mesh(new THREE.CapsuleGeometry(.37,.92,6,18),mat(0x2a4a45,0x7f9d95,.45,{metalness:.6,roughness:.3}));body.position.y=1.12;saif.add(body);
+ const chest=new THREE.Mesh(new THREE.CircleGeometry(.09,16),mat(0x8fa8a0,0x8fa8a0,1));chest.position.set(0,1.45,.37);saif.add(chest);
  const head=new THREE.Mesh(new THREE.SphereGeometry(.28,20,16),mat(0xe0bd92,0x000000,0,{roughness:.6,metalness:.1}));head.position.y=2.08;saif.add(head);
- const visor=new THREE.Mesh(new THREE.TorusGeometry(.31,.03,8,28),mat(0xe0b34c,0xe0b34c,1));visor.position.y=2.08;visor.rotation.x=Math.PI/2.15;saif.add(visor);
- const base=new THREE.Mesh(new THREE.TorusGeometry(.5,.04,8,32),mat(0x35c4ff,0x35c4ff,1));base.rotation.x=Math.PI/2;base.position.y=.06;saif.add(base);
- const tag=textPanel("SAIF · سيف",1.6,.42,{size:40,bold:true,bg:"rgba(8,20,38,.75)",border:"rgba(53,196,255,.6)",glow:false});
+ const visor=new THREE.Mesh(new THREE.TorusGeometry(.31,.03,8,28),mat(0x8fa8a0,0x8fa8a0,1));visor.position.y=2.08;visor.rotation.x=Math.PI/2.15;saif.add(visor);
+ const base=new THREE.Mesh(new THREE.TorusGeometry(.5,.04,8,32),mat(0x8fa8a0,0x8fa8a0,1));base.rotation.x=Math.PI/2;base.position.y=.06;saif.add(base);
+ const tag=textPanel("SAIF · سيف",1.6,.42,{size:40,bold:true,bg:"rgba(8,20,38,.75)",border:"rgba(157,184,177,.7)",glow:false});
  tag.position.y=2.75;saif.add(tag);saif.userData.tag=tag;
- const glow=new THREE.PointLight(0x35c4ff,4,6);glow.position.y=1.6;saif.add(glow);saif.userData.glow=glow;
+ const glow=new THREE.PointLight(0x9db8b1,4,6);glow.position.y=1.6;saif.add(glow);saif.userData.glow=glow;
  saif.position.set(1.6,0,10);scene.add(saif)}
 let saifTarget=saif.position.clone(),saifSpeaking=false;
 // entrance gate: academy signage + UAE-color banners
 {const a=new THREE.Group();
  box(a,.55,4.6,.55,0x1b3c63,-3.1,2.3,0);box(a,.55,4.6,.55,0x1b3c63,3.1,2.3,0);
- box(a,6.9,.55,.65,0x1b3c63,0,4.85,0,0xd8a63a);
- const sign=textPanel("ADC TRAINING ACADEMY · أكاديمية التدريب",6.4,.82,{size:44,bold:true,bg:"rgba(13,32,56,.95)",border:"#d8a63a",glow:false});
+ box(a,6.9,.55,.65,0x1b3c63,0,4.85,0,0x7f9d95);
+ const sign=textPanel("ADC TRAINING ACADEMY · أكاديمية التدريب",6.4,.82,{size:44,bold:true,bg:"rgba(13,32,56,.95)",border:"#8fa8a0",glow:false});
  sign.position.set(0,4.05,-.35);sign.rotation.y=Math.PI;a.add(sign);
  const sign2=sign.clone();sign2.rotation.y=0;sign2.position.z=.35;a.add(sign2);
  // banners
@@ -636,6 +698,7 @@ class LiveVoice{
   });
  }
  sendText(t){if(this.ws&&this.ws.readyState===1)this.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:t}]}],turnComplete:true}}))}
+ endAudio(){if(this.ws&&this.ws.readyState===1)this.ws.send(JSON.stringify({realtimeInput:{audioStreamEnd:true}}))}
  enqueueAudio(b64){
   if(!this.playCtx)this.playCtx=new AudioContext({sampleRate:24000});
   const bin=atob(b64);const n=bin.length/2;
@@ -779,7 +842,7 @@ function stageWidget(stIdx,beat,onDone){
      m.userData.onClick=()=>{
        if(w==="single"){finish(q.correct.some(c=>c.en===items[ix].en));return}
        sel.has(ix)?sel.delete(ix):sel.add(ix);
-       m.userData.setText((sel.has(ix)?"● ":"")+L(o),{border:sel.has(ix)?"#2fd08b":"#e0b34c"});
+       m.userData.setText((sel.has(ix)?"● ":"")+L(o),{border:sel.has(ix)?"#2fd08b":"#8fa8a0"});
        cbtn.visible=sel.size>0;};
      return m});
    arcPlace(cards);
@@ -814,7 +877,7 @@ function stageWidget(stIdx,beat,onDone){
    const cardM=order.map(ci=>{const c=cards[ci];const m=cardMesh(LANG==="ar"?c.ar:c.en,2.3,.95);
      m.userData.ci=ci;
      m.userData.onClick=()=>{selCard=ci;
-       cardM.forEach(x=>x.userData.setText(LANG==="ar"?cards[x.userData.ci].ar:cards[x.userData.ci].en,{border:x.userData.ci===ci?"#2fd08b":"#e0b34c"}))};
+       cardM.forEach(x=>x.userData.setText(LANG==="ar"?cards[x.userData.ci].ar:cards[x.userData.ci].en,{border:x.userData.ci===ci?"#2fd08b":"#8fa8a0"}))};
      return m});
    arcPlace(cardM,2.75,4.1,-3.1);
    const zoneM=zones.map((z,zi)=>{const m=textPanel(zlabel(z),2.7,1.05,{size:34,bg:"rgba(20,45,80,.95)",border:"#35c4ff"});
@@ -857,11 +920,13 @@ async function startSession(name){
    wireLiveHandlers();
    await connectStation(0);
    liveMode=true;
-   document.getElementById("orb").classList.remove("off");
-   vstat(T("voiceOn"),6000);
+   live.muted=true;
+   vstat(T("voiceOn"),8000);
   }catch(e){log("live connect failed: "+e.message);toast(T("liveFail"))}
  }
- if(!liveMode){document.getElementById("orb").classList.add("off");vstat(T("liveFail"))}
+ if(!liveMode)vstat(T("liveFail"));
+ document.getElementById("orb").classList.add("off");
+ document.getElementById("orbcap").textContent=T("holdTalk");
  document.getElementById("brand").style.display="flex";
  runStation(0,!liveMode);
 }
@@ -970,37 +1035,50 @@ document.getElementById("chatsend").onclick=()=>{
 document.getElementById("chattext").addEventListener("keydown",e=>{
  if(e.key==="Enter"){e.preventDefault();document.getElementById("chatsend").onclick()}});
 
-// ---------- orb: mic control (mute toggle in voice mode, push-to-talk in guided mode) ----------
+// ---------- hold-to-talk (works in voice mode and guided mode) ----------
 let pendingVerbalSubmit=null;
-let pttRecog=null,pttHeld=false;
+let pttRecog=null,talking=false,spaceHeld=false;
 const orbEl=document.getElementById("orb");
-orbEl.addEventListener("click",()=>{
- if(!S||!S.active||!liveMode)return;
- live.muted=!live.muted;
- orbEl.textContent=live.muted?"🔇":"🎙️";
- orbEl.classList.toggle("off",live.muted);
- vstat(live.muted?T("micMuted"):T("micOpen"));
-});
-orbEl.addEventListener("pointerdown",()=>{
- if(!S||!S.active||liveMode)return;
- const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(!SR){vstat(T("noSR"));return}
- try{
-  pttRecog=new SR();pttRecog.lang=LANG==="ar"?"ar-SA":"en-US";pttRecog.interimResults=false;
-  pttRecog.onresult=ev=>{const t=ev.results[0][0].transcript;
-   if(pendingVerbalSubmit)pendingVerbalSubmit(t);else generalAsk(t)};
-  pttRecog.onerror=()=>vstat(T("noSR"));
-  pttRecog.start();pttHeld=true;
-  orbEl.classList.remove("off");orbEl.textContent="🔴";vstat(T("listening"),0);
- }catch(e){vstat(T("noSR"))}
-});
-function endPTT(){
- if(!pttHeld)return;pttHeld=false;
- if(pttRecog){try{pttRecog.stop()}catch{};pttRecog=null}
- if(S&&S.active&&!liveMode){orbEl.textContent="🎙️";orbEl.classList.add("off");vstat(T("holdTalk"))}
+function startTalk(){
+ if(!S||!S.active||talking)return;
+ talking=true;
+ orbEl.classList.add("hot");orbEl.classList.remove("off","ai");orbEl.textContent="\u{1F534}";
+ vstat(T("listening"),0);
+ if(liveMode){
+  live.stopPlayback(); // barge-in: silence Saif while you talk
+  live.muted=false;
+  if(live.micCtx&&live.micCtx.state==="suspended")live.micCtx.resume();
+  if(live.playCtx&&live.playCtx.state==="suspended")live.playCtx.resume();
+ }else{
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){talking=false;orbRestore();vstat(T("noSR"));return}
+  try{
+   pttRecog=new SR();pttRecog.lang=LANG==="ar"?"ar-SA":"en-US";pttRecog.interimResults=false;
+   pttRecog.onresult=ev=>{const t=ev.results[0][0].transcript;
+    if(pendingVerbalSubmit)pendingVerbalSubmit(t);else generalAsk(t)};
+   pttRecog.onerror=()=>vstat(T("noSR"));
+   pttRecog.start();
+  }catch(e){vstat(T("noSR"))}
+ }
 }
-orbEl.addEventListener("pointerup",endPTT);
-orbEl.addEventListener("pointerleave",endPTT);
+function orbRestore(){
+ orbEl.classList.remove("hot");
+ orbEl.textContent="\u{1F399}\uFE0F";
+ orbEl.classList.add("off");
+ vstat(T("holdTalk"),2500);
+}
+function endTalk(){
+ if(!talking)return;talking=false;
+ if(liveMode){live.muted=true;live.endAudio()}
+ else if(pttRecog){try{pttRecog.stop()}catch{};pttRecog=null}
+ orbRestore();
+}
+orbEl.addEventListener("pointerdown",e=>{e.preventDefault();try{orbEl.setPointerCapture(e.pointerId)}catch{};startTalk()});
+orbEl.addEventListener("pointerup",endTalk);
+addEventListener("pointerup",()=>{if(talking&&!spaceHeld)endTalk()});
+addEventListener("keydown",e=>{
+ if(e.code==="Space"&&e.target.tagName!=="INPUT"&&S&&S.active){e.preventDefault();if(!spaceHeld){spaceHeld=true;startTalk()}}});
+addEventListener("keyup",e=>{if(e.code==="Space"&&spaceHeld){spaceHeld=false;endTalk()}});
 
 async function generalAsk(text){
  subtitle(T("you"),text);
@@ -1121,8 +1199,8 @@ function animate(){
  // voice orb
  const orb=document.getElementById("orb");
  if(S&&S.active&&liveMode){
-  const lv=live.micLevel();
-  orb.classList.toggle("ai",live.speaking);
+  if(!talking)orb.classList.toggle("ai",live.speaking);
+  const lv=talking?live.micLevel():0;
   orb.style.transform=`scale(${1+Math.min(.5,lv*2.2)})`;
  }
  renderer.render(scene,camera);
