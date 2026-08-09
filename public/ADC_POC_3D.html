@@ -71,8 +71,9 @@ button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;font-siz
 #sub .who{color:var(--teal);font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 #sub .txt{font-size:16px;line-height:1.5;color:var(--ink);margin-top:2px}
 /* ---------- conversation ---------- */
-#convstat{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(31,42,46,.85);padding:5px 14px;border-radius:99px;z-index:21;display:none}
-#conv{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:none;gap:9px;z-index:21;align-items:center;flex-wrap:wrap;justify-content:center;max-width:94vw;background:rgba(255,255,255,.97);border:1px solid var(--line);padding:9px 12px;border-radius:99px;box-shadow:0 14px 40px rgba(0,25,30,.25)}
+#convstat{position:fixed;bottom:132px;left:50%;transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(31,42,46,.85);padding:5px 14px;border-radius:99px;z-index:21;display:none}
+/* sits ABOVE the always-on chat bar so the "Show choices" escape is never hidden */
+#conv{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);display:none;gap:9px;z-index:23;align-items:center;flex-wrap:wrap;justify-content:center;max-width:94vw;background:rgba(255,255,255,.97);border:1px solid var(--line);padding:8px 11px;border-radius:99px;box-shadow:0 14px 40px rgba(0,25,30,.25)}
 #conv input{width:300px;padding:10px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font-size:13.5px;font-family:inherit}
 #talk{background:var(--teal);color:#fff;font-weight:700;width:46px;height:46px;border-radius:50%;font-size:19px;flex:none}
 #talk.rec{background:var(--red);animation:pulse 1s infinite}
@@ -183,6 +184,7 @@ td{border:1px solid var(--line);padding:5px 8px}
 import * as THREE from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 
+document.head.insertAdjacentHTML("beforeend",'<link rel="icon" href="data:,">');
 const errbar=document.getElementById('errbar');
 window.addEventListener('error',e=>{errbar.style.display='block';errbar.textContent+='ERR: '+e.message+' @'+(e.lineno||'')+'\n';});
 
@@ -440,28 +442,92 @@ function stationPos(i){const a=stationAngle(i);return new THREE.Vector3(Math.sin
 function box(g,w,h,d,c,x,y,z,e){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,e||0,e?.7:0));m.position.set(x,y,z);g.add(m);return m}
 
 function addTheme(g,i){
- if(i===0){ // service counters
-   for(let k=0;k<3;k++){box(g,1.6,1.05,.7,0xffffff,-3+k*3,0.58,-3.1);box(g,1.6,.28,.72,TEAL,-3+k*3,1.2,-3.1)}
- }else if(i===1){ // rotating tech panels
-   for(let k=0;k<3;k++){const p=box(g,2.1,1.4,.1,0xf3f6f7,-3.2+k*3.2,3,-4.1,TEALL);p.userData.spin=.14+k*.07}
-   box(g,.9,1.5,.9,0xffffff,3.4,.8,-2.6,SAND);
- }else if(i===2){ // truck + desk
-   const t=new THREE.Group();
-   box(t,2.6,1.7,1.5,0xe8ecee,0,1.15,0);box(t,1.1,1.25,1.4,TEAL,1.85,.92,0);
-   for(const wx of[-.8,.8,1.9])for(const wz of[-.8,.8]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(.32,.32,.24,18),mat(0x33393d));wh.rotation.x=Math.PI/2;wh.position.set(wx,.32,wz);t.add(wh)}
-   t.position.set(-3.1,0,-2.2);t.rotation.y=.5;g.add(t);
-   box(g,1.7,.95,.8,0xffffff,2.6,.55,-2.4);
- }else if(i===3){ // journey wall + moving container
-   for(let k=0;k<5;k++)box(g,1.15,1.15,.14,0xf3f6f7,-4.1+k*2.05,2.35,-4.1,TEALL);
-   const c=box(g,.8,.55,.5,SAND,-4.1,1.35,-3.7,SAND);g.userData.container=c;
- }else if(i===4){ // vision pedestals + visitor
-   for(let k=0;k<3;k++)box(g,1.1,.5+k*.25,1.1,0xffffff,-2.4+k*2.4,(.5+k*.25)/2,-2.7);
-   const v=new THREE.Group();
+ /* shared prop kit: holographic glass, gold-banded plinths, glowing orbs */
+ const holo=(w,h,x,y,z,ry=0,op=.26)=>{
+   const p=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
+     new THREE.MeshBasicMaterial({color:0x6fe4d6,transparent:true,opacity:op,side:THREE.DoubleSide,depthWrite:false}));
+   p.position.set(x,y,z);p.rotation.y=ry;g.add(p);
+   const rim=new THREE.Mesh(new THREE.BoxGeometry(w+.08,.045,.045),goldMat);
+   rim.position.set(x,y-h/2-.05,z);rim.rotation.y=ry;g.add(rim);
+   const rim2=rim.clone();rim2.position.y=y+h/2+.05;g.add(rim2);
+   const bar=new THREE.Mesh(new THREE.BoxGeometry(w*.94,.045,.02),new THREE.MeshBasicMaterial({color:0xbdfff5}));
+   bar.position.set(x,y+h/2-.14,z+.01);bar.rotation.y=ry;g.add(bar);
+   return p};
+ const plinth=(x,z,h=1.0,r=.6)=>{
+   const b=new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.18,h,24),ivoryMat);b.position.set(x,h/2,z);g.add(b);
+   const band=new THREE.Mesh(new THREE.TorusGeometry(r+.02,.035,8,40),goldMat);
+   band.rotation.x=Math.PI/2;band.position.set(x,h-.09,z);g.add(band);
+   return b};
+ const orb=(x,y,z,r=.4)=>{
+   const s=new THREE.Mesh(new THREE.SphereGeometry(r,24,18),
+     new THREE.MeshStandardMaterial({color:0x0d3a40,emissive:0x35e0cf,emissiveIntensity:1.2,roughness:.3,metalness:.2}));
+   s.position.set(x,y,z);g.add(s);
+   const ring=new THREE.Mesh(new THREE.TorusGeometry(r*1.55,.022,8,50),new THREE.MeshBasicMaterial({color:0x8fe0d6}));
+   ring.position.set(x,y,z);ring.rotation.x=1.15;g.add(ring);g.userData.orbRing=ring;
+   return s};
+ const goldPost=(x,y,z,h,r=.05)=>{
+   const c=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,10),goldMat);c.position.set(x,y,z);g.add(c);return c};
+
+ if(i===0){ // Operations Gallery: round reception counters with floating service holos
+   for(let k=0;k<3;k++){const x=-2.9+k*2.9;
+     plinth(x,-2.9,1.05,.85);
+     const scr=holo(1.7,1.0,x,2.05,-2.7,0);scr.userData.spin=.1+k*.05;
+   }
+ }else if(i===1){ // Innovation Lab: idea orb on a plinth, orbiting ring, tilted holo panels
+   plinth(0,-2.6,1.15,.7);orb(0,2.15,-2.6,.5);
+   const p1=holo(2.2,1.4,-3.1,2.6,-3.6,.5);p1.userData.spin=.12;p1.userData.baseRy=.5;
+   const p2=holo(2.2,1.4,3.1,2.6,-3.6,-.5);p2.userData.spin=.2;p2.userData.baseRy=-.5;
+ }else if(i===2){ // Inspection Bay: scanner gate with teal curtain + gold-trimmed cases
+   const c1=new THREE.Mesh(new THREE.CylinderGeometry(.22,.28,3.2,14),ivoryMat);c1.position.set(-1.5,1.6,-2.8);g.add(c1);
+   const c2=c1.clone();c2.position.x=1.5;g.add(c2);
+   const cap1=new THREE.Mesh(new THREE.CylinderGeometry(.3,.24,.22,14),goldMat);cap1.position.set(-1.5,3.3,-2.8);g.add(cap1);
+   const cap2=cap1.clone();cap2.position.x=1.5;g.add(cap2);
+   const beam2=new THREE.Mesh(new THREE.BoxGeometry(3.5,.28,.5),goldMat);beam2.position.set(0,3.5,-2.8);g.add(beam2);
+   holo(2.7,2.85,0,1.72,-2.8,0,.18); // scan curtain
+   [[-3.2,-1.6,.5],[-2.5,-2.3,-.3],[3,-1.9,.2]].forEach(([x,z,ry],k)=>{
+     const cse=new THREE.Mesh(new THREE.BoxGeometry(.9,.62,.42),
+       new THREE.MeshStandardMaterial({color:k===1?0x0f3a40:0x155a56,roughness:.45,metalness:.3}));
+     cse.position.set(x,.31,z);cse.rotation.y=ry;g.add(cse);
+     const hd=new THREE.Mesh(new THREE.TorusGeometry(.16,.03,8,24,Math.PI),goldMat);
+     hd.position.set(x,.65,z);hd.rotation.y=ry;g.add(hd);
+   });
+ }else if(i===3){ // Cargo Port: gold-ribbed container stack, mini crane, moving container on a rail
+   const cont=(x,y,z,c)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(1.5,.68,.7),
+     new THREE.MeshStandardMaterial({color:c,roughness:.5,metalness:.25}));b.position.set(x,y,z);g.add(b);
+     for(const dx of[-.5,0,.5]){const rib=new THREE.Mesh(new THREE.BoxGeometry(.05,.68,.72),goldMat);rib.position.set(x+dx,y,z);g.add(rib)}
+     return b};
+   cont(-3.2,.34,-3.2,0x155a56);cont(-1.6,.34,-3.3,0x0f3a40);cont(-2.4,1.02,-3.25,0x1a6e62);
+   goldPost(2.9,1.9,-3.4,3.8,.07);
+   const jib=new THREE.Mesh(new THREE.BoxGeometry(2.6,.1,.1),goldMat);jib.position.set(1.7,3.8,-3.4);g.add(jib);
+   goldPost(.6,3.1,-3.4,1.3,.016);
+   const rail=new THREE.Mesh(new THREE.BoxGeometry(8.4,.06,.5),goldMat);rail.position.set(0,.03,-1.9);g.add(rail);
+   const mov=new THREE.Mesh(new THREE.BoxGeometry(1.3,.6,.62),
+     new THREE.MeshStandardMaterial({color:0x1a6e62,roughness:.5,metalness:.25}));
+   mov.position.set(0,.39,-1.9);g.add(mov);g.userData.container=mov;
+ }else if(i===4){ // Vision Room: holographic globe + visitor waiting at reception
+   plinth(-2.2,-2.6,1.2,.75);
+   const globe=new THREE.Mesh(new THREE.SphereGeometry(1.05,20,14),
+     new THREE.MeshBasicMaterial({color:0x49d9c8,wireframe:true,transparent:true,opacity:.55}));
+   globe.position.set(-2.2,2.75,-2.6);g.add(globe);g.userData.globe=globe;
+   const core=new THREE.Mesh(new THREE.SphereGeometry(.85,18,12),
+     new THREE.MeshBasicMaterial({color:0x0f4a48,transparent:true,opacity:.5}));
+   core.position.copy(globe.position);g.add(core);
+   const v=new THREE.Group(); // visitor in a light kandura
    const body=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.85,6,14),mat(0xf5f2ea));body.position.y=1.05;v.add(body);
    const head=new THREE.Mesh(new THREE.SphereGeometry(.26,18,14),mat(0xd9b58a));head.position.y=1.95;v.add(head);
+   const gh=new THREE.Mesh(new THREE.SphereGeometry(.28,18,14,0,Math.PI*2,0,Math.PI/2.1),mat(0xffffff));gh.position.y=1.99;v.add(gh);
    v.position.set(3.6,0,-.5);g.add(v);g.userData.visitor=v;
- }else{ // objectives boards
-   box(g,3.4,2.4,.14,0xf3f6f7,-2.7,2.1,-4.1,TEALL);box(g,3.4,2.4,.14,0xf3f6f7,2.7,2.1,-4.1,SAND);
+ }else{ // Strategy Room: rising holo chart with gold trend arrow
+   holo(4.6,2.5,0,2.5,-3.9,0,.16);
+   for(let k=0;k<5;k++){
+     const h=.45+k*.4;
+     const bar=new THREE.Mesh(new THREE.BoxGeometry(.5,h,.14),
+       new THREE.MeshBasicMaterial({color:0x49d9c8,transparent:true,opacity:.7}));
+     bar.position.set(-1.6+k*.8,1.32+h/2,-3.85);g.add(bar);
+   }
+   const arr=goldPost(0,2.4,-3.7,3.4,.035);arr.rotation.z=-.9;
+   const tip=new THREE.Mesh(new THREE.ConeGeometry(.12,.35,10),goldMat);
+   tip.position.set(1.35,3.45,-3.7);tip.rotation.z=-.9;g.add(tip);
  }
 }
 function buildStation(i,sk){
@@ -1305,9 +1371,10 @@ async function stageConv(stIdx,q,onDone){
 
  /* ---- verbal moment through the persistent live host session ---- */
  if(VOICE_ON&&await hostEnsure()){
-   let judged=false;
+   let judged=false,guard=null,hardTo=null;
+   const stop=()=>{clearInterval(guard);clearTimeout(hardTo)};
    HOST.who=who;
-   HOST.onScore=(args)=>{if(judged)return;judged=true;
+   HOST.onScore=(args)=>{if(judged)return;judged=true;stop();
      live.muted=true;HOST.who=null;
      if(args.feedback)subtitle(T("saif"),args.feedback,true);
      setTimeout(()=>finish(!!args.correct),2600)};
@@ -1316,7 +1383,12 @@ async function stageConv(stIdx,q,onDone){
    hostSay(`${q.id==="S5-Q3"?"For this one, roleplay a VISITOR at the reception desk. ":""}Assessment question: "${L(q.prompt)}" | Correct idea: ${exp} | Wrong ideas (do not accept): ${wrong}`,"ASK");
    stat.style.display="block";stat.textContent=T("listenLive");
    conv.style.display="flex";convOpen=true;liveActive=true; // shows only the "Show choices" escape hatch
-   document.getElementById("convopts").onclick=()=>{HOST.onScore=null;fallback()};
+   document.getElementById("convopts").onclick=()=>{if(judged)return;stop();HOST.onScore=null;fallback()};
+   // resilience: if the voice session dies or stalls, switch to clickable choices
+   const bail=()=>{if(judged)return;judged=true;stop();HOST.onScore=null;
+     stat.textContent=T("ai_no");setTimeout(fallback,500)};
+   guard=setInterval(()=>{if(!HOST.on||!live.ws||live.ws.readyState!==1)bail()},3000);
+   hardTo=setTimeout(bail,75000);
    return;
  }
 
@@ -1509,7 +1581,9 @@ function animate(){
  saif.lookAt(camPos.x,1.2,camPos.z);
  stations.forEach((s,i)=>{
   s.group.userData.beam.rotation.y=t*.6;
-  s.group.children.forEach(ch=>{if(ch.userData.spin)ch.rotation.y=Math.sin(t*ch.userData.spin*8)*.22});
+  s.group.children.forEach(ch=>{if(ch.userData.spin)ch.rotation.y=(ch.userData.baseRy||0)+Math.sin(t*ch.userData.spin*8)*.22});
+  if(s.group.userData.orbRing)s.group.userData.orbRing.rotation.z=t*.9;
+  if(s.group.userData.globe)s.group.userData.globe.rotation.y=t*.3;
   if(s.group.userData.container){const ph=(t*.18)%1;s.group.userData.container.position.x=-4.1+ph*8.2}
   if(s.group.userData.visitor)s.group.userData.visitor.children[1].position.y=1.95+Math.sin(t*1.6)*.03;
  });
