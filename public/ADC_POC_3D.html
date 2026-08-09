@@ -171,10 +171,14 @@ td{border:1px solid var(--line);padding:5px 8px}
 </div>
 
 <script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+{"imports":{
+ "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+ "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
 </script>
 <script type="module">
 import * as THREE from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 
 const errbar=document.getElementById('errbar');
 window.addEventListener('error',e=>{errbar.style.display='block';errbar.textContent+='ERR: '+e.message+' @'+(e.lineno||'')+'\n';});
@@ -214,6 +218,15 @@ const UI={
   mic_ctx:"Microphone needs the local server — close this and launch with run_demo.bat",
   holdSpace:"Hold SPACE to talk",
   listenLive:"🎙 Saif is live — just speak",
+  welcome:"Welcome, {name}! I am Saif, your guide today. We will visit six stations of our customs house; each holds four moments worth five marks. Follow me — I will explain every step.",
+  instrSingle:"Click the card you believe is correct — it flies to the answer pad.",
+  instrMulti:"Click every card that applies, then press Confirm.",
+  instrSeq:"Touch the tiles in the correct order.",
+  instrHot:"Touch the correct spot on the board.",
+  instrHotM:"Touch all the correct spots on the board.",
+  instrAssign:"Click a card, then click the board where it belongs.",
+  resPass:"Congratulations, {name} — you passed with {score} out of 120!",
+  resFail:"You reached {score} out of 120, {name}. You need 96 — let's try again with fresh situations.",
   askPh:"Ask Saif anything…",saif:"Saif — Senior Officer",visitor:"Visitor",you:"You",
   padPlace:"ANSWER PAD — click or drag your answer here",padCollect:"COLLECTION TRAY — click all that apply",
   confirm:"Confirm ✓",reset:"Reset",dropZone:"drop here",notUsed:"Not used",
@@ -240,6 +253,15 @@ const UI={
   mic_ctx:"الميكروفون يتطلب الخادم المحلي — أغلق الصفحة وشغّل run_demo.bat",
   holdSpace:"اضغط مطولاً على مفتاح المسافة للتحدث",
   listenLive:"🎙 سيف معك مباشرة — تحدث الآن",
+  welcome:"أهلاً بك يا {name}! أنا سيف، مرشدك اليوم. سنزور ست محطات في دار الجمارك، وفي كل محطة أربعة مواقف بخمس علامات لكل موقف. اتبعني — سأشرح لك كل خطوة.",
+  instrSingle:"انقر البطاقة التي تراها صحيحة — ستنتقل إلى منصة الإجابة.",
+  instrMulti:"انقر كل بطاقة تنطبق ثم اضغط تأكيد.",
+  instrSeq:"المس اللوحات بالترتيب الصحيح.",
+  instrHot:"المس النقطة الصحيحة على اللوحة.",
+  instrHotM:"المس كل النقاط الصحيحة على اللوحة.",
+  instrAssign:"انقر البطاقة ثم انقر اللوحة المناسبة لها.",
+  resPass:"مبروك يا {name} — اجتزت المستوى بنتيجة {score} من ١٢٠!",
+  resFail:"حصلت على {score} من ١٢٠ يا {name}. المطلوب ٩٦ — لنحاول مجدداً بمواقف جديدة.",
   askPh:"اسأل سيف أي شيء…",saif:"سيف — ضابط أول",visitor:"زائر",you:"أنت",
   padPlace:"منصة الإجابة — انقر إجابتك أو اسحبها",padCollect:"صينية التجميع — انقر كل ما ينطبق",
   confirm:"تأكيد ✓",reset:"إعادة",dropZone:"أفلت هنا",notUsed:"غير مستخدم",
@@ -293,38 +315,77 @@ function widgetOf(q){
 }
 const realDis=q=>q.distractors.filter(d=>!d.en.trim().startsWith("("));
 
-/* ================= three.js world ================= */
+/* ================= three.js world — "gala evening" customs hall ================= */
 const canvas=document.getElementById("c3d");
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:"high-performance"});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.1;
 const scene=new THREE.Scene();
-scene.background=new THREE.Color(0xdce8ee);
-scene.fog=new THREE.Fog(0xdce8ee,40,110);
+scene.background=new THREE.Color(0x0d2b31);
+scene.fog=new THREE.Fog(0x123a40,46,130);
 const camera=new THREE.PerspectiveCamera(66,1,0.1,260);
 let yaw=0,pitch=0;
 const camPos=new THREE.Vector3(0,1.6,14);
-scene.add(new THREE.HemisphereLight(0xffffff,0xb9c4c2,1.05));
-const dl=new THREE.DirectionalLight(0xfff3dd,1.25);dl.position.set(8,18,6);scene.add(dl);
+// image-based lighting: rich reflections on marble/gold without extra lights
+{const pmrem=new THREE.PMREMGenerator(renderer);
+ scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;pmrem.dispose()}
+scene.add(new THREE.HemisphereLight(0xffe9c4,0x14383c,.6));
+const dl=new THREE.DirectionalLight(0xffd9a0,.85);dl.position.set(10,20,8);scene.add(dl);
 
-const TEAL=0x00736a,TEALL=0x35a79a,SAND=0xc8a45a,INK=0x27343a;
+const TEAL=0x00736a,TEALL=0x35a79a,SAND=0xc8a45a,GOLD=0xd7b56d,INK=0x27343a;
 function mat(c,e=0,ei=0.6){return new THREE.MeshStandardMaterial({color:c,emissive:e,emissiveIntensity:ei,roughness:.6,metalness:.12})}
-
-const floor=new THREE.Mesh(new THREE.CircleGeometry(80,64),new THREE.MeshStandardMaterial({color:0xd4dbdf,roughness:.9,metalness:.05}));
-floor.rotation.x=-Math.PI/2;scene.add(floor);
-const grid=new THREE.GridHelper(160,80,0xb9c6cc,0xc8d3d8);grid.position.y=.01;scene.add(grid);
-// central teal medallion like a lobby floor inlay
-const medal=new THREE.Mesh(new THREE.RingGeometry(6,6.35,64),new THREE.MeshBasicMaterial({color:TEAL,transparent:true,opacity:.5}));
-medal.rotation.x=-Math.PI/2;medal.position.y=.02;scene.add(medal);
+const goldMat=new THREE.MeshStandardMaterial({color:GOLD,roughness:.28,metalness:.9});
+const ivoryMat=new THREE.MeshStandardMaterial({color:0xf2ead9,roughness:.42,metalness:.06});
 
 // texture loading (graceful: plain surfaces remain if not served over http)
 const texLoader=new THREE.TextureLoader();
 function loadTex(url,onOk){texLoader.load(url,t=>{t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;onOk(t)},undefined,()=>{});}
 
-// surrounding port panorama band
-{const geo=new THREE.CylinderGeometry(74,74,42,72,1,true);
- const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0xdce8ee,side:THREE.BackSide,fog:false}));
- m.position.y=14;scene.add(m);
+// polished marble floor with gold inlay
+const floor=new THREE.Mesh(new THREE.CircleGeometry(80,64),
+ new THREE.MeshStandardMaterial({color:0xcfc7b4,roughness:.32,metalness:.08}));
+floor.rotation.x=-Math.PI/2;scene.add(floor);
+loadTex("img/floor.jpg",t=>{t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(14,14);
+ floor.material.map=t;floor.material.color.set(0xffffff);floor.material.needsUpdate=true});
+// central medallion: twin gold rings + soft teal glow disc
+{const r1=new THREE.Mesh(new THREE.RingGeometry(5.9,6.15,80),new THREE.MeshStandardMaterial({color:GOLD,roughness:.3,metalness:.85}));
+ r1.rotation.x=-Math.PI/2;r1.position.y=.02;scene.add(r1);
+ const r2=new THREE.Mesh(new THREE.RingGeometry(7.0,7.12,80),new THREE.MeshStandardMaterial({color:GOLD,roughness:.3,metalness:.85}));
+ r2.rotation.x=-Math.PI/2;r2.position.y=.02;scene.add(r2);
+ const gl=new THREE.Mesh(new THREE.CircleGeometry(5.85,64),new THREE.MeshBasicMaterial({color:TEAL,transparent:true,opacity:.10}));
+ gl.rotation.x=-Math.PI/2;gl.position.y=.015;scene.add(gl)}
+
+// surrounding dusk-harbor panorama band
+{const geo=new THREE.CylinderGeometry(74,74,44,72,1,true);
+ const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x123a40,side:THREE.BackSide,fog:false}));
+ m.position.y=15;scene.add(m);
  loadTex("img/port-panorama.jpg",t=>{t.wrapS=THREE.RepeatWrapping;t.repeat.x=3;m.material.map=t;m.material.color.set(0xffffff);m.material.needsUpdate=true});}
+
+// colonnade: ivory columns with gold base/capital between the stations
+{const colGeo=new THREE.CylinderGeometry(.42,.5,11,14);
+ const capGeo=new THREE.CylinderGeometry(.62,.5,.4,14);
+ const baseGeo=new THREE.CylinderGeometry(.58,.68,.5,14);
+ for(let k=0;k<10;k++){
+   const a=(-74+k*24.8)*Math.PI/180;
+   const x=Math.sin(a)*33,z=-Math.cos(a)*33;
+   const c=new THREE.Mesh(colGeo,ivoryMat);c.position.set(x,5.5,z);scene.add(c);
+   const cap=new THREE.Mesh(capGeo,goldMat);cap.position.set(x,11,z);scene.add(cap);
+   const b=new THREE.Mesh(baseGeo,goldMat);b.position.set(x,.25,z);scene.add(b);
+ }}
+// ceiling glow cove + hanging pendants over the arena
+{const cove=new THREE.Mesh(new THREE.TorusGeometry(27,.22,10,90),
+  new THREE.MeshBasicMaterial({color:0xffd9a0,fog:false}));
+ cove.rotation.x=Math.PI/2;cove.position.y=12.2;scene.add(cove);
+ const cove2=new THREE.Mesh(new THREE.TorusGeometry(8,.14,8,70),new THREE.MeshBasicMaterial({color:0x8fe0d6,fog:false}));
+ cove2.rotation.x=Math.PI/2;cove2.position.y=11.4;scene.add(cove2)}
+// floating dust motes catching the light (single cheap Points cloud)
+{const N=240,pos=new Float32Array(N*3);
+ for(let i=0;i<N;i++){const a=Math.random()*7,r=6+Math.random()*30;
+  pos[i*3]=Math.sin(a)*r;pos[i*3+1]=.4+Math.random()*9;pos[i*3+2]=-Math.cos(a)*r}
+ const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.BufferAttribute(pos,3));
+ const p=new THREE.Points(g,new THREE.PointsMaterial({color:0xffe2ae,size:.07,transparent:true,opacity:.55,depthWrite:false}));
+ scene.add(p);window.__dust=p}
 
 /* ---------- canvas-text panels (native Arabic shaping) ---------- */
 function roundRect(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
@@ -401,24 +462,31 @@ function addTheme(g,i){
 function buildStation(i,sk){
  const g=new THREE.Group();const pos=stationPos(i);g.position.copy(pos);
  g.lookAt(0,0,0); // +z faces the arena center
- const plat=new THREE.Mesh(new THREE.CylinderGeometry(5.4,5.6,.14,48),mat(0xe9eef0));plat.position.y=.07;g.add(plat);
- const ring=new THREE.Mesh(new THREE.TorusGeometry(5.5,.05,10,64),mat(TEAL,TEAL,.8));ring.rotation.x=Math.PI/2;ring.position.y=.16;g.add(ring);
- // white gallery wall with teal trim
- const wall=new THREE.Mesh(new THREE.BoxGeometry(10.5,5.2,.3),mat(0xf7f9fa));wall.position.set(0,2.7,-4.6);g.add(wall);
- const trim=new THREE.Mesh(new THREE.BoxGeometry(10.9,.14,.36),mat(TEAL,TEAL,.5));trim.position.set(0,5.35,-4.6);g.add(trim);
- const base=new THREE.Mesh(new THREE.BoxGeometry(10.9,.3,.36),mat(TEAL,TEAL,.25));base.position.set(0,.15,-4.6);g.add(base);
- // themed image mounted on the wall
- const pic=new THREE.Mesh(new THREE.PlaneGeometry(7.4,4.1),new THREE.MeshBasicMaterial({color:0xe4eaec}));
- pic.position.set(0,2.75,-4.42);g.add(pic);
+ // ivory dais with gold + glowing teal rings
+ const plat=new THREE.Mesh(new THREE.CylinderGeometry(5.4,5.6,.16,48),ivoryMat);plat.position.y=.08;g.add(plat);
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(5.5,.05,10,64),mat(TEAL,TEALL,.9));ring.rotation.x=Math.PI/2;ring.position.y=.18;g.add(ring);
+ const gring=new THREE.Mesh(new THREE.TorusGeometry(5.72,.035,8,64),goldMat);gring.rotation.x=Math.PI/2;gring.position.y=.16;g.add(gring);
+ // deep-teal gallery wall with gold trim
+ const wall=new THREE.Mesh(new THREE.BoxGeometry(10.8,5.6,.3),new THREE.MeshStandardMaterial({color:0x11393f,roughness:.5,metalness:.15}));
+ wall.position.set(0,2.85,-4.6);g.add(wall);
+ const trim=new THREE.Mesh(new THREE.BoxGeometry(11.2,.16,.38),goldMat);trim.position.set(0,5.72,-4.6);g.add(trim);
+ const base=new THREE.Mesh(new THREE.BoxGeometry(11.2,.34,.38),goldMat);base.position.set(0,.17,-4.6);g.add(base);
+ // gold-framed stylized artwork
+ const frame=new THREE.Mesh(new THREE.BoxGeometry(7.7,5.14,.1),goldMat);
+ frame.position.set(0,2.85,-4.48);g.add(frame);
+ const pic=new THREE.Mesh(new THREE.PlaneGeometry(7.35,4.86),new THREE.MeshBasicMaterial({color:0x1c4a50}));
+ pic.position.set(0,2.85,-4.41);g.add(pic);
  loadTex(WALL_IMG[i],t=>{pic.material.map=t;pic.material.color.set(0xffffff);pic.material.needsUpdate=true});
  g.userData.pic=pic;
+ // gallery wash light bar above the art (emissive, not a real light)
+ const wash=new THREE.Mesh(new THREE.BoxGeometry(7.7,.08,.5),new THREE.MeshBasicMaterial({color:0xffe6b8}));
+ wash.position.set(0,5.5,-4.25);g.add(wash);
  // station title plaque
- const title=textPanel(`${i+1} · ${L(sk.scene.name)}`,7,.9,{size:52,bold:true,bg:"rgba(255,255,255,0.95)",border:"#00736a"});
- title.position.set(0,5.15,-4.35);g.add(title);
- // no per-station point lights: 6 extra dynamic lights were a major fps drain
+ const title=textPanel(`${i+1} · ${L(sk.scene.name)}`,7,.9,{size:52,bold:true,color:"#f7f3e8",bg:"rgba(10,45,50,0.92)",border:"#d7b56d"});
+ title.position.set(0,6.15,-4.35);g.add(title);
  addTheme(g,i);
  const beam=new THREE.Mesh(new THREE.CylinderGeometry(.5,1.4,7,24,1,true),
-   new THREE.MeshBasicMaterial({color:TEAL,transparent:true,opacity:.12,side:THREE.DoubleSide,depthWrite:false}));
+   new THREE.MeshBasicMaterial({color:TEALL,transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));
  beam.position.set(0,3.5,2.5);g.add(beam);
  g.userData.beam=beam;
  scene.add(g);
@@ -434,10 +502,13 @@ const saif=new THREE.Group();
  saif.position.set(1.6,0,10);scene.add(saif)}
 let saifTarget=saif.position.clone(),saifSpeaking=0;
 
-// entrance arch — white with teal lintel
+// entrance arch — ivory columns, gold lintel, glowing welcome band
 {const a=new THREE.Group();
- box(a,.5,4.4,.5,0xf3f6f7,-2.6,2.2,0);box(a,.5,4.4,.5,0xf3f6f7,2.6,2.2,0);
- box(a,5.8,.5,.6,TEAL,0,4.6,0,TEAL);
+ const c1=new THREE.Mesh(new THREE.CylinderGeometry(.32,.4,4.6,12),ivoryMat);c1.position.set(-2.6,2.3,0);a.add(c1);
+ const c2=c1.clone();c2.position.x=2.6;a.add(c2);
+ const lin=new THREE.Mesh(new THREE.BoxGeometry(6.2,.5,.7),goldMat);lin.position.set(0,4.85,0);a.add(lin);
+ const glowb=new THREE.Mesh(new THREE.BoxGeometry(5.4,.09,.72),new THREE.MeshBasicMaterial({color:0x8fe0d6}));
+ glowb.position.set(0,4.56,0);a.add(glowb);
  a.position.set(0,0,17);scene.add(a)}
 
 CONTENT.skills.forEach((sk,i)=>stations.push(buildStation(i,sk)));
@@ -569,7 +640,6 @@ let AC=null;function beep(ok){try{AC=AC||new (window.AudioContext||window.webkit
  g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.35);o.start();o.stop(AC.currentTime+.36);
  if(ok){const o2=AC.createOscillator(),g2=AC.createGain();o2.connect(g2);g2.connect(AC.destination);
   o2.frequency.value=1320;g2.gain.setValueAtTime(.09,AC.currentTime+.12);g2.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.5);o2.start(AC.currentTime+.12);o2.stop(AC.currentTime+.52)}}catch(e){}}
-try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{}}catch(e){}
 let VOICE_ON=localStorage.getItem("adc_voice")!=="off";
 // speak only the core instruction: quoted part if present, else first sentence
 function brief(text){
@@ -579,18 +649,62 @@ function brief(text){
  else t=t.split(/(?<=[.؟?!])\s+/)[0];
  return t.length>180?t.slice(0,177)+"…":t;
 }
+/* Saif's voice = one persistent Gemini Live session for the whole level.
+   No robotic browser TTS anywhere: with AI available he speaks natively;
+   without it, narration is silent subtitles. */
+const HOST={on:false,failed:0,q:[],talking:false,onScore:null,who:null,buf:"",watch:null};
 function speak(text,who,fullSub){
  subtitle(who||T("saif"),fullSub||text);
- if(!VOICE_ON)return;
- try{if(!window.speechSynthesis)return;
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang=LANG==="ar"?"ar-SA":"en-GB";u.rate=1.02;
-  const vs=speechSynthesis.getVoices();
-  const v=vs.find(v=>v.lang&&v.lang.toLowerCase().startsWith(LANG==="ar"?"ar":"en"));
-  if(v)u.voice=v;
-  saifSpeaking=1;u.onend=()=>saifSpeaking=0;
-  speechSynthesis.speak(u);}catch(e){}
+ hostSay(text);
+}
+function hostSay(text,kind){
+ if(!VOICE_ON||!AI_ON)return;
+ HOST.q.push({text,kind:kind||"SAY"});
+ hostPump();
+}
+async function hostPump(){
+ if(HOST.talking||!HOST.q.length)return;
+ if(HOST.onScore&&HOST.q[0].kind!=="ASK")return; // narration waits until the verbal question is judged
+ if(!(await hostEnsure())){HOST.q.length=0;return}
+ const it=HOST.q.shift();
+ HOST.talking=true;
+ clearTimeout(HOST.watch);
+ HOST.watch=setTimeout(()=>{HOST.talking=false;hostPump()},15000); // failsafe if a turn never completes
+ if(it.kind==="ASK")live.muted=false; // open the mic exactly when a question starts
+ live.sendText(`[${it.kind}] ${it.text}`);
+}
+async function hostEnsure(){
+ if(HOST.on&&live.ws&&live.ws.readyState===1)return true;
+ HOST.on=false;
+ if(HOST.failed>=2||!AI_ON||!window.isSecureContext)return false;
+ if(!(await live.initMic())){HOST.failed=9;log("host: mic denied");return false}
+ try{
+  await live.unlock();
+  const name=S?S.trainee:"";
+  const sys=`You are Saif, a warm senior Abu Dhabi Customs officer hosting a new employee named "${name}" inside a 3D assessment simulation, "A Morning at Abu Dhabi Customs".
+Speak ONLY ${LANG==="ar"?"Arabic":"English"}. Warm, encouraging, professional. Keep every spoken turn under 25 words.
+You receive bracketed system commands. The trainee never sees them; never mention or read them aloud:
+- [SAY] <text>: deliver this message naturally in your own warm words, keeping its meaning and brevity. Do not ask questions, do not wait for a reply.
+- [ASK] <context>: run a verbal assessment moment. Ask the given question in ONE short sentence, then listen. Accept paraphrases and substantially-correct answers. If the trainee is silent or off-topic, gently re-ask once. As soon as they answer, call score_answer with correct=true/false and one short feedback sentence, and speak that feedback.
+- A plain message is the trainee talking to you as a mentor: answer briefly, in character.`;
+  live.onText=(t,done)=>{
+   if(t){HOST.buf+=t;subtitle(HOST.who||T("saif"),HOST.buf,true)}
+   if(done){HOST.buf="";HOST.talking=false;clearTimeout(HOST.watch);hostPump()}
+  };
+  live.onUserText=(t)=>{const st=document.getElementById("convstat");
+   if(!live.muted&&st.style.display!=="none")st.textContent="🎙 "+t};
+  live.onTool=async(n,a)=>{if(n==="score_answer"&&HOST.onScore){const f=HOST.onScore;HOST.onScore=null;f(a||{});hostPump()}return{ok:true}};
+  live.onClose=()=>{HOST.on=false;HOST.talking=false};
+  await live.connect(sys,[{name:"score_answer",description:"Record the assessment of the trainee's verbal answer during an [ASK] moment. Call exactly once per question.",
+    parameters:{type:"OBJECT",properties:{correct:{type:"BOOLEAN"},feedback:{type:"STRING",description:"one short in-character sentence"}},required:["correct"]}}]);
+  live.muted=true; // mic opens only during [ASK] moments
+  HOST.on=true;HOST.failed=0;
+  return true;
+ }catch(e){HOST.failed++;log("host error: "+e.message);return false}
+}
+function hostReset(){
+ HOST.on=false;HOST.failed=0;HOST.q.length=0;HOST.talking=false;HOST.onScore=null;HOST.who=null;HOST.buf="";
+ clearTimeout(HOST.watch);live.destroy();
 }
 let subTimer=null;
 function subtitle(who,text,sticky){
@@ -872,7 +986,8 @@ function playBeat(stIdx,q,onDone){
  const w=widgetOf(q);
  const dis=realDis(q);
  if(w==="conv"){stageConv(stIdx,q,onDone);return}
- speak(brief(L(q.prompt)),T("saif"),L(q.prompt));
+ const INSTR={single:"instrSingle",multi:"instrMulti",sequence:"instrSeq",hotsingle:"instrHot",hotmulti:"instrHotM",assign:"instrAssign"};
+ speak(L(q.prompt)+" — "+T(INSTR[w]||"instrSingle"),T("saif"),L(q.prompt));
  const g=stageBase(stIdx);
  const finish=(ok,at)=>{score(q,ok,at);setTimeout(()=>onDone(),1100)};
 
@@ -1123,7 +1238,7 @@ async function stageConv(stIdx,q,onDone){
  document.getElementById("convopts").textContent=T("showOpts");
  document.getElementById("convin").value="";
  document.getElementById("convin").placeholder=T("typeHint");
- const cleanup=()=>{conv.style.display="none";stat.style.display="none";sp.style.display="none";convOpen=false;curSubmit=null;liveActive=false;live.close()};
+ const cleanup=()=>{conv.style.display="none";stat.style.display="none";sp.style.display="none";convOpen=false;curSubmit=null;liveActive=false;live.muted=true;HOST.who=null};
  const fallback=()=>{cleanup();
    const dis=realDis(q);const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
    const cards=items.map((o,ix)=>{const m=tileMesh(L(o),ix+1);
@@ -1132,49 +1247,27 @@ async function stageConv(stIdx,q,onDone){
  if(!hasAI()){stat.style.display="block";stat.textContent=T("key_no");setTimeout(fallback,50);return}
  const finish=(ok)=>{cleanup();score(q,ok);setTimeout(()=>onDone(),1100)};
 
- /* ---- Gemini Live native voice through the server relay (no TTS fallback:
-    if the live session cannot start we go straight to visual choices) ---- */
- if(AI_ON&&window.isSecureContext&&VOICE_ON){
-   stat.style.display="block";stat.textContent="…";
-   const okMic=await live.initMic();
-   if(okMic){
-     try{
-       await live.unlock();
-       const exp=q.correct.map(c=>L(c)).join(" / ");
-       const wrong=realDis(q).map(d=>L(d)).join(" / ");
-       const sys=`You are Saif, a warm senior Abu Dhabi Customs officer inside a 3D training simulation, assessing a junior trainee. Session language: ${LANG==="ar"?"Arabic — speak only Arabic":"English"}. ${q.id==="S5-Q3"?"For this moment you roleplay a VISITOR at reception asking the trainee a question.":""}
-The assessment moment: ${L(q.prompt)}
-The correct idea: ${exp}
-Known wrong ideas (do not accept): ${wrong}
-Open with ONE short sentence asking the question naturally. Then listen. Accept paraphrases and partial-but-substantially-correct answers. If the trainee is silent or off-topic, gently re-ask once. As soon as they give an answer, immediately call score_answer with correct=true/false and one short spoken feedback sentence, and speak that feedback. Keep every turn under 20 words.`;
-       let saifBuf="",judged=false;
-       live.onText=(t,done)=>{if(t){saifBuf+=t;subtitle(who,saifBuf,true)}if(done)saifBuf=""};
-       live.onUserText=(t)=>{stat.textContent="🎙 "+t};
-       live.onTool=async(name,args)=>{
-         if(name==="score_answer"&&!judged){judged=true;
-           if(args.feedback)subtitle(T("saif"),args.feedback,true);
-           setTimeout(()=>finish(!!args.correct),2800);
-         }
-         return {ok:true};
-       };
-       live.onClose=()=>{if(!judged){stat.textContent=T("ai_no");setTimeout(fallback,600)}};
-       const tools=[{name:"score_answer",description:"Record the assessment of the trainee's verbal answer. Call exactly once.",
-         parameters:{type:"OBJECT",properties:{correct:{type:"BOOLEAN"},feedback:{type:"STRING",description:"one short in-character sentence"}},required:["correct"]}}];
-       try{await live.connect(sys,tools)}
-       catch(e1){log("live retry: "+e1.message);await live.connect(sys,tools)} // one retry before giving up
-       live.sendText("(The trainee is standing in front of you, ready. Ask the question now.)");
-       stat.textContent=T("listenLive");
-       conv.style.display="flex";convOpen=true;liveActive=true;
-       talk.style.display="none"; // mic is always on in live mode
-       const sendTyped=(text)=>{if(!text||!text.trim())return;
-         subtitle(T("you"),text);document.getElementById("convin").value="";
-         live.sendText(text.trim())};
-       document.getElementById("convsend").onclick=()=>sendTyped(document.getElementById("convin").value);
-       document.getElementById("convin").onkeydown=e=>{if(e.key==="Enter")sendTyped(e.target.value)};
-       document.getElementById("convopts").onclick=fallback;
-       return;
-     }catch(e){log("live error: "+e.message)}
-   }
+ /* ---- verbal moment through the persistent live host session ---- */
+ if(VOICE_ON&&await hostEnsure()){
+   let judged=false;
+   HOST.who=who;
+   HOST.onScore=(args)=>{if(judged)return;judged=true;
+     live.muted=true;HOST.who=null;
+     if(args.feedback)subtitle(T("saif"),args.feedback,true);
+     setTimeout(()=>finish(!!args.correct),2600)};
+   const exp=q.correct.map(c=>L(c)).join(" / ");
+   const wrong=realDis(q).map(d=>L(d)).join(" / ");
+   hostSay(`${q.id==="S5-Q3"?"For this one, roleplay a VISITOR at the reception desk. ":""}Assessment question: "${L(q.prompt)}" | Correct idea: ${exp} | Wrong ideas (do not accept): ${wrong}`,"ASK");
+   stat.style.display="block";stat.textContent=T("listenLive");
+   conv.style.display="flex";convOpen=true;liveActive=true;
+   talk.style.display="none"; // mic opens automatically for the question
+   const sendTyped=(text)=>{if(!text||!text.trim())return;
+     subtitle(T("you"),text);document.getElementById("convin").value="";
+     live.sendText(text.trim())};
+   document.getElementById("convsend").onclick=()=>sendTyped(document.getElementById("convin").value);
+   document.getElementById("convin").onkeydown=e=>{if(e.key==="Enter")sendTyped(e.target.value)};
+   document.getElementById("convopts").onclick=()=>{HOST.onScore=null;fallback()};
+   return;
  }
 
  // no robotic-TTS path: if live voice is unavailable, show the choices instead
@@ -1191,6 +1284,8 @@ function startSession(name){
  document.getElementById("startOv").style.display="none";
  document.getElementById("ctrlhint").textContent=T("hint");
  hud();
+ hostReset(); // fresh voice session with this trainee's name and language
+ speak(T("welcome").replace("{name}",name),T("saif"));
  runStation(0);
 }
 function runStation(i){
@@ -1199,7 +1294,7 @@ function runStation(i){
  const a=stationAngle(i);
  saifTarget=new THREE.Vector3(Math.sin(a)*(R-5.4)+Math.cos(a)*1.8,0,-Math.cos(a)*(R-5.4)+Math.sin(a)*1.8);
  glideTo(i);
- speak(brief(T("stationIntro")[i]),T("saif"),T("stationIntro")[i]);
+ speak(T("stationIntro")[i],T("saif"));
  setTimeout(()=>runBeat(i,0),FAST?350:2600);
 }
 function runBeat(i,b){
@@ -1209,8 +1304,8 @@ function runBeat(i,b){
 }
 function endLevel(){
  clearQ();
- live.destroy(); // release mic + close any live session between attempts
  const pass=S.score>=96;
+ speak(T(pass?"resPass":"resFail").replace("{name}",S.trainee).replace("{score}",String(S.score)),T("saif"));
  DB.results.push({trainee:S.trainee,level:1,attempt:S.attempt,score:S.score,pass,lang:LANG,ts:new Date().toISOString(),answers:S.answers});
  save();log(`level.result · ${S.trainee} · ${S.score}/120 · ${pass?"PASS":"FAIL"}`);
  S.active=false;hud();
@@ -1223,7 +1318,7 @@ function endLevel(){
  rr.style.display=pass?"none":"";rr.textContent=T("retry");
  rr.onclick=()=>{document.getElementById("resultOv").style.display="none";startSession(S.trainee)};
  document.getElementById("roHome").textContent=T("home");
- document.getElementById("roHome").onclick=()=>{document.getElementById("resultOv").style.display="none";showStart()};
+ document.getElementById("roHome").onclick=()=>{document.getElementById("resultOv").style.display="none";hostReset();showStart()};
  document.getElementById("resultOv").style.display="flex";
 }
 
@@ -1280,11 +1375,12 @@ document.getElementById("askclose").onclick=()=>toggleAsk(false);
 const btnVoice=document.getElementById("btnVoice");
 const paintVoice=()=>btnVoice.textContent=VOICE_ON?"🔊":"🔇";
 btnVoice.onclick=()=>{VOICE_ON=!VOICE_ON;localStorage.setItem("adc_voice",VOICE_ON?"on":"off");
- if(!VOICE_ON)try{speechSynthesis.cancel()}catch(e){};paintVoice()};
+ if(!VOICE_ON){HOST.q.length=0;live.stopPlayback()}paintVoice()};
 paintVoice();
 async function doAsk(){const i=document.getElementById("askin");const t=i.value.trim();if(!t)return;
  i.value="";subtitle(T("you"),t);
- try{const r=await askSaif(t);speak(r.trim(),T("saif"))}catch(e){subtitle(T("saif"),e.message==="nokey"?T("key_no"):T("ai_no"))}}
+ if(VOICE_ON&&HOST.on&&live.ws&&live.ws.readyState===1){live.sendText(t);return} // Saif answers in his own voice
+ try{const r=await askSaif(t);subtitle(T("saif"),r.trim())}catch(e){subtitle(T("saif"),e.message==="nokey"?T("key_no"):T("ai_no"))}}
 document.getElementById("asksend").onclick=doAsk;
 document.getElementById("askin").addEventListener("keydown",e=>{if(e.key==="Enter")doAsk()});
 
@@ -1330,11 +1426,24 @@ function paintAdmin(){
 /* ---------- render loop ---------- */
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
 addEventListener("resize",resize);resize();
+// adaptive resolution: drop render scale when frames run slow, restore when fast
+const DPR_STEPS=[.8,1,1.25,1.5];
+let dprIx=DPR_STEPS.indexOf(1.5),frameAcc=0,frameN=0,dprCool=0;
+function dprTick(dt){
+ frameAcc+=dt;frameN++;dprCool-=dt;
+ if(frameN<60||dprCool>0)return;
+ const avg=frameAcc/frameN;frameAcc=0;frameN=0;
+ const cap=Math.min(devicePixelRatio,1.5);
+ if(avg>.026&&dprIx>0){dprIx--;renderer.setPixelRatio(Math.min(cap,DPR_STEPS[dprIx]));resize();dprCool=2}
+ else if(avg<.013&&dprIx<DPR_STEPS.length-1&&DPR_STEPS[dprIx+1]<=cap){dprIx++;renderer.setPixelRatio(DPR_STEPS[dprIx]);resize();dprCool=4}
+}
 const clock=new THREE.Clock();
 function animate(){
  requestAnimationFrame(animate);
  const dt=Math.min(clock.getDelta(),.05);
  const t=clock.elapsedTime;
+ dprTick(dt);
+ if(window.__dust)window.__dust.rotation.y=t*.011;
  moveTick(dt);hoverTick();fxTick(dt);
  camera.position.copy(camPos);
  camera.rotation.set(0,0,0);camera.rotateY(yaw);camera.rotateX(pitch);
