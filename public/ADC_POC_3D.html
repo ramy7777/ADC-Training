@@ -884,7 +884,8 @@ class LiveVoice{
    if(this.micCtx.state==="suspended")try{await this.micCtx.resume()}catch(e){}
    const src=this.micCtx.createMediaStreamSource(this.micStream);
    const send=(f)=>{
-    if(this.muted||!this.ws||this.ws.readyState!==1)return;
+    // anti-echo: never stream the mic while Saif's own voice is playing
+    if(this.muted||this.sources.length>0||!this.ws||this.ws.readyState!==1)return;
     const i16=new Int16Array(f.length);
     for(let i=0;i<f.length;i++){const v=Math.max(-1,Math.min(1,f[i]));i16[i]=v<0?v*0x8000:v*0x7FFF}
     let bin="";const u8=new Uint8Array(i16.buffer);
@@ -929,6 +930,8 @@ class LiveVoice{
      systemInstruction:{parts:[{text:systemPrompt}]},
      tools:[{functionDeclarations:tools}],
      outputAudioTranscription:{},inputAudioTranscription:{},
+     // speaker sound picked up by the open mic must NOT cut Saif off mid-sentence
+     realtimeInputConfig:{activityHandling:"NO_INTERRUPTION"},
     }}));
    };
    ws.onmessage=async(ev)=>{
@@ -955,7 +958,7 @@ class LiveVoice{
    };
    ws.onerror=()=>{if(this.ws!==sock)return;if(!settled){settled=true;clearTimeout(to);reject(new Error("ws error"))}};
    ws.onclose=(e)=>{if(!settled){settled=true;clearTimeout(to);reject(new Error("closed "+e.code))}
-    else if(this.ws===sock&&!this.intentional&&this.onClose)this.onClose(e)};
+    else if(this.ws===sock&&!this.intentional){log(`live closed ${e.code} ${e.reason||""}`);if(this.onClose)this.onClose(e)}};
   });
  }
  sendText(t){if(this.ws&&this.ws.readyState===1)this.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:t}]}],turnComplete:true}}))}
@@ -1380,6 +1383,7 @@ async function stageConv(stIdx,q,onDone){
  document.getElementById("convin").placeholder=T("typeHint");
  const cleanup=()=>{conv.style.display="none";stat.style.display="none";sp.style.display="none";convOpen=false;curSubmit=null;liveActive=false;live.muted=true;HOST.who=null};
  const fallback=()=>{cleanup();
+   subtitle(who,L(q.prompt),true);
    const dis=realDis(q);const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
    const cards=items.map((o,ix)=>{const m=tileMesh(L(o),ix+1);
      m.userData.onClick=()=>{score(q,q.correct.some(c=>c.en===items[ix].en),m.position.clone());setTimeout(()=>onDone(),1100)};return m});
@@ -1406,7 +1410,7 @@ async function stageConv(stIdx,q,onDone){
    const bail=()=>{if(judged)return;judged=true;stop();HOST.onScore=null;
      stat.textContent=T("ai_no");setTimeout(fallback,500)};
    guard=setInterval(()=>{if(!HOST.on||!live.ws||live.ws.readyState!==1)bail()},3000);
-   hardTo=setTimeout(bail,75000);
+   hardTo=setTimeout(bail,45000);
    return;
  }
 
