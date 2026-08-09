@@ -78,8 +78,11 @@ button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;font-siz
 #talk.rec{background:var(--red);animation:pulse 1s infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(216,74,56,.5)}70%{box-shadow:0 0 0 14px rgba(216,74,56,0)}100%{box-shadow:0 0 0 0 rgba(216,74,56,0)}}
 #spacehint{position:fixed;bottom:76px;inset-inline-end:16px;font-size:11px;color:var(--muted);background:rgba(255,255,255,.9);padding:6px 12px;border-radius:9px;z-index:21;display:none;border:1px solid var(--line)}
-#askrow{display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:22;gap:8px;background:rgba(255,255,255,.97);border:1px solid var(--line);padding:9px 12px;border-radius:99px;box-shadow:0 14px 40px rgba(0,25,30,.25)}
+#askrow{display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:22;gap:8px;background:rgba(255,255,255,.97);border:1px solid var(--line);padding:9px 12px;border-radius:99px;box-shadow:0 14px 40px rgba(0,25,30,.25);align-items:center}
 #askrow input{width:340px;padding:10px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font-family:inherit}
+#askmic{width:44px;height:44px;border-radius:50%;border:none;background:var(--teal);color:#fff;font-size:19px;cursor:pointer;flex:none}
+#askmic.rec{background:var(--red);animation:pulse 1s infinite}
+#convin,#convsend,#talk{display:none!important} /* typed/PTT answers now go through the always-on chat bar */
 #ctrlhint{position:fixed;bottom:16px;inset-inline-start:16px;font-size:11px;color:var(--muted);z-index:19;background:rgba(255,255,255,.9);border:1px solid var(--line);padding:8px 12px;border-radius:9px;line-height:1.7;max-width:330px}
 #flash{position:fixed;inset:0;pointer-events:none;z-index:17;opacity:0;transition:opacity .5s}
 #errbar{position:fixed;top:0;left:0;right:0;background:#8c2318;color:#fff;font-size:12px;padding:6px 12px;z-index:99;display:none;white-space:pre-wrap}
@@ -125,7 +128,7 @@ td{border:1px solid var(--line);padding:5px 8px}
   <input id="convin" type="text"><button class="btn small" id="convsend">➤</button>
   <button class="btn ghost small" id="convopts"></button>
 </div>
-<div id="askrow"><input id="askin" type="text"><button class="btn small" id="asksend">➤</button><button class="btn ghost small" id="askclose">✕</button></div>
+<div id="askrow"><button id="askmic" title="Hold to talk">🎤</button><input id="askin" type="text"><button class="btn small" id="asksend">➤</button></div>
 <div id="ctrlhint"></div>
 <div id="flash"></div>
 
@@ -217,6 +220,7 @@ const UI={
   key_no:"No AI key set — using choices. Paste the Gemini key in Admin → AI key for conversations.",
   mic_ctx:"Microphone needs the local server — close this and launch with run_demo.bat",
   holdSpace:"Hold SPACE to talk",
+  holdSpace2:"🎙 Hold SPACE (or the mic button) to talk to Saif anytime",
   listenLive:"🎙 Saif is live — just speak",
   welcome:"Welcome, {name}! I am Saif, your guide today. We will visit six stations of our customs house; each holds four moments worth five marks. Follow me — I will explain every step.",
   instrSingle:"Click the card you believe is correct — it flies to the answer pad.",
@@ -252,6 +256,7 @@ const UI={
   key_no:"لا يوجد مفتاح ذكاء اصطناعي — سنعرض الخيارات. ألصق المفتاح في لوحة المشرف.",
   mic_ctx:"الميكروفون يتطلب الخادم المحلي — أغلق الصفحة وشغّل run_demo.bat",
   holdSpace:"اضغط مطولاً على مفتاح المسافة للتحدث",
+  holdSpace2:"🎙 اضغط مطولاً على مفتاح المسافة (أو زر الميكروفون) للتحدث مع سيف في أي وقت",
   listenLive:"🎙 سيف معك مباشرة — تحدث الآن",
   welcome:"أهلاً بك يا {name}! أنا سيف، مرشدك اليوم. سنزور ست محطات في دار الجمارك، وفي كل محطة أربعة مواقف بخمس علامات لكل موقف. اتبعني — سأشرح لك كل خطوة.",
   instrSingle:"انقر البطاقة التي تراها صحيحة — ستنتقل إلى منصة الإجابة.",
@@ -567,7 +572,7 @@ addEventListener("pointerup",e=>{
    // a tap (no real movement) on a draggable acts as a click — simpler than dragging
    if(drag.moved<6&&o.userData.onClick){
      o.position.copy(drag.grabPos);o.rotation.x=drag.grabRot;
-     const cb=o.userData.onClick;drag=null;cb(o);return;
+     const cb=o.userData.onClick;drag=null;tick();cb(o);return;
    }
    ray.setFromCamera(mouse,camera);
    const zh=ray.intersectObjects(dropTargets,false);
@@ -585,12 +590,12 @@ addEventListener("pointerup",e=>{
 function clickRay(){
  ray.setFromCamera(mouse,camera);
  const hits=ray.intersectObjects(clicks,false);
- if(hits.length){const o=hits[0].object;if(o.userData.onClick)o.userData.onClick(o)}
+ if(hits.length){const o=hits[0].object;if(o.userData.onClick){tick();o.userData.onClick(o)}}
 }
 function hoverTick(){
  if(drag)return;
  const all=clicks.concat(drags);
- if(!all.length){document.body.style.cursor=looking?"grabbing":"default";return}
+ if(!all.length){document.body.style.cursor=looking?"grabbing":"default";hovered=null;return}
  ray.setFromCamera(mouse,camera);
  const hits=ray.intersectObjects(all,false);
  const o=hits.length?hits[0].object:null;
@@ -598,6 +603,25 @@ function hoverTick(){
  hovered=o;
  if(o){o.userData.baseScale=o.userData.baseScale||o.scale.x;o.scale.setScalar((o.userData.baseScale||1)*1.07);document.body.style.cursor=drags.includes(o)?"grab":"pointer"}
  else document.body.style.cursor=looking?"grabbing":"default";
+}
+// soft teal halo floating behind whatever card is hovered
+const hoverGlow=(()=> {
+ const cv=document.createElement("canvas");cv.width=cv.height=128;const x=cv.getContext("2d");
+ const g=x.createRadialGradient(64,64,6,64,64,64);
+ g.addColorStop(0,"rgba(120,235,220,.85)");g.addColorStop(1,"rgba(120,235,220,0)");
+ x.fillStyle=g;x.fillRect(0,0,128,128);
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),
+  new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthWrite:false,depthTest:false}));
+ m.renderOrder=9;m.visible=false;scene.add(m);return m})();
+function glowTick(){
+ if(hovered&&hovered.userData.isCard){
+  const wp=new THREE.Vector3();hovered.getWorldPosition(wp);
+  const away=wp.clone().sub(camera.position).normalize();
+  hoverGlow.position.copy(wp).addScaledVector(away,.25);
+  hoverGlow.quaternion.copy(camera.quaternion);
+  hoverGlow.scale.set(3.4,1.9,1);
+  hoverGlow.visible=true;
+ }else hoverGlow.visible=false;
 }
 
 /* ---------- movement ---------- */
@@ -624,7 +648,7 @@ function moveTick(dt){
    let dy=glide.yawTo-yaw;while(dy>Math.PI)dy-=2*Math.PI;while(dy<-Math.PI)dy+=2*Math.PI;
    yaw+=dy*Math.min(1,dt*4);
    if(glide.t>=1)glide=null;return}
- const sp=6*dt;const f=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),r=new THREE.Vector3(f.z,0,-f.x);
+ const sp=6*dt;const f=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),r=new THREE.Vector3(-f.z,0,f.x);
  if(keys.w||keys.arrowup)camPos.addScaledVector(f,sp);
  if(keys.s||keys.arrowdown)camPos.addScaledVector(f,-sp);
  if(keys.a||keys.arrowleft)camPos.addScaledVector(r,-sp);
@@ -634,6 +658,10 @@ function moveTick(dt){
 }
 
 /* ---------- audio / speech ---------- */
+function tick(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+ const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);
+ o.frequency.value=1250;o.type="sine";g.gain.setValueAtTime(.06,AC.currentTime);
+ g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.09);o.start();o.stop(AC.currentTime+.1)}catch(e){}}
 let AC=null;function beep(ok){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
  const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);
  o.frequency.value=ok?880:220;o.type="sine";g.gain.setValueAtTime(.12,AC.currentTime);
@@ -681,12 +709,16 @@ async function hostEnsure(){
  try{
   await live.unlock();
   const name=S?S.trainee:"";
-  const sys=`You are Saif, a warm senior Abu Dhabi Customs officer hosting a new employee named "${name}" inside a 3D assessment simulation, "A Morning at Abu Dhabi Customs".
-Speak ONLY ${LANG==="ar"?"Arabic":"English"}. Warm, encouraging, professional. Keep every spoken turn under 25 words.
+  const know=CONTENT.skills.map((sk,i)=>`${i+1}. "${sk.scene.name.en}" — assesses: ${sk.name.en} (${sk.levelAnchor.en}). Setting: ${sk.scene.description.en}`).join("\n");
+  const sys=`You are Saif, a wise senior Abu Dhabi Customs officer and a wonderful storyteller, hosting a new employee named "${name}" through a 3D assessment, "A Morning at Abu Dhabi Customs".
+Speak ONLY ${LANG==="ar"?"Arabic":"English"}. Warm, encouraging, a touch of humor; an educator who makes customs work fascinating.
+About Abu Dhabi Customs (ADC): it protects the emirate's borders and society, secures trade flows through its ports and land crossings like Al Ghuweifat, collects duties, fights smuggling, and enables businesses through smart digital services. The trainee walks through six gallery stations, each with four assessment moments worth 5 marks (pass: 96 of 120):
+${know}
 You receive bracketed system commands. The trainee never sees them; never mention or read them aloud:
-- [SAY] <text>: deliver this message naturally in your own warm words, keeping its meaning and brevity. Do not ask questions, do not wait for a reply.
+- [SAY] <text>: deliver this message naturally in your own words, keeping the meaning. When introducing a station, add ONE vivid sentence about why that part of customs work matters. Do not ask questions, do not wait for a reply. Keep it under 35 words.
 - [ASK] <context>: run a verbal assessment moment. Ask the given question in ONE short sentence, then listen. Accept paraphrases and substantially-correct answers. If the trainee is silent or off-topic, gently re-ask once. As soon as they answer, call score_answer with correct=true/false and one short feedback sentence, and speak that feedback.
-- A plain message is the trainee talking to you as a mentor: answer briefly, in character.`;
+- [NOTE] <event>: a progress update. React with one very short encouraging phrase (2–6 words), nothing more.
+- A plain message is the trainee talking to you. If they ask what to do now, explain the current step precisely using the latest [SAY]/[ASK] context. If they ask about ADC, its sections or services, teach them like a wise mentor — educative and entertaining, under 40 words.`;
   live.onText=(t,done)=>{
    if(t){HOST.buf+=t;subtitle(HOST.who||T("saif"),HOST.buf,true)}
    if(done){HOST.buf="";HOST.talking=false;clearTimeout(HOST.watch);hostPump()}
@@ -909,8 +941,7 @@ function fxTick(dt){
 /* ================= question staging ================= */
 let qGroup=null;
 function clearQ(){if(qGroup){scene.remove(qGroup);qGroup=null}setInteract([],[],[]);
- document.getElementById("conv").style.display="none";document.getElementById("convstat").style.display="none";
- document.getElementById("spacehint").style.display="none"}
+ document.getElementById("conv").style.display="none";document.getElementById("convstat").style.display="none"}
 function stageBase(i){
  clearQ();
  qGroup=new THREE.Group();
@@ -921,7 +952,8 @@ function stageBase(i){
  return qGroup;
 }
 function cardMesh(text,w,h){const m=textPanel(text,w,h,{size:34});m.userData.isCard=true;return m}
-function tileMesh(text,n){const m=textPanel(text,2.2,.9,{size:30,badge:n});m.userData.isCard=true;return m}
+function tileMesh(text,n){const m=textPanel(text,2.2,.9,{size:30,badge:n});
+ m.userData.isCard=true;m.userData.label=text;m.material.depthWrite=false;return m}
 // A tilted console desk in front of the trainee: question header on top,
 // numbered option tiles docked in slots on the glass deck.
 function dockPlace(meshes,promptText,headerY=3.35){
@@ -955,13 +987,15 @@ function dockPlace(meshes,promptText,headerY=3.35){
    qGroup.add(m);
  });
 }
-function score(q,ok,fxAt){
+function score(q,ok,fxAt,quiet){
  if(ok)S.score+=5;
  S.answers.push({id:q.id,ok});
  S.done++;
  beep(ok);flash(ok);hud();
  if(fxAt){const wp=fxAt.clone();qGroup&&qGroup.localToWorld(wp);burst(wp,ok)}
  subtitle(T("saif"),ok?T("correct"):T("wrong"));
+ // quiet=true for verbal moments where Saif already reacted himself
+ if(!quiet)hostSay(`The trainee answered ${ok?"correctly (+5 marks)":"incorrectly (no marks)"}; total now ${S.score}/120.`,"NOTE");
  log(`answer · ${q.id} · ${ok?"+5":"0"} · ${S.score}/120`);
 }
 /* the answer pad: a glowing pedestal that accepts dragged cards */
@@ -1191,9 +1225,11 @@ function playBeat(stIdx,q,onDone){
   // simpler path: click a tile to select it, then click a zone board to place it
   let selTile=null;
   const setSel=m=>{
-    if(selTile){selTile.userData.baseScale=selTile.userData.selPrev||1;selTile.scale.setScalar(selTile.userData.baseScale)}
+    if(selTile){selTile.userData.baseScale=selTile.userData.selPrev||1;selTile.scale.setScalar(selTile.userData.baseScale);
+      selTile.userData.setText(selTile.userData.label)}
     selTile=m;
-    if(m){m.userData.selPrev=m.userData.baseScale||1;m.userData.baseScale=m.userData.selPrev*1.16;m.scale.setScalar(m.userData.baseScale)}
+    if(m){m.userData.selPrev=m.userData.baseScale||1;m.userData.baseScale=m.userData.selPrev*1.16;m.scale.setScalar(m.userData.baseScale);
+      m.userData.setText(m.userData.label,{border:"#d7b56d"})} // gold border marks the selected card
     zoneM.forEach(z=>z.back.userData.setHot(!!m));
   };
   cardM.forEach(m=>{m.userData.onClick=()=>setSel(selTile===m?null:m)});
@@ -1224,8 +1260,28 @@ function recStart(){
  }catch(e){stat.style.display="block";stat.textContent=T("mic_no")}
 }
 function recStop(){try{recog&&recog.stop()}catch(e){};document.getElementById("talk").classList.remove("rec");recActive=false}
-function pttDown(){if(convOpen)recStart()}
-function pttUp(){if(convOpen)recStop()}
+/* Push-to-talk: opens the live host's mic anywhere in the session, so the
+   trainee can ask "what shall I do now?" and Saif answers with full context. */
+let pttOpen=false,pttTimer=null;
+async function pttDown(){
+ if(pttOpen)return;
+ if(!VOICE_ON||!(await hostEnsure())){subtitle(T("saif"),T("ai_no"));return}
+ pttOpen=true;clearTimeout(pttTimer);
+ live.muted=false;
+ live.stopPlayback(); // barge-in: talking over Saif stops him
+ document.getElementById("askmic").classList.add("rec");
+ const st=document.getElementById("convstat");st.style.display="block";st.textContent=T("listenLive");
+}
+function pttUp(){
+ if(!pttOpen)return;pttOpen=false;
+ document.getElementById("askmic").classList.remove("rec");
+ // short tail so the end of the sentence is captured before muting
+ pttTimer=setTimeout(()=>{
+  if(!liveActive)live.muted=true; // stay open if a verbal question is running
+  const st=document.getElementById("convstat");
+  if(!convOpen)st.style.display="none";
+ },900);
+}
 
 async function stageConv(stIdx,q,onDone){
  stageBase(stIdx);
@@ -1245,7 +1301,7 @@ async function stageConv(stIdx,q,onDone){
      m.userData.onClick=()=>{score(q,q.correct.some(c=>c.en===items[ix].en),m.position.clone());setTimeout(()=>onDone(),1100)};return m});
    dockPlace(cards,L(q.prompt));setInteract(cards,[],[])};
  if(!hasAI()){stat.style.display="block";stat.textContent=T("key_no");setTimeout(fallback,50);return}
- const finish=(ok)=>{cleanup();score(q,ok);setTimeout(()=>onDone(),1100)};
+ const finish=(ok)=>{cleanup();score(q,ok,undefined,true);setTimeout(()=>onDone(),1100)};
 
  /* ---- verbal moment through the persistent live host session ---- */
  if(VOICE_ON&&await hostEnsure()){
@@ -1259,13 +1315,7 @@ async function stageConv(stIdx,q,onDone){
    const wrong=realDis(q).map(d=>L(d)).join(" / ");
    hostSay(`${q.id==="S5-Q3"?"For this one, roleplay a VISITOR at the reception desk. ":""}Assessment question: "${L(q.prompt)}" | Correct idea: ${exp} | Wrong ideas (do not accept): ${wrong}`,"ASK");
    stat.style.display="block";stat.textContent=T("listenLive");
-   conv.style.display="flex";convOpen=true;liveActive=true;
-   talk.style.display="none"; // mic opens automatically for the question
-   const sendTyped=(text)=>{if(!text||!text.trim())return;
-     subtitle(T("you"),text);document.getElementById("convin").value="";
-     live.sendText(text.trim())};
-   document.getElementById("convsend").onclick=()=>sendTyped(document.getElementById("convin").value);
-   document.getElementById("convin").onkeydown=e=>{if(e.key==="Enter")sendTyped(e.target.value)};
+   conv.style.display="flex";convOpen=true;liveActive=true; // shows only the "Show choices" escape hatch
    document.getElementById("convopts").onclick=()=>{HOST.onScore=null;fallback()};
    return;
  }
@@ -1284,6 +1334,8 @@ function startSession(name){
  document.getElementById("startOv").style.display="none";
  document.getElementById("ctrlhint").textContent=T("hint");
  hud();
+ toggleAsk(true); // chat bar with mic stays visible for the whole session
+ const sh=document.getElementById("spacehint");sh.style.display="block";sh.textContent=T("holdSpace2");
  hostReset(); // fresh voice session with this trainee's name and language
  speak(T("welcome").replace("{name}",name),T("saif"));
  runStation(0);
@@ -1339,6 +1391,7 @@ function showStart(){
    return;
  }
  const so=document.getElementById("startOv");so.style.display="flex";
+ toggleAsk(false);document.getElementById("spacehint").style.display="none";
  document.getElementById("soEyebrow").textContent=T("eyebrow");
  document.getElementById("bcSub").textContent=T("eyebrow");
  document.getElementById("soTitle").textContent=T("title");
@@ -1366,12 +1419,15 @@ document.querySelectorAll(".langbtn").forEach(b=>b.onclick=()=>{
  showStart();
 });
 
-/* ---------- ask Saif ---------- */
+/* ---------- ask Saif (always-on chat bar with push-to-talk mic) ---------- */
 function toggleAsk(on){const r=document.getElementById("askrow");
  r.style.display=on?"flex":"none";
- if(on){const i=document.getElementById("askin");i.placeholder=T("askPh");i.focus()}}
-document.getElementById("btnAsk").onclick=()=>toggleAsk(true);
-document.getElementById("askclose").onclick=()=>toggleAsk(false);
+ if(on){const i=document.getElementById("askin");i.placeholder=T("askPh")}}
+document.getElementById("btnAsk").onclick=()=>{toggleAsk(true);document.getElementById("askin").focus()};
+{const am=document.getElementById("askmic");
+ am.onpointerdown=()=>pttDown();
+ am.onpointerup=()=>pttUp();
+ am.onpointerleave=()=>pttUp();}
 const btnVoice=document.getElementById("btnVoice");
 const paintVoice=()=>btnVoice.textContent=VOICE_ON?"🔊":"🔇";
 btnVoice.onclick=()=>{VOICE_ON=!VOICE_ON;localStorage.setItem("adc_voice",VOICE_ON?"on":"off");
@@ -1458,10 +1514,12 @@ function animate(){
   if(s.group.userData.visitor)s.group.userData.visitor.children[1].position.y=1.95+Math.sin(t*1.6)*.03;
  });
  if(qGroup)qGroup.traverse(m=>{
-  if(m.userData.isCard&&!drag||m.userData.isCard&&drag&&drag.obj!==m)m.position.y+=Math.sin(t*1.4+m.id)*.0008;
+  // note: no per-frame position "bobbing" on cards — the += version drifted
+  // them off their slots and made them shimmer against the deck
   if(m.userData.pulse){const s=1+Math.sin(t*3+m.id)*.16;m.userData.pulse.scale.setScalar(s)}
   if(m.userData.ring)m.userData.ring.rotation.z=t*.8;
  });
+ glowTick();
  renderer.render(scene,camera);
 }
 animate();
