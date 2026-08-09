@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Abu Dhabi Customs — VR Training POC</title>
+<!-- Internal evaluation prototype. Admin PIN: 2026. Gemini API key: paste once in Admin panel (stored in browser localStorage only).
+     IMPORTANT: run via run_demo.bat (localhost) — the microphone and images are blocked when opening the file directly. -->
+<style>
+:root{--teal:#00736a;--teal-dk:#005a53;--ink:#1f2a2e;--muted:#61707a;--line:#dde5e8;--soft:#f4f7f8;--sand:#c8a45a;--green:#1fa877;--red:#d84a38}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:"Segoe UI",Tahoma,sans-serif;background:#e8eef1;color:var(--ink)}
+#c3d{position:fixed;inset:0;display:block}
+/* ---------- overlays ---------- */
+.ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:30;
+ background:linear-gradient(rgba(8,26,30,.45),rgba(8,26,30,.72)),url("img/port-panorama.jpg") center/cover}
+.panel{background:#fff;border-radius:14px;padding:0;max-width:600px;width:94vw;box-shadow:0 30px 80px rgba(0,20,25,.45);overflow:hidden}
+.brandbar{display:flex;align-items:center;gap:12px;padding:16px 26px;border-bottom:1px solid var(--line)}
+.brandmark{width:38px;height:38px;border-radius:8px;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;letter-spacing:.02em}
+.brandtxt{line-height:1.25}
+.brandtxt .a{font-weight:700;font-size:14.5px}
+.brandtxt .b{font-size:11px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
+.pbody{padding:22px 26px 26px}
+.eyebrow{color:var(--teal);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+h2{font-size:23px;margin-bottom:10px;color:var(--ink)}
+h3{font-size:13.5px;margin-bottom:6px;color:var(--teal)}
+label{font-size:12.5px;color:var(--muted);display:block;margin:14px 0 5px;font-weight:600}
+input[type=text],input[type=password]{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink)}
+input:focus{outline:none;border-color:var(--teal)}
+button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;font-size:14px}
+.btn{background:var(--teal);color:#fff;padding:11px 22px;font-weight:700}
+.btn:hover{background:var(--teal-dk)}
+.btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line);font-weight:500}
+.btn.small{padding:7px 13px;font-size:12.5px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.langrow{display:flex;gap:0;margin-top:4px;border:1.5px solid var(--line);border-radius:9px;overflow:hidden;width:max-content}
+.langbtn{padding:9px 26px;background:#fff;color:var(--ink);border-radius:0;border-inline-end:1.5px solid var(--line)}
+.langbtn:last-child{border-inline-end:none}
+.langbtn.sel{background:var(--teal);color:#fff;font-weight:700}
+.levels{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+.level{border:1.5px solid var(--line);border-radius:10px;padding:10px 6px;text-align:center;background:#fff}
+.level .num{font-size:19px;font-weight:700}
+.level .st{font-size:10.5px;color:var(--muted);margin-top:3px}
+.level.open{border-color:var(--teal);cursor:pointer}
+.level.open .num{color:var(--teal)}
+.level.open:hover{background:#eef6f5}
+.level.locked{opacity:.45}
+.level.bypassed{border-color:var(--sand);cursor:pointer}
+.hint{font-size:11.5px;color:var(--muted);margin-top:16px;line-height:1.7}
+.foot{font-size:10.5px;color:#9aa7ad;padding:10px 26px;border-top:1px solid var(--line);display:flex;justify-content:space-between}
+/* ---------- HUD ---------- */
+#hud{position:fixed;top:14px;left:50%;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;z-index:20;font-size:12.5px}
+#hudrow{display:flex;gap:8px}
+#hud .pill{background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:99px;padding:7px 16px;color:var(--ink);box-shadow:0 4px 14px rgba(0,25,30,.12)}
+#hud b{color:var(--teal)}
+#prog{width:300px;height:5px;background:rgba(255,255,255,.75);border-radius:99px;overflow:hidden;box-shadow:0 2px 8px rgba(0,25,30,.15)}
+#progfill{height:100%;width:0%;background:var(--teal);border-radius:99px;transition:width .4s}
+#brandchip{position:fixed;top:14px;inset-inline-start:14px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:12px;padding:8px 14px;z-index:20;box-shadow:0 4px 14px rgba(0,25,30,.12)}
+#brandchip .brandmark{width:30px;height:30px;font-size:13px}
+#brandchip .t1{font-size:12.5px;font-weight:700;line-height:1.2}
+#brandchip .t2{font-size:9.5px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+#topbtns{position:fixed;top:14px;inset-inline-end:14px;display:flex;gap:8px;z-index:31}
+#topbtns .btn{background:rgba(255,255,255,.94);color:var(--ink);border:1px solid var(--line);font-weight:600;font-size:12.5px;padding:9px 14px;box-shadow:0 4px 14px rgba(0,25,30,.12)}
+#topbtns .btn:hover{background:#fff;border-color:var(--teal);color:var(--teal)}
+/* ---------- subtitles ---------- */
+#sub{position:fixed;bottom:112px;left:50%;transform:translateX(-50%);max-width:780px;width:94vw;z-index:20;display:none}
+#sub .card{display:flex;gap:14px;align-items:flex-start;background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:14px;padding:12px 18px;box-shadow:0 14px 40px rgba(0,25,30,.25)}
+#sub img{width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:top;border:2px solid var(--teal);flex:none}
+#sub .fallbackav{width:52px;height:52px;border-radius:50%;background:var(--sand);color:#fff;display:none;align-items:center;justify-content:center;font-weight:800;font-size:20px;flex:none}
+#sub .who{color:var(--teal);font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+#sub .txt{font-size:16px;line-height:1.5;color:var(--ink);margin-top:2px}
+/* ---------- conversation ---------- */
+#convstat{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(31,42,46,.85);padding:5px 14px;border-radius:99px;z-index:21;display:none}
+#conv{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:none;gap:9px;z-index:21;align-items:center;flex-wrap:wrap;justify-content:center;max-width:94vw;background:rgba(255,255,255,.97);border:1px solid var(--line);padding:9px 12px;border-radius:99px;box-shadow:0 14px 40px rgba(0,25,30,.25)}
+#conv input{width:300px;padding:10px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font-size:13.5px;font-family:inherit}
+#talk{background:var(--teal);color:#fff;font-weight:700;width:46px;height:46px;border-radius:50%;font-size:19px;flex:none}
+#talk.rec{background:var(--red);animation:pulse 1s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(216,74,56,.5)}70%{box-shadow:0 0 0 14px rgba(216,74,56,0)}100%{box-shadow:0 0 0 0 rgba(216,74,56,0)}}
+#spacehint{position:fixed;bottom:76px;inset-inline-end:16px;font-size:11px;color:var(--muted);background:rgba(255,255,255,.9);padding:6px 12px;border-radius:9px;z-index:21;display:none;border:1px solid var(--line)}
+#askrow{display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:22;gap:8px;background:rgba(255,255,255,.97);border:1px solid var(--line);padding:9px 12px;border-radius:99px;box-shadow:0 14px 40px rgba(0,25,30,.25)}
+#askrow input{width:340px;padding:10px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font-family:inherit}
+#ctrlhint{position:fixed;bottom:16px;inset-inline-start:16px;font-size:11px;color:var(--muted);z-index:19;background:rgba(255,255,255,.9);border:1px solid var(--line);padding:8px 12px;border-radius:9px;line-height:1.7;max-width:330px}
+#flash{position:fixed;inset:0;pointer-events:none;z-index:17;opacity:0;transition:opacity .5s}
+#errbar{position:fixed;top:0;left:0;right:0;background:#8c2318;color:#fff;font-size:12px;padding:6px 12px;z-index:99;display:none;white-space:pre-wrap}
+/* ---------- drawer ---------- */
+.drawer{position:fixed;top:0;right:0;width:min(430px,95vw);height:100vh;background:#fff;border-left:1px solid var(--line);transform:translateX(105%);transition:transform .25s;z-index:50;display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,25,30,.15)}
+.drawer.open{transform:translateX(0)!important}
+.drawer .dhead{background:var(--teal);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:10px}
+.drawer .dhead .btn{background:rgba(255,255,255,.18);color:#fff}
+.drawer .dbody{padding:16px 18px;overflow-y:auto;flex:1;font-size:13px}
+table{border-collapse:collapse;width:100%;font-size:12px;margin-top:8px}
+th{background:var(--soft);padding:6px 8px;text-align:start;font-weight:700;color:var(--ink);border:1px solid var(--line)}
+td{border:1px solid var(--line);padding:5px 8px}
+.loglines{font-size:11.5px;color:var(--muted);max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:6px;background:var(--soft)}
+.big{font-size:46px;font-weight:800;text-align:center}
+.pass{color:var(--green)}.fail{color:var(--red)}
+.center{text-align:center}
+</style>
+</head>
+<body>
+<div id="errbar"></div>
+<canvas id="c3d"></canvas>
+
+<div id="brandchip">
+  <div class="brandmark">AC</div>
+  <div><div class="t1">جمارك أبوظبي · Abu Dhabi Customs</div><div class="t2" id="bcSub">VR Training — POC</div></div>
+</div>
+<div id="hud">
+  <div id="hudrow"><span class="pill" id="hq"></span><span class="pill" id="hs"></span><span class="pill" id="ha"></span></div>
+  <div id="prog"><div id="progfill"></div></div>
+</div>
+<div id="topbtns"><button class="btn" id="btnAsk">💬</button><button class="btn" id="btnAdmin">Admin</button></div>
+
+<div id="sub"><div class="card">
+  <img id="subav" src="img/saif-portrait.jpg" alt="" onerror="this.style.display='none';document.getElementById('subav2').style.display='flex'">
+  <div class="fallbackav" id="subav2">S</div>
+  <div><div class="who" id="subwho"></div><div class="txt" id="subtxt"></div></div>
+</div></div>
+
+<div id="convstat"></div>
+<div id="spacehint"></div>
+<div id="conv">
+  <button id="talk" title="Hold to talk">🎤</button>
+  <input id="convin" type="text"><button class="btn small" id="convsend">➤</button>
+  <button class="btn ghost small" id="convopts"></button>
+</div>
+<div id="askrow"><input id="askin" type="text"><button class="btn small" id="asksend">➤</button><button class="btn ghost small" id="askclose">✕</button></div>
+<div id="ctrlhint"></div>
+<div id="flash"></div>
+
+<div class="ov" id="startOv"><div class="panel">
+  <div class="brandbar">
+    <div class="brandmark">AC</div>
+    <div class="brandtxt"><div class="a">جمارك أبوظبي · Abu Dhabi Customs</div><div class="b" id="soEyebrow"></div></div>
+  </div>
+  <div class="pbody">
+    <h2 id="soTitle"></h2>
+    <p style="font-size:13px;color:var(--muted);line-height:1.6" id="soDesc"></p>
+    <label id="soNameL"></label><input id="inName" type="text">
+    <label id="soLangL"></label>
+    <div class="langrow">
+      <button class="langbtn sel" data-l="en">English</button>
+      <button class="langbtn" data-l="ar">العربية</button>
+    </div>
+    <label id="soLvlL"></label>
+    <div class="levels" id="lvGrid"></div>
+    <div class="hint" id="soHint"></div>
+  </div>
+  <div class="foot"><span>Proof of Concept</span><span>Virtual Worlds Studios</span></div>
+</div></div>
+
+<div class="ov" id="resultOv" style="display:none"><div class="panel">
+  <div class="brandbar">
+    <div class="brandmark">AC</div>
+    <div class="brandtxt"><div class="a">جمارك أبوظبي · Abu Dhabi Customs</div><div class="b" id="roEyebrow"></div></div>
+  </div>
+  <div class="pbody center">
+    <div class="big" id="roScore"></div>
+    <h2 id="roVerdict"></h2>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:18px">
+      <button class="btn" id="roRetry" style="display:none"></button>
+      <button class="btn ghost" id="roHome"></button>
+    </div>
+  </div>
+</div></div>
+
+<div class="drawer" id="drawer">
+  <div class="dhead"><b style="flex:1">Admin</b><button class="btn small" id="dClose">✕</button></div>
+  <div class="dbody" id="dBody"></div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const errbar=document.getElementById('errbar');
+window.addEventListener('error',e=>{errbar.style.display='block';errbar.textContent+='ERR: '+e.message+' @'+(e.lineno||'')+'\n';});
+
+/* ================= content (loaded from JSON beside this file) ================= */
+let CONTENT=null;
+try{
+  CONTENT=await (await fetch("strategic_thinker_L1_content.json")).json();
+}catch(e){
+  errbar.style.display='block';
+  errbar.textContent='Could not load content JSON. Please launch the demo with run_demo.bat (it starts a local server) instead of opening the file directly.';
+  throw e;
+}
+
+const GMODEL="gemini-2.5-flash";
+const ADMIN_PIN="2026";
+let LANG="en";
+function getKey(){return localStorage.getItem("adc_gemini_key")||""}
+
+const UI={
+ en:{eyebrow:"VR TRAINING — 3D SCENARIO PROTOTYPE",title:"A Morning at Abu Dhabi Customs",
+  desc:"You are a new ADC employee on your orientation morning. Saif, a senior officer, will walk you through six stations of the customs house. What you touch, move and say is your assessment — there is no quiz screen.",
+  name:"Your name",lang:"Language",lvl:"Levels",open:"Enter",locked:"Locked",
+  hint:"Drag mouse to look · WASD / arrows to walk · ENTER glides to the station · drag glowing cards onto the answer pad · hold SPACE or 🎤 to speak · 💬 ask Saif · Admin PIN 2026",
+  q:"Beat",score:"Score",attempt:"Attempt",correct:"+5 — well done",wrong:"+0 — noted, let's continue",
+  passed:"LEVEL PASSED",failed:"NOT PASSED — 96/120 needed",retry:"Try again — different situations",home:"Back to entrance",
+  l2:"Level 2 content is project scope. This gate and the admin bypass are the point.",
+  typeHint:"or type your answer…",showOpts:"Show choices",judging:"Saif is considering your answer…",
+  listening:"Listening… release to send",mic_no:"Mic not available — type instead",ai_no:"AI unavailable — showing choices",
+  key_no:"No AI key set — using choices. Paste the Gemini key in Admin → AI key for conversations.",
+  mic_ctx:"Microphone needs the local server — close this and launch with run_demo.bat",
+  holdSpace:"Hold SPACE to talk",
+  askPh:"Ask Saif anything…",saif:"Saif — Senior Officer",visitor:"Visitor",you:"You",
+  padPlace:"ANSWER PAD — drag your answer here",padCollect:"COLLECTION TRAY — drag all that apply",
+  confirm:"Confirm ✓",reset:"Reset",dropZone:"drop here",notUsed:"Not used",
+  seqHint:"Touch the panels in the correct order — a light path will follow you",
+  hotHint:"Touch the correct point(s) on the board",
+  stationIntro:["Welcome! This gallery shows everything we are. Look around — the wall responds to you.",
+   "Our innovation corner. Everything new lands here first — listen carefully.",
+   "The inspection bay — my favourite classroom. Watch the morning queue.",
+   "Every container tells a journey. This wall shows how our teams connect.",
+   "Our vision wall. Every tile up there is a promise to this city.",
+   "Last station — where your goals meet the organisation's goals."],
+  csv:"Export CSV",unlock:"Bypass: unlock Level 2",unlocked:"Level 2 unlocked",results:"Results",live:"Live",log:"Log",
+  pin:"Admin PIN",aname:"Admin name",wrongPin:"Wrong PIN",noresults:"No attempts yet",aikey:"AI key (Gemini)",keySaved:"Key saved"},
+ ar:{eyebrow:"تدريب الواقع الافتراضي — نموذج ثلاثي الأبعاد",title:"صباح في جمارك أبوظبي",
+  desc:"أنت موظف جديد في يوم تعريفي. سيف، ضابط أول، سيرافقك عبر ست محطات في دار الجمارك. ما تلمسه وتحرّكه وتقوله هو تقييمك — لا توجد شاشة اختبار.",
+  name:"اسمك",lang:"اللغة",lvl:"المستويات",open:"ادخل",locked:"مقفل",
+  hint:"اسحب الفأرة للنظر · WASD أو الأسهم للمشي · ENTER للانتقال إلى المحطة · اسحب البطاقات المضيئة إلى منصة الإجابة · اضغط مطولاً على المسافة أو 🎤 للتحدث · 💬 اسأل سيف · رمز المشرف 2026",
+  q:"المشهد",score:"النتيجة",attempt:"المحاولة",correct:"+5 — أحسنت",wrong:"+0 — سنكمل",
+  passed:"اجتزت المستوى",failed:"لم تجتز — المطلوب ٩٦/١٢٠",retry:"حاول مجدداً — مواقف مختلفة",home:"عودة إلى المدخل",
+  l2:"محتوى المستوى ٢ ضمن نطاق المشروع. المهم هنا: القفل وصلاحية المشرف.",
+  typeHint:"أو اكتب إجابتك…",showOpts:"أظهر الخيارات",judging:"سيف يفكر في إجابتك…",
+  listening:"يستمع… اترك الزر للإرسال",mic_no:"الميكروفون غير متاح — اكتب",ai_no:"الذكاء الاصطناعي غير متاح — إليك الخيارات",
+  key_no:"لا يوجد مفتاح ذكاء اصطناعي — سنعرض الخيارات. ألصق المفتاح في لوحة المشرف.",
+  mic_ctx:"الميكروفون يتطلب الخادم المحلي — أغلق الصفحة وشغّل run_demo.bat",
+  holdSpace:"اضغط مطولاً على مفتاح المسافة للتحدث",
+  askPh:"اسأل سيف أي شيء…",saif:"سيف — ضابط أول",visitor:"زائر",you:"أنت",
+  padPlace:"منصة الإجابة — اسحب إجابتك إلى هنا",padCollect:"صينية التجميع — اسحب كل ما ينطبق",
+  confirm:"تأكيد ✓",reset:"إعادة",dropZone:"أفلت هنا",notUsed:"غير مستخدم",
+  seqHint:"المس اللوحات بالترتيب الصحيح — سيتبعك مسار ضوئي",
+  hotHint:"المس النقطة الصحيحة (أو النقاط) على اللوحة",
+  stationIntro:["أهلاً بك! هذه القاعة تعرض كل ما نحن عليه. تجوّل — الجدار يستجيب لك.",
+   "ركن الابتكار. كل جديد يصل هنا أولاً — أصغِ جيداً.",
+   "منصة التفتيش — صفّي المفضل. راقب طابور الصباح.",
+   "كل حاوية تروي رحلة. هذا الجدار يريك كيف تترابط فرقنا.",
+   "جدارية رؤيتنا. كل قطعة فوق وعدٌ لهذه المدينة.",
+   "المحطة الأخيرة — حيث تلتقي أهدافك بأهداف المؤسسة."],
+  csv:"تصدير CSV",unlock:"فتح استثنائي: المستوى ٢",unlocked:"المستوى ٢ مفتوح",results:"النتائج",live:"مباشر",log:"السجل",
+  pin:"رمز المشرف",aname:"اسم المشرف",wrongPin:"رمز خاطئ",noresults:"لا محاولات بعد",aikey:"مفتاح الذكاء الاصطناعي",keySaved:"تم الحفظ"}
+};
+const T=k=>UI[LANG][k];
+const L=o=>(LANG==="ar"&&o.ar)?o.ar:o.en;
+const PARAMS=new URLSearchParams(location.search);
+const FAST=PARAMS.has("fast");
+let autoStarted=false;
+
+/* ================= persistence ================= */
+const store={get(){try{return JSON.parse(localStorage.getItem("adc_poc3d")||"{}")}catch(e){return{}}},
+ set(d){localStorage.setItem("adc_poc3d",JSON.stringify(d))}};
+let DB=Object.assign({results:[],log:[],bypass:null},store.get());
+function save(){store.set(DB)}
+function log(m){DB.log.push(new Date().toISOString().slice(11,19)+" "+m);if(DB.log.length>400)DB.log=DB.log.slice(-400);save();paintAdmin()}
+
+/* ================= assessment engine (identical rules to 2D/VR) ================= */
+function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+function hash(str){let h=2166136261;for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function shuffled(arr,r){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const COMBOS=[];for(let a=0;a<6;a++)for(let b=a+1;b<6;b++)for(let c=b+1;c<6;c++)for(let d=c+1;d<6;d++)COMBOS.push([a,b,c,d]);
+let S=null;
+function draw(attempt){
+ const per=[];
+ for(const sk of CONTENT.skills){
+   const r=rng(S.seed+sk.id*7919);
+   const combo=shuffled(COMBOS,r)[(attempt-1)%COMBOS.length];
+   const rq=rng(S.seed+sk.id*104729+attempt*31);
+   per.push(shuffled(combo.map(i=>sk.questions[i]),rq).map(q=>({q,sk})));
+ }
+ return per; // 6 stations × 4 beats
+}
+function widgetOf(q){
+ const hasArrow=q.correct.some(c=>c.en.includes("→"));
+ if(q.template==="T2"&&hasArrow)return"assign";
+ if(q.template==="T4"&&q.ordered)return"sequence";
+ if(q.template==="T3")return"conv";
+ if(q.template==="T4")return q.correct.length>1?"hotmulti":"hotsingle";
+ return q.correct.length>1?"multi":"single";
+}
+const realDis=q=>q.distractors.filter(d=>!d.en.trim().startsWith("("));
+
+/* ================= three.js world ================= */
+const canvas=document.getElementById("c3d");
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xdce8ee);
+scene.fog=new THREE.Fog(0xdce8ee,40,110);
+const camera=new THREE.PerspectiveCamera(66,1,0.1,260);
+let yaw=0,pitch=0;
+const camPos=new THREE.Vector3(0,1.6,14);
+scene.add(new THREE.HemisphereLight(0xffffff,0xb9c4c2,1.05));
+const dl=new THREE.DirectionalLight(0xfff3dd,1.25);dl.position.set(8,18,6);scene.add(dl);
+
+const TEAL=0x00736a,TEALL=0x35a79a,SAND=0xc8a45a,INK=0x27343a;
+function mat(c,e=0,ei=0.6){return new THREE.MeshStandardMaterial({color:c,emissive:e,emissiveIntensity:ei,roughness:.6,metalness:.12})}
+
+const floor=new THREE.Mesh(new THREE.CircleGeometry(80,64),new THREE.MeshStandardMaterial({color:0xd4dbdf,roughness:.9,metalness:.05}));
+floor.rotation.x=-Math.PI/2;scene.add(floor);
+const grid=new THREE.GridHelper(160,80,0xb9c6cc,0xc8d3d8);grid.position.y=.01;scene.add(grid);
+// central teal medallion like a lobby floor inlay
+const medal=new THREE.Mesh(new THREE.RingGeometry(6,6.35,64),new THREE.MeshBasicMaterial({color:TEAL,transparent:true,opacity:.5}));
+medal.rotation.x=-Math.PI/2;medal.position.y=.02;scene.add(medal);
+
+// texture loading (graceful: plain surfaces remain if not served over http)
+const texLoader=new THREE.TextureLoader();
+function loadTex(url,onOk){texLoader.load(url,t=>{t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;onOk(t)},undefined,()=>{});}
+
+// surrounding port panorama band
+{const geo=new THREE.CylinderGeometry(74,74,42,72,1,true);
+ const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0xdce8ee,side:THREE.BackSide,fog:false}));
+ m.position.y=14;scene.add(m);
+ loadTex("img/port-panorama.jpg",t=>{t.wrapS=THREE.RepeatWrapping;t.repeat.x=3;m.material.map=t;m.material.color.set(0xffffff);m.material.needsUpdate=true});}
+
+/* ---------- canvas-text panels (native Arabic shaping) ---------- */
+function roundRect(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+function wrap(x,text,maxw){
+ const out=[];
+ for(const seg of String(text).split("\n")){
+   const words=seg.split(/\s+/);let cur="";
+   for(const w of words){const t=cur?cur+" "+w:w;
+     if(x.measureText(t).width>maxw&&cur){out.push(cur);cur=w}else cur=t}
+   if(cur)out.push(cur);
+ }
+ return out.slice(0,7);
+}
+function textTexture(text,{w=512,h=256,size=34,color="#1f2a2e",bg="rgba(255,255,255,0.97)",border="#00736a",pad=24,bold=false}={}){
+ const cv=document.createElement("canvas");cv.width=w;cv.height=h;const x=cv.getContext("2d");
+ x.fillStyle=bg;roundRect(x,3,3,w-6,h-6,20);x.fill();
+ x.strokeStyle=border;x.lineWidth=4;roundRect(x,3,3,w-6,h-6,20);x.stroke();
+ x.fillStyle=color;x.font=`${bold?"700":"500"} ${size}px "Segoe UI",Tahoma`;
+ x.textAlign="center";x.textBaseline="middle";x.direction=LANG==="ar"?"rtl":"ltr";
+ const lines=wrap(x,text,w-pad*2);
+ const lh=size*1.25,y0=h/2-(lines.length-1)*lh/2;
+ lines.forEach((ln,i)=>x.fillText(ln,w/2,y0+i*lh));
+ const t=new THREE.CanvasTexture(cv);t.anisotropy=4;t.colorSpace=THREE.SRGBColorSpace;return t;
+}
+function textPanel(text,wm,hm,opts={}){
+ const px=Math.round(wm*256),py=Math.round(hm*256);
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(wm,hm),
+   new THREE.MeshBasicMaterial({map:textTexture(text,Object.assign({w:px,h:py},opts)),transparent:true,side:THREE.DoubleSide}));
+ m.userData.setText=(t,o={})=>{m.material.map=textTexture(t,Object.assign({w:px,h:py},opts,o));m.material.needsUpdate=true};
+ return m;
+}
+
+/* ---------- stations ---------- */
+const R=26, stations=[];
+const WALL_IMG=["img/st1-services.jpg","img/st2-innovation.jpg","img/st3-inspection.jpg","img/st4-cargo.jpg","img/st5-vision.jpg","img/st6-strategy.jpg"];
+function stationAngle(i){return (-62+i*24.8)*Math.PI/180}
+function stationPos(i){const a=stationAngle(i);return new THREE.Vector3(Math.sin(a)*R,0,-Math.cos(a)*R)}
+function box(g,w,h,d,c,x,y,z,e){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,e||0,e?.7:0));m.position.set(x,y,z);g.add(m);return m}
+
+function addTheme(g,i){
+ if(i===0){ // service counters
+   for(let k=0;k<3;k++){box(g,1.6,1.05,.7,0xffffff,-3+k*3,0.58,-3.1);box(g,1.6,.28,.72,TEAL,-3+k*3,1.2,-3.1)}
+ }else if(i===1){ // rotating tech panels
+   for(let k=0;k<3;k++){const p=box(g,2.1,1.4,.1,0xf3f6f7,-3.2+k*3.2,3,-4.1,TEALL);p.userData.spin=.14+k*.07}
+   box(g,.9,1.5,.9,0xffffff,3.4,.8,-2.6,SAND);
+ }else if(i===2){ // truck + desk
+   const t=new THREE.Group();
+   box(t,2.6,1.7,1.5,0xe8ecee,0,1.15,0);box(t,1.1,1.25,1.4,TEAL,1.85,.92,0);
+   for(const wx of[-.8,.8,1.9])for(const wz of[-.8,.8]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(.32,.32,.24,18),mat(0x33393d));wh.rotation.x=Math.PI/2;wh.position.set(wx,.32,wz);t.add(wh)}
+   t.position.set(-3.1,0,-2.2);t.rotation.y=.5;g.add(t);
+   box(g,1.7,.95,.8,0xffffff,2.6,.55,-2.4);
+ }else if(i===3){ // journey wall + moving container
+   for(let k=0;k<5;k++)box(g,1.15,1.15,.14,0xf3f6f7,-4.1+k*2.05,2.35,-4.1,TEALL);
+   const c=box(g,.8,.55,.5,SAND,-4.1,1.35,-3.7,SAND);g.userData.container=c;
+ }else if(i===4){ // vision pedestals + visitor
+   for(let k=0;k<3;k++)box(g,1.1,.5+k*.25,1.1,0xffffff,-2.4+k*2.4,(.5+k*.25)/2,-2.7);
+   const v=new THREE.Group();
+   const body=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.85,6,14),mat(0xf5f2ea));body.position.y=1.05;v.add(body);
+   const head=new THREE.Mesh(new THREE.SphereGeometry(.26,18,14),mat(0xd9b58a));head.position.y=1.95;v.add(head);
+   v.position.set(3.6,0,-.5);g.add(v);g.userData.visitor=v;
+ }else{ // objectives boards
+   box(g,3.4,2.4,.14,0xf3f6f7,-2.7,2.1,-4.1,TEALL);box(g,3.4,2.4,.14,0xf3f6f7,2.7,2.1,-4.1,SAND);
+ }
+}
+function buildStation(i,sk){
+ const g=new THREE.Group();const pos=stationPos(i);g.position.copy(pos);
+ g.lookAt(0,0,0); // +z faces the arena center
+ const plat=new THREE.Mesh(new THREE.CylinderGeometry(5.4,5.6,.14,48),mat(0xe9eef0));plat.position.y=.07;g.add(plat);
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(5.5,.05,10,64),mat(TEAL,TEAL,.8));ring.rotation.x=Math.PI/2;ring.position.y=.16;g.add(ring);
+ // white gallery wall with teal trim
+ const wall=new THREE.Mesh(new THREE.BoxGeometry(10.5,5.2,.3),mat(0xf7f9fa));wall.position.set(0,2.7,-4.6);g.add(wall);
+ const trim=new THREE.Mesh(new THREE.BoxGeometry(10.9,.14,.36),mat(TEAL,TEAL,.5));trim.position.set(0,5.35,-4.6);g.add(trim);
+ const base=new THREE.Mesh(new THREE.BoxGeometry(10.9,.3,.36),mat(TEAL,TEAL,.25));base.position.set(0,.15,-4.6);g.add(base);
+ // themed image mounted on the wall
+ const pic=new THREE.Mesh(new THREE.PlaneGeometry(7.4,4.1),new THREE.MeshBasicMaterial({color:0xe4eaec}));
+ pic.position.set(0,2.75,-4.42);g.add(pic);
+ loadTex(WALL_IMG[i],t=>{pic.material.map=t;pic.material.color.set(0xffffff);pic.material.needsUpdate=true});
+ g.userData.pic=pic;
+ // station title plaque
+ const title=textPanel(`${i+1} · ${L(sk.scene.name)}`,7,.9,{size:52,bold:true,bg:"rgba(255,255,255,0.95)",border:"#00736a"});
+ title.position.set(0,5.15,-4.35);g.add(title);
+ const pl=new THREE.PointLight(0xfff6e6,30,20,1.6);pl.position.set(0,4.2,-1);g.add(pl);
+ addTheme(g,i);
+ const beam=new THREE.Mesh(new THREE.CylinderGeometry(.5,1.4,7,24,1,true),
+   new THREE.MeshBasicMaterial({color:TEAL,transparent:true,opacity:.12,side:THREE.DoubleSide,depthWrite:false}));
+ beam.position.set(0,3.5,2.5);g.add(beam);
+ g.userData.beam=beam;
+ scene.add(g);
+ return {group:g,pos,sk};
+}
+// Saif — white kandura, black agal
+const saif=new THREE.Group();
+{const body=new THREE.Mesh(new THREE.CapsuleGeometry(.36,.95,6,16),mat(0xf7f4ec));body.position.y=1.12;saif.add(body);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.27,20,16),mat(0xd9b58a));head.position.y=2.08;saif.add(head);
+ const ghutra=new THREE.Mesh(new THREE.SphereGeometry(.29,20,16,0,Math.PI*2,0,Math.PI/2.1),mat(0xffffff));ghutra.position.y=2.12;saif.add(ghutra);
+ const agal=new THREE.Mesh(new THREE.TorusGeometry(.26,.035,8,28),mat(0x1c1c1c));agal.position.y=2.3;agal.rotation.x=Math.PI/2;saif.add(agal);
+ const glow=new THREE.PointLight(0x35a79a,1.6,5);glow.position.y=1.6;saif.add(glow);
+ saif.position.set(1.6,0,10);scene.add(saif)}
+let saifTarget=saif.position.clone(),saifSpeaking=0;
+
+// entrance arch — white with teal lintel
+{const a=new THREE.Group();
+ box(a,.5,4.4,.5,0xf3f6f7,-2.6,2.2,0);box(a,.5,4.4,.5,0xf3f6f7,2.6,2.2,0);
+ box(a,5.8,.5,.6,TEAL,0,4.6,0,TEAL);
+ a.position.set(0,0,17);scene.add(a)}
+
+CONTENT.skills.forEach((sk,i)=>stations.push(buildStation(i,sk)));
+
+/* ================= pointer: look / click / DRAG ================= */
+const ray=new THREE.Raycaster();const mouse=new THREE.Vector2();
+let clicks=[],drags=[],dropTargets=[];
+function setInteract(c,d,z){clicks=c||[];drags=d||[];dropTargets=z||[]}
+let hovered=null;
+let looking=false,lookMoved=0;
+let drag=null; // {obj, plane, home, t}
+const flights=[]; // {obj,to,vel?,fade?,t,dur,remove}
+function flyBack(obj,to){flights.push({obj,to:to.clone(),t:0,dur:.35})}
+
+function pointerNDC(e){mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1}
+canvas.addEventListener("pointerdown",e=>{
+ pointerNDC(e);
+ ray.setFromCamera(mouse,camera);
+ const dh=ray.intersectObjects(drags,false);
+ if(dh.length){
+   const o=dh[0].object;
+   drag={obj:o,plane:new THREE.Plane(),home:o.userData.home||o.position.clone()};
+   o.userData.home=drag.home;
+   const n=new THREE.Vector3();camera.getWorldDirection(n);
+   drag.plane.setFromNormalAndCoplanarPoint(n,o.position);
+   o.scale.setScalar((o.userData.baseScale||1)*1.12);
+   canvas.setPointerCapture(e.pointerId);
+   return;
+ }
+ looking=true;lookMoved=0;
+});
+canvas.addEventListener("pointermove",e=>{
+ pointerNDC(e);
+ if(drag){
+   ray.setFromCamera(mouse,camera);
+   const p=new THREE.Vector3();
+   if(ray.ray.intersectPlane(drag.plane,p)){drag.obj.position.lerp(p,.55)}
+   // highlight hovered drop target
+   const zh=ray.intersectObjects(dropTargets,false);
+   dropTargets.forEach(z=>{if(z.userData.setHot)z.userData.setHot(zh.length&&zh[0].object===z)});
+   return;
+ }
+ if(looking){yaw-=e.movementX*.0032;pitch=Math.max(-1.2,Math.min(1.2,pitch-e.movementY*.0032));lookMoved+=Math.abs(e.movementX)+Math.abs(e.movementY)}
+});
+addEventListener("pointerup",e=>{
+ if(drag){
+   const o=drag.obj;o.scale.setScalar(o.userData.baseScale||1);
+   ray.setFromCamera(mouse,camera);
+   const zh=ray.intersectObjects(dropTargets,false);
+   dropTargets.forEach(z=>{if(z.userData.setHot)z.userData.setHot(false)});
+   let accepted=false;
+   if(zh.length&&zh[0].object.userData.onDrop)accepted=zh[0].object.userData.onDrop(o)!==false;
+   if(!accepted){flyBack(o,drag.home);if(o.userData.onReturn)o.userData.onReturn(o)}
+   drag=null;return;
+ }
+ const was=looking;looking=false;
+ if(was&&lookMoved<6)clickRay();
+});
+function clickRay(){
+ ray.setFromCamera(mouse,camera);
+ const hits=ray.intersectObjects(clicks,false);
+ if(hits.length){const o=hits[0].object;if(o.userData.onClick)o.userData.onClick(o)}
+}
+function hoverTick(){
+ if(drag)return;
+ const all=clicks.concat(drags);
+ if(!all.length){document.body.style.cursor=looking?"grabbing":"default";return}
+ ray.setFromCamera(mouse,camera);
+ const hits=ray.intersectObjects(all,false);
+ const o=hits.length?hits[0].object:null;
+ if(hovered&&hovered!==o)hovered.scale.setScalar(hovered.userData.baseScale||1);
+ hovered=o;
+ if(o){o.userData.baseScale=o.userData.baseScale||o.scale.x;o.scale.setScalar((o.userData.baseScale||1)*1.07);document.body.style.cursor=drags.includes(o)?"grab":"pointer"}
+ else document.body.style.cursor=looking?"grabbing":"default";
+}
+
+/* ---------- movement ---------- */
+const keys={};
+addEventListener("keydown",e=>{
+ if(e.target.tagName==="INPUT")return;
+ if(e.code==="Space"){e.preventDefault();if(!e.repeat)pttDown();return}
+ keys[e.key.toLowerCase()]=true;
+ if(e.key==="Enter"&&S&&S.active)glideTo(S.st);
+ if(e.key.toLowerCase()==="t")toggleAsk(true);});
+addEventListener("keyup",e=>{
+ if(e.code==="Space"){pttUp();return}
+ keys[e.key.toLowerCase()]=false});
+let glide=null;
+function glideTo(i){const st=stations[i];const a=stationAngle(i);
+ const target=new THREE.Vector3(Math.sin(a)*(R-7.2),1.6,-Math.cos(a)*(R-7.2));
+ glide={from:camPos.clone(),to:target,t:0,yawTo:Math.atan2(st.pos.x-target.x,-(st.pos.z-target.z))}}
+function moveTick(dt){
+ if(glide){glide.t=Math.min(1,glide.t+dt*(FAST?6:.9));const k=glide.t*glide.t*(3-2*glide.t);
+   camPos.lerpVectors(glide.from,glide.to,k);
+   let dy=glide.yawTo-yaw;while(dy>Math.PI)dy-=2*Math.PI;while(dy<-Math.PI)dy+=2*Math.PI;
+   yaw+=dy*Math.min(1,dt*4);
+   if(glide.t>=1)glide=null;return}
+ const sp=6*dt;const f=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),r=new THREE.Vector3(f.z,0,-f.x);
+ if(keys.w||keys.arrowup)camPos.addScaledVector(f,sp);
+ if(keys.s||keys.arrowdown)camPos.addScaledVector(f,-sp);
+ if(keys.a||keys.arrowleft)camPos.addScaledVector(r,-sp);
+ if(keys.d||keys.arrowright)camPos.addScaledVector(r,sp);
+ const l=Math.hypot(camPos.x,camPos.z);if(l>66){camPos.x*=66/l;camPos.z*=66/l}
+ camPos.y=1.6;
+}
+
+/* ---------- audio / speech ---------- */
+let AC=null;function beep(ok){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+ const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);
+ o.frequency.value=ok?880:220;o.type="sine";g.gain.setValueAtTime(.12,AC.currentTime);
+ g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.35);o.start();o.stop(AC.currentTime+.36);
+ if(ok){const o2=AC.createOscillator(),g2=AC.createGain();o2.connect(g2);g2.connect(AC.destination);
+  o2.frequency.value=1320;g2.gain.setValueAtTime(.09,AC.currentTime+.12);g2.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.5);o2.start(AC.currentTime+.12);o2.stop(AC.currentTime+.52)}}catch(e){}}
+try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{}}catch(e){}
+function speak(text,who){
+ subtitle(who||T("saif"),text);
+ try{if(!window.speechSynthesis)return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang=LANG==="ar"?"ar-SA":"en-GB";u.rate=1.02;
+  const vs=speechSynthesis.getVoices();
+  const v=vs.find(v=>v.lang&&v.lang.toLowerCase().startsWith(LANG==="ar"?"ar":"en"));
+  if(v)u.voice=v;
+  saifSpeaking=1;u.onend=()=>saifSpeaking=0;
+  speechSynthesis.speak(u);}catch(e){}
+}
+let subTimer=null;
+function subtitle(who,text,sticky){
+ const s=document.getElementById("sub");
+ document.getElementById("subwho").textContent=who;
+ document.getElementById("subtxt").textContent=text;
+ const isSaif=who===T("saif");
+ document.getElementById("subav").style.display=isSaif?"":"none";
+ const fb=document.getElementById("subav2");
+ fb.style.display=isSaif?"none":"flex";
+ fb.textContent=(who||"?").trim().charAt(0).toUpperCase();
+ s.style.display="block";
+ clearTimeout(subTimer);
+ if(!sticky)subTimer=setTimeout(()=>s.style.display="none",Math.max(3500,text.length*70));
+}
+
+/* ---------- gemini ---------- */
+async function gemini(prompt,json=true){
+ const key=getKey();
+ if(!key)throw new Error("nokey");
+ const body={contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.3}};
+ if(json)body.generationConfig.responseMimeType="application/json";
+ const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GMODEL}:generateContent?key=${key}`,
+  {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+ if(!r.ok)throw new Error("gemini "+r.status);
+ const d=await r.json();
+ return d.candidates[0].content.parts[0].text;
+}
+async function judgeAnswer(q,answer){
+ const exp=q.correct.map(c=>L(c)).join(" / ");
+ const wrong=realDis(q).map(d=>L(d)).join(" / ");
+ const p=`You are Saif, a senior Abu Dhabi Customs training officer, scoring one spoken answer from a junior trainee inside a training simulation. Language of session: ${LANG==="ar"?"Arabic":"English"}.
+Situation/question posed to trainee: ${L(q.prompt)}
+The intended correct idea: ${exp}
+Known wrong ideas (do not accept these): ${wrong}
+Trainee's answer: "${answer}"
+Be encouraging but honest. Accept paraphrases and partial-but-substantially-correct answers (e.g. 2 of 3 items named). Reject answers matching the wrong ideas or missing the core point.
+Reply ONLY JSON: {"correct": true|false, "feedback": "<one short sentence in ${LANG==="ar"?"Arabic":"English"}, spoken as Saif>"}`;
+ return JSON.parse(await gemini(p,true));
+}
+async function askSaif(text){
+ const st=S&&S.active?L(CONTENT.skills[S.st].scene.name):"entrance";
+ const p=`You are Saif, a warm senior Abu Dhabi Customs officer mentoring a new employee inside a 3D training simulation ("A Morning at Abu Dhabi Customs"). Current station: ${st}. Session language: ${LANG==="ar"?"Arabic — reply in Arabic":"English"}. Stay in character, be brief (max 40 words), practical, encouraging. Trainee asks: "${text}"`;
+ return gemini(p,false);
+}
+
+/* ---------- HUD ---------- */
+function hud(){
+ document.getElementById("hud").style.display=S&&S.active?"flex":"none";
+ if(!S)return;
+ document.getElementById("hq").innerHTML=`${T("q")} <b>${Math.min(S.done+1,24)}</b>/24`;
+ document.getElementById("hs").innerHTML=`${T("score")} <b>${S.score}</b>/120`;
+ document.getElementById("ha").innerHTML=`${T("attempt")} <b>${((S.attempt-1)%5)+1}</b>/5`;
+ document.getElementById("progfill").style.width=(S.done/24*100)+"%";
+}
+function flash(ok){const f=document.getElementById("flash");
+ f.style.background=ok?"radial-gradient(circle,rgba(31,168,119,.25),transparent 70%)":"radial-gradient(circle,rgba(216,74,56,.25),transparent 70%)";
+ f.style.opacity=1;setTimeout(()=>f.style.opacity=0,420)}
+
+/* ---------- effects: particles + floating score ---------- */
+const bursts=[];
+function burst(worldPos,ok){
+ const n=42,pos=new Float32Array(n*3),vel=[];
+ for(let i=0;i<n;i++){pos[i*3]=worldPos.x;pos[i*3+1]=worldPos.y;pos[i*3+2]=worldPos.z;
+  vel.push(new THREE.Vector3((Math.random()-.5)*3,(Math.random()*.9+.4)*3,(Math.random()-.5)*3))}
+ const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.BufferAttribute(pos,3));
+ const m=new THREE.PointsMaterial({color:ok?0x1fa877:0xd84a38,size:.09,transparent:true,opacity:.95});
+ const pts=new THREE.Points(g,m);scene.add(pts);
+ bursts.push({pts,vel,t:0});
+ if(ok){const chip=textPanel("+5",1,.55,{size:52,bold:true,color:"#ffffff",bg:"rgba(31,168,119,0.95)",border:"rgba(0,0,0,0)"});
+  chip.position.copy(worldPos).add(new THREE.Vector3(0,.4,0));scene.add(chip);
+  bursts.push({chip,t:0})}
+}
+function fxTick(dt){
+ for(let i=bursts.length-1;i>=0;i--){const b=bursts[i];b.t+=dt;
+  if(b.pts){const p=b.pts.geometry.attributes.position;
+    for(let k=0;k<b.vel.length;k++){p.array[k*3]+=b.vel[k].x*dt;p.array[k*3+1]+=b.vel[k].y*dt;p.array[k*3+2]+=b.vel[k].z*dt;b.vel[k].y-=4.5*dt}
+    p.needsUpdate=true;b.pts.material.opacity=Math.max(0,.95-b.t*1.2);
+    if(b.t>1){scene.remove(b.pts);bursts.splice(i,1)}}
+  else if(b.chip){b.chip.position.y+=dt*.9;b.chip.material.opacity=Math.max(0,1-b.t*.8);b.chip.lookAt(camPos);
+    if(b.t>1.4){scene.remove(b.chip);bursts.splice(i,1)}}}
+ for(let i=flights.length-1;i>=0;i--){const f=flights[i];f.t+=dt/f.dur;
+  if(f.t>=1){f.obj.position.copy(f.to);flights.splice(i,1)}
+  else f.obj.position.lerp(f.to,Math.min(1,dt*9))}
+}
+
+/* ================= question staging ================= */
+let qGroup=null;
+function clearQ(){if(qGroup){scene.remove(qGroup);qGroup=null}setInteract([],[],[]);
+ document.getElementById("conv").style.display="none";document.getElementById("convstat").style.display="none";
+ document.getElementById("spacehint").style.display="none"}
+function stageBase(i){
+ clearQ();
+ qGroup=new THREE.Group();
+ const st=stations[i];
+ qGroup.position.copy(st.pos);
+ qGroup.quaternion.copy(st.group.quaternion);
+ scene.add(qGroup);
+ return qGroup;
+}
+function cardMesh(text,w,h){const m=textPanel(text,w,h,{size:40});m.userData.isCard=true;return m}
+function arcPlace(meshes,y=2.1,rad=3.9,z=-2.2){
+ const n=meshes.length;
+ meshes.forEach((m,k)=>{const a=(k-(n-1)/2)*Math.max(.3,.5-n*.02);
+  m.position.set(Math.sin(a)*rad,y+((k%2)*.16),z+(1-Math.cos(a))*1.3);
+  m.rotation.y=-a*.4;m.userData.home=m.position.clone();qGroup.add(m)});
+}
+function score(q,ok,fxAt){
+ if(ok)S.score+=5;
+ S.answers.push({id:q.id,ok});
+ S.done++;
+ beep(ok);flash(ok);hud();
+ if(fxAt){const wp=fxAt.clone();qGroup&&qGroup.localToWorld(wp);burst(wp,ok)}
+ subtitle(T("saif"),ok?T("correct"):T("wrong"));
+ log(`answer · ${q.id} · ${ok?"+5":"0"} · ${S.score}/120`);
+}
+/* the answer pad: a glowing pedestal that accepts dragged cards */
+function makePad(g,label,wide){
+ const grp=new THREE.Group();
+ const base=new THREE.Mesh(new THREE.CylinderGeometry(wide?2.1:1.15,wide?2.25:1.3,.22,40),mat(0xffffff));
+ base.position.y=.11;grp.add(base);
+ const glowRing=new THREE.Mesh(new THREE.TorusGeometry(wide?2.1:1.15,.045,10,60),mat(TEAL,TEAL,1));
+ glowRing.rotation.x=Math.PI/2;glowRing.position.y=.24;grp.add(glowRing);
+ grp.userData.ring=glowRing;
+ const lbl=textPanel(label,wide?4.2:3.2,.62,{size:30,bold:true,color:"#00736a",bg:"rgba(255,255,255,0.92)",border:"rgba(0,115,106,0.35)"});
+ lbl.position.set(0,1.55,0);grp.add(lbl);grp.userData.lbl=lbl;
+ // invisible generous catch surface for drops
+ const catcher=new THREE.Mesh(new THREE.CylinderGeometry(wide?2.5:1.7,wide?2.5:1.7,2.6,20),
+   new THREE.MeshBasicMaterial({visible:false}));
+ catcher.position.y=1.3;grp.add(catcher);
+ catcher.userData.setHot=h=>{glowRing.material.emissiveIntensity=h?2.2:1;glowRing.scale.setScalar(h?1.06:1)};
+ g.add(grp);
+ return {grp,catcher};
+}
+function playBeat(stIdx,q,onDone){
+ const w=widgetOf(q);
+ const dis=realDis(q);
+ speak(L(q.prompt));
+ if(w==="conv"){stageConv(stIdx,q,onDone);return}
+ const g=stageBase(stIdx);
+ const finish=(ok,at)=>{score(q,ok,at);setTimeout(()=>onDone(),1100)};
+
+ if(w==="single"||w==="multi"){
+   /* -------- drag cards onto the answer pad -------- */
+   const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
+   const pad=makePad(g,w==="single"?T("padPlace"):T("padCollect"),w==="multi");
+   pad.grp.position.set(0,0,1.1);
+   const onPad=new Set();
+   const cards=items.map((o,ix)=>{const m=cardMesh(L(o),2.5,1.15);m.userData.ix=ix;return m});
+   arcPlace(cards,2.2,4.2,-2.4);
+   const relayout=()=>{ // arrange cards resting on the pad
+     const on=[...onPad];
+     on.forEach((ix,k)=>{const m=cards.find(c=>c.userData.ix===ix);
+       const a=(k-(on.length-1)/2)*.75;
+       flyBack(m,new THREE.Vector3(pad.grp.position.x+a,1.05+Math.abs(a)*.02,pad.grp.position.z));
+       m.userData.onPad=true});
+   };
+   let confirmBtn=null;
+   if(w==="multi"){
+     confirmBtn=textPanel(T("confirm"),1.9,.72,{size:40,bold:true,color:"#ffffff",bg:"rgba(0,115,106,0.96)",border:"#005a53"});
+     confirmBtn.position.set(3.2,1.1,1.1);confirmBtn.visible=false;g.add(confirmBtn);
+     confirmBtn.userData.onClick=()=>{
+       const chosen=[...onPad].map(i=>items[i].en).sort();
+       const want=q.correct.map(c=>c.en).sort();
+       finish(chosen.length===want.length&&chosen.every((v,i)=>v===want[i]),pad.grp.position.clone().add(new THREE.Vector3(0,1,0)));
+     };
+   }
+   pad.catcher.userData.onDrop=o=>{
+     if(w==="single"){
+       flyBack(o,new THREE.Vector3(pad.grp.position.x,1.05,pad.grp.position.z));
+       setInteract([],[],[]);
+       setTimeout(()=>finish(q.correct.some(c=>c.en===items[o.userData.ix].en),pad.grp.position.clone().add(new THREE.Vector3(0,1,0))),450);
+       return true;
+     }
+     onPad.add(o.userData.ix);relayout();
+     confirmBtn.visible=onPad.size>0;
+     return true;
+   };
+   // dragging a card off the pad removes it (multi only)
+   const offDrop=o=>{if(o.userData.onPad){onPad.delete(o.userData.ix);o.userData.onPad=false;flyBack(o,o.userData.home);relayout();confirmBtn&&(confirmBtn.visible=onPad.size>0);return true}return false};
+   const ground=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.MeshBasicMaterial({visible:false}));
+   ground.rotation.x=-Math.PI/2;ground.position.y=.05;g.add(ground);
+   ground.userData.onDrop=offDrop;
+   setInteract(confirmBtn?[confirmBtn]:[],cards,[pad.catcher,ground]);
+
+ }else if(w==="sequence"){
+   /* -------- touch panels in order; a light path follows -------- */
+   const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
+   const hint=textPanel(T("seqHint"),6.4,.62,{size:28,color:"#61707a",bg:"rgba(255,255,255,0.85)",border:"rgba(0,0,0,0)"});
+   hint.position.set(0,.55,0);g.add(hint);
+   const seq=[];
+   const cards=items.map((o,ix)=>{const m=cardMesh(L(o),2.3,1.05);
+     m.userData.onClick=()=>{if(seq.includes(ix))return;
+       seq.push(ix);
+       m.userData.setText(seq.length+". "+L(o),{border:"#1fa877",bg:"rgba(234,250,244,0.97)"});
+       beep(true);
+       if(seq.length>1){ // draw glowing link from previous card
+         const a=cards[seq[seq.length-2]].position,b=m.position;
+         const mid=a.clone().add(b).multiplyScalar(.5);
+         const len=a.distanceTo(b);
+         const tube=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,len,10),
+           new THREE.MeshBasicMaterial({color:TEALL,transparent:true,opacity:.85}));
+         tube.position.copy(mid);tube.lookAt(b.clone().add(qGroup.position));
+         tube.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),b.clone().sub(a).normalize());
+         g.add(tube);
+       }
+       if(seq.length===q.correct.length){
+         const chosen=seq.map(i=>items[i].en);const want=q.correct.map(c=>c.en);
+         setTimeout(()=>finish(chosen.every((v,i)=>v===want[i]),m.position.clone()),400);
+       }};
+     return m});
+   arcPlace(cards,2.3,4.2,-2.6);
+   setInteract(cards,[],[]);
+
+ }else if(w==="hotsingle"||w==="hotmulti"){
+   /* -------- hotspots on an image board (map / wall) -------- */
+   const isMap=/map/i.test(q.prompt.en)||q.id==="S1-Q4";
+   const board=new THREE.Mesh(new THREE.PlaneGeometry(7.6,4.3),new THREE.MeshBasicMaterial({color:0xffffff}));
+   board.position.set(0,2.55,-3.4);g.add(board);
+   const frame=new THREE.Mesh(new THREE.BoxGeometry(7.9,4.6,.08),mat(TEAL,TEAL,.35));
+   frame.position.set(0,2.55,-3.46);g.add(frame);
+   if(isMap)loadTex("img/uae-map.jpg",t=>{board.material.map=t;board.material.needsUpdate=true});
+   const hint=textPanel(T("hotHint"),6.4,.62,{size:28,color:"#61707a",bg:"rgba(255,255,255,0.85)",border:"rgba(0,0,0,0)"});
+   hint.position.set(0,.5,-.6);g.add(hint);
+   const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
+   // stable spread across the board
+   const spots=shuffled(items.map((_,k)=>k),rng(S.seed+hash(q.id+"pos")));
+   const cols=Math.ceil(items.length/2);
+   const sel=new Set();
+   let confirmBtn=null;
+   const markers=items.map((o,ix)=>{
+     const slot=spots[ix];
+     const cx=((slot%cols)-(cols-1)/2)*(6.6/cols);
+     const cy=slot<cols?3.35:1.9;
+     const grpM=new THREE.Group();
+     const ringM=new THREE.Mesh(new THREE.RingGeometry(.14,.22,32),new THREE.MeshBasicMaterial({color:TEAL,transparent:true,opacity:.95,side:THREE.DoubleSide}));
+     grpM.add(ringM);grpM.userData.pulse=ringM;
+     const dot=new THREE.Mesh(new THREE.CircleGeometry(.09,20),new THREE.MeshBasicMaterial({color:TEAL}));
+     dot.position.z=.005;grpM.add(dot);
+     const lbl=textPanel(L(o),2.15,.72,{size:26});
+     lbl.position.set(0,-.62,.01);grpM.add(lbl);
+     grpM.position.set(cx,cy,-3.32);
+     g.add(grpM);
+     dot.userData.hitIx=ix;
+     lbl.userData.hitIx=ix;
+     const toggle=()=>{
+       if(w==="hotsingle"){setInteract([],[],[]);
+         setTimeout(()=>finish(q.correct.some(c=>c.en===items[ix].en),grpM.position.clone()),350);return}
+       sel.has(ix)?sel.delete(ix):sel.add(ix);
+       const on=sel.has(ix);
+       ringM.material.color.set(on?SAND:TEAL);dot.material.color.set(on?SAND:TEAL);
+       lbl.userData.setText((on?"● ":"")+L(o),{border:on?"#c8a45a":"#00736a"});
+       confirmBtn.visible=sel.size>0;
+     };
+     dot.userData.onClick=toggle;lbl.userData.onClick=toggle;
+     return {dot,lbl};
+   });
+   const clickables=markers.flatMap(m=>[m.dot,m.lbl]);
+   if(w==="hotmulti"){
+     confirmBtn=textPanel(T("confirm"),1.9,.72,{size:40,bold:true,color:"#ffffff",bg:"rgba(0,115,106,0.96)",border:"#005a53"});
+     confirmBtn.position.set(3.4,1.1,-1.4);confirmBtn.visible=false;g.add(confirmBtn);
+     confirmBtn.userData.onClick=()=>{
+       const chosen=[...sel].map(i=>items[i].en).sort();
+       const want=q.correct.map(c=>c.en).sort();
+       finish(chosen.length===want.length&&chosen.every((v,i)=>v===want[i]),new THREE.Vector3(0,2.5,-3.2));
+     };
+     clickables.push(confirmBtn);
+   }
+   setInteract(clickables,[],[]);
+
+ }else{ /* -------- assign: drag cards onto zone boards -------- */
+   const cardsData=q.correct.concat(dis).map(o=>{const pe=o.en.split("→").map(s=>s.trim());
+     const pa=(o.ar||o.en).split("→").map(s=>s.trim());
+     return{en:pe[0],ar:pa[0]||pe[0],zoneEn:/matches nothing/i.test(pe[1]||"")?"__none__":(pe[1]||""),zoneAr:pa[1]||""}});
+   const zones=[];cardsData.forEach(c=>{if(c.zoneEn!=="__none__"&&!zones.some(z=>z.en===c.zoneEn))zones.push({en:c.zoneEn,ar:c.zoneAr})});
+   if(cardsData.some(c=>c.zoneEn==="__none__"))zones.push({en:"__none__",ar:""});
+   const order=shuffled(cardsData.map((c,i)=>i),rng(S.seed+hash(q.id)));
+   const assign={};
+   const zlabel=z=>z.en==="__none__"?T("notUsed"):(LANG==="ar"&&z.ar?z.ar:z.en);
+   // draggable cards up high
+   const cardM=order.map(ci=>{const c=cardsData[ci];const m=cardMesh(LANG==="ar"?c.ar:c.en,2.3,.95);
+     m.userData.ci=ci;
+     m.userData.onReturn=o=>{ // dragged off a zone and dropped nowhere: unassign
+       const prev=assign[o.userData.ci];
+       if(prev!=null){delete assign[o.userData.ci];
+         const pz=zoneM[prev];pz.grpZ.userData.stack=pz.grpZ.userData.stack.filter(x=>x!==o);restack(pz);
+         o.scale.setScalar(1);o.userData.baseScale=1}
+     };
+     return m});
+   arcPlace(cardM,3.1,4.4,-2.9);
+   // zone boards standing in a row
+   const zw=2.9;
+   const zoneM=zones.map((z,zi)=>{
+     const grpZ=new THREE.Group();
+     const back=new THREE.Mesh(new THREE.BoxGeometry(zw,2.5,.1),mat(0xffffff));
+     back.position.y=1.25;grpZ.add(back);
+     const head=textPanel(zlabel(z),zw-.15,.62,{size:30,bold:true,color:"#ffffff",bg:"rgba(0,115,106,0.96)",border:"#005a53"});
+     head.position.set(0,2.22,.07);grpZ.add(head);
+     const slotsLbl=textPanel(T("dropZone"),zw-.5,.5,{size:24,color:"#9aa7ad",bg:"rgba(244,247,248,0.9)",border:"rgba(0,0,0,0)"});
+     slotsLbl.position.set(0,1.0,.07);grpZ.add(slotsLbl);grpZ.userData.slotsLbl=slotsLbl;
+     grpZ.position.set(-((zones.length-1)/2)*(zw+.35)+zi*(zw+.35),0,-.9);
+     g.add(grpZ);
+     back.userData.zi=zi;grpZ.userData.stack=[];
+     back.userData.setHot=h=>{back.material.emissive=new THREE.Color(h?TEAL:0x000000);back.material.emissiveIntensity=h?.35:0};
+     back.userData.onDrop=o=>{
+       const prev=assign[o.userData.ci];
+       if(prev!=null){const pz=zoneM[prev];pz.grpZ.userData.stack=pz.grpZ.userData.stack.filter(x=>x!==o);restack(pz)}
+       assign[o.userData.ci]=zi;
+       grpZ.userData.stack.push(o);restack({grpZ,back});
+       grpZ.userData.slotsLbl.visible=false;
+       if(Object.keys(assign).length===cardsData.length){
+         setInteract([],[],[]);
+         setTimeout(()=>{
+           const ok=cardsData.every((c,ci)=>{const z=zones[assign[ci]];return z&&(c.zoneEn==="__none__"?z.en==="__none__":z.en===c.zoneEn)});
+           finish(ok,grpZ.position.clone().add(new THREE.Vector3(0,1.6,0)));
+         },500);
+       }
+       return true;
+     };
+     return {grpZ,back};
+   });
+   function restack(z){
+     z.grpZ.userData.stack.forEach((m,k)=>{
+       m.scale.setScalar(.72);m.userData.baseScale=.72;
+       flyBack(m,z.grpZ.position.clone().add(new THREE.Vector3(0,1.72-k*.55,.14)));
+     });
+     if(!z.grpZ.userData.stack.length&&z.grpZ.userData.slotsLbl)z.grpZ.userData.slotsLbl.visible=true;
+   }
+   setInteract([],cardM,zoneM.map(z=>z.back));
+ }
+}
+
+/* ---------- conversational beat + push-to-talk ---------- */
+let recog=null,recActive=false,convOpen=false,curSubmit=null;
+function recStart(){
+ if(recActive||!convOpen)return;
+ const stat=document.getElementById("convstat");
+ const talk=document.getElementById("talk");
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){stat.style.display="block";stat.textContent=T("mic_no");return}
+ if(!window.isSecureContext){stat.style.display="block";stat.textContent=T("mic_ctx");return}
+ try{
+   recog=new SR();recog.lang=LANG==="ar"?"ar-SA":"en-US";recog.interimResults=false;
+   recog.onresult=ev=>{const tx=ev.results[0][0].transcript;if(curSubmit)curSubmit(tx)};
+   recog.onerror=e=>{stat.style.display="block";stat.textContent=T("mic_no")+" ("+e.error+")";talk.classList.remove("rec");recActive=false};
+   recog.onend=()=>{talk.classList.remove("rec");recActive=false};
+   recog.start();recActive=true;
+   talk.classList.add("rec");
+   stat.style.display="block";stat.textContent=T("listening");
+ }catch(e){stat.style.display="block";stat.textContent=T("mic_no")}
+}
+function recStop(){try{recog&&recog.stop()}catch(e){};document.getElementById("talk").classList.remove("rec");recActive=false}
+function pttDown(){if(convOpen)recStart()}
+function pttUp(){if(convOpen)recStop()}
+
+function stageConv(stIdx,q,onDone){
+ stageBase(stIdx);
+ const conv=document.getElementById("conv");
+ const stat=document.getElementById("convstat");
+ const sp=document.getElementById("spacehint");
+ const who=q.id==="S5-Q3"?T("visitor"):T("saif");
+ subtitle(who,L(q.prompt),true);
+ document.getElementById("convopts").textContent=T("showOpts");
+ document.getElementById("convin").value="";
+ document.getElementById("convin").placeholder=T("typeHint");
+ const cleanup=()=>{conv.style.display="none";stat.style.display="none";sp.style.display="none";convOpen=false;curSubmit=null};
+ const fallback=()=>{cleanup();
+   const dis=realDis(q);const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
+   const cards=items.map((o,ix)=>{const m=cardMesh(L(o),2.7,1.2);
+     m.userData.onClick=()=>{score(q,q.correct.some(c=>c.en===items[ix].en),m.position.clone());setTimeout(()=>onDone(),1100)};return m});
+   arcPlace(cards);setInteract(cards,[],[])};
+ if(!getKey()){subtitle(who,L(q.prompt),true);stat.style.display="block";stat.textContent=T("key_no");setTimeout(fallback,50);return}
+ conv.style.display="flex";convOpen=true;
+ stat.style.display="block";stat.textContent=T("typeHint");
+ sp.style.display="block";sp.textContent=T("holdSpace");
+ const finish=(ok)=>{cleanup();score(q,ok);setTimeout(()=>onDone(),1100)};
+ const submit=async(text)=>{
+   if(!text||!text.trim())return;
+   subtitle(T("you"),text);
+   stat.textContent=T("judging");
+   conv.style.display="none";sp.style.display="none";
+   try{
+     const v=await judgeAnswer(q,text.trim());
+     stat.style.display="none";
+     speak(v.feedback,T("saif"));
+     finish(!!v.correct);
+   }catch(e){stat.textContent=T("ai_no");log("gemini error: "+e.message);setTimeout(fallback,900)}
+ };
+ curSubmit=submit;
+ document.getElementById("convsend").onclick=()=>submit(document.getElementById("convin").value);
+ document.getElementById("convin").onkeydown=e=>{if(e.key==="Enter")submit(e.target.value)};
+ document.getElementById("convopts").onclick=fallback;
+ const talk=document.getElementById("talk");
+ talk.onpointerdown=recStart;
+ talk.onpointerup=recStop;
+ talk.onpointerleave=()=>{if(recActive)recStop()};
+}
+
+/* ================= session flow ================= */
+function startSession(name){
+ const prev=DB.results.filter(r=>r.trainee===name&&r.level===1).length;
+ S={trainee:name,seed:hash(name+"|adc-poc"),attempt:prev+1,score:0,done:0,answers:[],active:true,st:0};
+ S.plan=draw(S.attempt);
+ log(`session.start · ${name} · ${LANG} · attempt ${S.attempt}`);
+ document.getElementById("startOv").style.display="none";
+ document.getElementById("ctrlhint").textContent=T("hint");
+ hud();
+ runStation(0);
+}
+function runStation(i){
+ S.st=i;
+ stations.forEach((s,k)=>{s.group.userData.beam.visible=k===i});
+ const a=stationAngle(i);
+ saifTarget=new THREE.Vector3(Math.sin(a)*(R-5.4)+Math.cos(a)*1.8,0,-Math.cos(a)*(R-5.4)+Math.sin(a)*1.8);
+ glideTo(i);
+ speak(T("stationIntro")[i]);
+ setTimeout(()=>runBeat(i,0),FAST?350:2600);
+}
+function runBeat(i,b){
+ if(b>=4){ if(i+1<6)runStation(i+1); else endLevel(); return }
+ const {q}=S.plan[i][b];
+ playBeat(i,q,()=>runBeat(i,b+1));
+}
+function endLevel(){
+ clearQ();
+ const pass=S.score>=96;
+ DB.results.push({trainee:S.trainee,level:1,attempt:S.attempt,score:S.score,pass,lang:LANG,ts:new Date().toISOString(),answers:S.answers});
+ save();log(`level.result · ${S.trainee} · ${S.score}/120 · ${pass?"PASS":"FAIL"}`);
+ S.active=false;hud();
+ document.getElementById("roEyebrow").textContent=T("eyebrow");
+ document.getElementById("roScore").textContent=S.score+" / 120";
+ document.getElementById("roScore").className="big "+(pass?"pass":"fail");
+ document.getElementById("roVerdict").textContent=pass?T("passed"):T("failed");
+ document.getElementById("roVerdict").className=pass?"pass":"fail";
+ const rr=document.getElementById("roRetry");
+ rr.style.display=pass?"none":"";rr.textContent=T("retry");
+ rr.onclick=()=>{document.getElementById("resultOv").style.display="none";startSession(S.trainee)};
+ document.getElementById("roHome").textContent=T("home");
+ document.getElementById("roHome").onclick=()=>{document.getElementById("resultOv").style.display="none";showStart()};
+ document.getElementById("resultOv").style.display="flex";
+}
+
+/* ---------- start overlay ---------- */
+function lvState(n){
+ if(n===1)return"open";
+ const passed=DB.results.some(r=>r.pass&&r.level===1);
+ if(n===2&&(passed||DB.bypass))return DB.bypass&&!passed?"bypassed":"open";
+ return"locked";
+}
+function showStart(){
+ if(PARAMS.has("autostart")&&!autoStarted){
+   autoStarted=true;
+   LANG=PARAMS.get("lang")==="ar"?"ar":"en";
+   document.documentElement.dir=LANG==="ar"?"rtl":"ltr";
+   document.getElementById("startOv").style.display="none";
+   startSession(PARAMS.get("name")||"Demo");
+   return;
+ }
+ const so=document.getElementById("startOv");so.style.display="flex";
+ document.getElementById("soEyebrow").textContent=T("eyebrow");
+ document.getElementById("bcSub").textContent=T("eyebrow");
+ document.getElementById("soTitle").textContent=T("title");
+ document.getElementById("soDesc").textContent=T("desc");
+ document.getElementById("soNameL").textContent=T("name");
+ document.getElementById("soLangL").textContent=T("lang");
+ document.getElementById("soLvlL").textContent=T("lvl");
+ document.getElementById("soHint").textContent=T("hint");
+ document.getElementById("inName").value=DB.lastName||"";
+ const g=document.getElementById("lvGrid");
+ g.innerHTML=[1,2,3,4,5].map(n=>{const st=lvState(n);
+  return`<div class="level ${st}" data-lv="${n}"><div class="num">${n}</div><div class="st">${st==="locked"?"🔒 "+T("locked"):(st==="bypassed"?"🔓":T("open"))}</div></div>`}).join("");
+ g.querySelectorAll(".level.open,.level.bypassed").forEach(el=>el.onclick=()=>{
+   const nm=document.getElementById("inName").value.trim();
+   if(!nm){document.getElementById("inName").focus();return}
+   DB.lastName=nm;save();
+   if(+el.dataset.lv===1){so.style.display="none";startSession(nm)}
+   else{so.style.display="none";subtitle(T("saif"),T("l2"));setTimeout(showStart,4200)}
+ });
+}
+document.querySelectorAll(".langbtn").forEach(b=>b.onclick=()=>{
+ LANG=b.dataset.l;
+ document.documentElement.dir=LANG==="ar"?"rtl":"ltr";
+ document.querySelectorAll(".langbtn").forEach(x=>x.classList.toggle("sel",x===b));
+ showStart();
+});
+
+/* ---------- ask Saif ---------- */
+function toggleAsk(on){const r=document.getElementById("askrow");
+ r.style.display=on?"flex":"none";
+ if(on){const i=document.getElementById("askin");i.placeholder=T("askPh");i.focus()}}
+document.getElementById("btnAsk").onclick=()=>toggleAsk(true);
+document.getElementById("askclose").onclick=()=>toggleAsk(false);
+async function doAsk(){const i=document.getElementById("askin");const t=i.value.trim();if(!t)return;
+ i.value="";subtitle(T("you"),t);
+ try{const r=await askSaif(t);speak(r.trim(),T("saif"))}catch(e){subtitle(T("saif"),e.message==="nokey"?T("key_no"):T("ai_no"))}}
+document.getElementById("asksend").onclick=doAsk;
+document.getElementById("askin").addEventListener("keydown",e=>{if(e.key==="Enter")doAsk()});
+
+/* ---------- admin ---------- */
+let adminAuthed=false;
+document.getElementById("btnAdmin").onclick=()=>{document.getElementById("drawer").classList.add("open");paintAdmin()};
+document.getElementById("dClose").onclick=()=>document.getElementById("drawer").classList.remove("open");
+function paintAdmin(){
+ if(!document.getElementById("drawer").classList.contains("open"))return;
+ const body=document.getElementById("dBody");
+ if(!adminAuthed){
+  body.innerHTML=`<label>${T("pin")}</label><input id="pin" type="password" style="max-width:150px">
+   <div style="margin-top:10px"><button class="btn small" id="go">OK</button></div><div id="perr" style="color:var(--red);font-size:12px;margin-top:6px"></div>`;
+  document.getElementById("go").onclick=()=>{if(document.getElementById("pin").value===ADMIN_PIN){adminAuthed=true;paintAdmin()}else document.getElementById("perr").textContent=T("wrongPin")};
+  return;
+ }
+ const live=S&&S.active?`${S.trainee} · ${T("q")} ${Math.min(S.done+1,24)}/24 · ${S.score}/120`:"—";
+ body.innerHTML=`<h3>${T("live")}</h3><p>${live}</p>
+  <h3 style="margin-top:12px">${T("aikey")}</h3>
+  <div style="display:flex;gap:6px"><input id="gk" type="password" placeholder="AIza…" value="${getKey()?"••••••••":""}" style="max-width:220px"><button class="btn small" id="gksave">✓</button></div>
+  <h3 style="margin-top:12px">${T("results")}</h3>
+  ${DB.results.length?`<table><tr><th>${T("name")}</th><th>#</th><th>${T("score")}</th><th></th></tr>
+   ${DB.results.map(r=>`<tr><td>${r.trainee}</td><td>${r.attempt}</td><td>${r.score}/120</td><td style="color:${r.pass?"var(--green)":"var(--red)"}">${r.pass?"✓":"✗"}</td></tr>`).join("")}</table>`:`<p style="color:var(--muted)">${T("noresults")}</p>`}
+  <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn small" id="csv">${T("csv")}</button>
+   ${DB.bypass?`<span style="font-size:12px;color:var(--sand)">🔓 ${T("unlocked")} (${DB.bypass.by})</span>`:`<button class="btn small" id="bp">${T("unlock")}</button>`}</div>
+  ${!DB.bypass?`<label>${T("aname")}</label><input id="an" type="text" style="max-width:200px">`:""}
+  <h3 style="margin-top:12px">${T("log")}</h3><div class="loglines">${DB.log.slice(-60).reverse().map(l=>`<div>${l}</div>`).join("")}</div>`;
+ document.getElementById("gksave").onclick=()=>{const v=document.getElementById("gk").value.trim();
+  if(v&&!v.startsWith("•")){localStorage.setItem("adc_gemini_key",v);log("ai key updated");paintAdmin()}};
+ const bp=document.getElementById("bp");
+ if(bp)bp.onclick=()=>{const nm=(document.getElementById("an").value||"").trim();
+  if(!nm){document.getElementById("an").focus();return}
+  DB.bypass={by:nm,ts:new Date().toISOString()};log(`gate.bypass · by ${nm}`);save();paintAdmin();
+  if(!S||!S.active)showStart()};
+ document.getElementById("csv").onclick=()=>{
+  const rows=[["trainee","level","attempt","language","score","percent","pass","timestamp"]];
+  DB.results.forEach(r=>rows.push([r.trainee,r.level,r.attempt,r.lang,r.score,Math.round(r.score/120*100)+"%",r.pass?"PASS":"FAIL",r.ts]));
+  const a=document.createElement("a");
+  a.href="data:text/csv;charset=utf-8,﻿"+encodeURIComponent(rows.map(r=>r.join(",")).join("\r\n"));
+  a.download="adc_poc3d_results.csv";a.click()};
+}
+
+/* ---------- render loop ---------- */
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
+addEventListener("resize",resize);resize();
+const clock=new THREE.Clock();
+function animate(){
+ requestAnimationFrame(animate);
+ const dt=Math.min(clock.getDelta(),.05);
+ const t=clock.elapsedTime;
+ moveTick(dt);hoverTick();fxTick(dt);
+ camera.position.copy(camPos);
+ camera.rotation.set(0,0,0);camera.rotateY(yaw);camera.rotateX(pitch);
+ saif.position.lerp(new THREE.Vector3(saifTarget.x,0,saifTarget.z),Math.min(1,dt*2));
+ saif.children[1].position.y=2.08+Math.sin(t*2)*.04;
+ saif.children[4].intensity=1.4+(saifSpeaking?Math.sin(t*14)*1.1:0)+Math.sin(t*3)*.25;
+ saif.lookAt(camPos.x,1.2,camPos.z);
+ stations.forEach((s,i)=>{
+  s.group.userData.beam.rotation.y=t*.6;
+  s.group.children.forEach(ch=>{if(ch.userData.spin)ch.rotation.y=Math.sin(t*ch.userData.spin*8)*.22});
+  if(s.group.userData.container){const ph=(t*.18)%1;s.group.userData.container.position.x=-4.1+ph*8.2}
+  if(s.group.userData.visitor)s.group.userData.visitor.children[1].position.y=1.95+Math.sin(t*1.6)*.03;
+ });
+ if(qGroup)qGroup.traverse(m=>{
+  if(m.userData.isCard&&!drag||m.userData.isCard&&drag&&drag.obj!==m)m.position.y+=Math.sin(t*1.4+m.id)*.0008;
+  if(m.userData.pulse){const s=1+Math.sin(t*3+m.id)*.16;m.userData.pulse.scale.setScalar(s)}
+  if(m.userData.ring)m.userData.ring.rotation.z=t*.8;
+ });
+ renderer.render(scene,camera);
+}
+animate();
+window.__adc={get S(){return S},get qGroup(){return qGroup},get cam(){return camPos},get glide(){return glide},get t(){return clock.elapsedTime},stations};
+showStart();
+</script>
+</body>
+</html>

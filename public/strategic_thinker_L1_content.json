@@ -1,0 +1,1194 @@
+{
+  "module": {
+    "number": 1,
+    "name": {
+      "en": "The Strategic Thinker",
+      "ar": ""
+    },
+    "level": 1
+  },
+  "scoring": {
+    "marksPerQuestion": 5,
+    "questionsPerLevel": 24,
+    "fullMark": 120,
+    "passMark": 96,
+    "maxTries": 5,
+    "drawPerSkill": 4
+  },
+  "templates": {
+    "T1": {
+      "name": "Select & Inspect",
+      "description": "Trainee touches the correct option(s) among distractors on a holographic board or physical props."
+    },
+    "T2": {
+      "name": "Sort & Place",
+      "description": "Trainee physically picks up cards/objects and places them into labeled zones or onto matching targets."
+    },
+    "T3": {
+      "name": "Dialogue Choice",
+      "description": "An NPC (mentor/visitor) speaks; trainee touches one of three floating response panels."
+    },
+    "T4": {
+      "name": "Hotspot / Sequence",
+      "description": "Trainee touches points on a map, wall or process board — a single hotspot or a correct order."
+    }
+  },
+  "skills": [
+    {
+      "id": 1,
+      "name": {
+        "en": "Scans business environment",
+        "ar": ""
+      },
+      "levelAnchor": {
+        "en": "Has awareness of business activities, organization products/services and the market environment",
+        "ar": ""
+      },
+      "scene": {
+        "name": {
+          "en": "The Operations Gallery",
+          "ar": ""
+        },
+        "description": {
+          "en": "The mentor welcomes the trainee in ADC's orientation hall: an interactive wall showing ADC services, a UAE map with entry points, and service-counter dioramas.",
+          "ar": ""
+        }
+      },
+      "questions": [
+        {
+          "id": "S1-Q1",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the services Abu Dhabi Customs provides.” Holographic board shows six service cards.",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Customs declaration processing",
+              "ar": ""
+            },
+            {
+              "en": "Cargo inspection",
+              "ar": ""
+            },
+            {
+              "en": "Passenger baggage clearance",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Issuing driving licences",
+              "ar": ""
+            },
+            {
+              "en": "Electricity billing",
+              "ar": ""
+            },
+            {
+              "en": "School registration",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S1-Q2",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “Through which channels does trade reach Abu Dhabi?”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "By sea, land and air — ports, border crossings and airports",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Only by sea, through Zayed Port",
+              "ar": ""
+            },
+            {
+              "en": "Mainly by rail from neighbouring countries",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S1-Q3",
+          "template": "T2",
+          "prompt": {
+            "en": "“Place each visitor card into the right zone: ADC customer / not an ADC customer.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Importer → customer",
+              "ar": ""
+            },
+            {
+              "en": "Traveller → customer",
+              "ar": ""
+            },
+            {
+              "en": "Shipping agent → customer",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Job applicant → not a customer",
+              "ar": ""
+            },
+            {
+              "en": "Utility subscriber → not a customer",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S1-Q4",
+          "template": "T4",
+          "prompt": {
+            "en": "“On the map wall, touch the three main customs entry points of the Emirate.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Zayed Port",
+              "ar": ""
+            },
+            {
+              "en": "Abu Dhabi International Airport",
+              "ar": ""
+            },
+            {
+              "en": "Al Ghuweifat land border",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Corniche",
+              "ar": ""
+            },
+            {
+              "en": "Yas Island",
+              "ar": ""
+            },
+            {
+              "en": "Liwa Oasis",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S1-Q5",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the goods categories commonly processed through the port.” Cards on the cargo shelf.",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Construction materials",
+              "ar": ""
+            },
+            {
+              "en": "Vehicles",
+              "ar": ""
+            },
+            {
+              "en": "Foodstuffs",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Real-estate deeds",
+              "ar": ""
+            },
+            {
+              "en": "School certificates",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S1-Q6",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “Who are ADC's main partners at the border?”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Police, immigration and the port authorities",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Travel agencies and hotels",
+              "ar": ""
+            },
+            {
+              "en": "Private car dealerships",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": {
+        "en": "Analyzes leading practices & global trends",
+        "ar": ""
+      },
+      "levelAnchor": {
+        "en": "Has awareness of developments that are relevant to own role",
+        "ar": ""
+      },
+      "scene": {
+        "name": {
+          "en": "The Innovation Corner",
+          "ar": ""
+        },
+        "description": {
+          "en": "A news-and-trends wall beside the operations room: rotating headline cards, a timeline of customs modernisation, and an 'official sources' terminal.",
+          "ar": ""
+        }
+      },
+      "questions": [
+        {
+          "id": "S2-Q1",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the developments relevant to your role as a customs officer.” Headline cards rotate on the wall.",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "New smart X-ray scanners",
+              "ar": ""
+            },
+            {
+              "en": "Updated e-declaration platform",
+              "ar": ""
+            },
+            {
+              "en": "New WCO data standards",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Celebrity news",
+              "ar": ""
+            },
+            {
+              "en": "Fashion week opens",
+              "ar": ""
+            },
+            {
+              "en": "Football transfer rumours",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S2-Q2",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “A smart-gate system is announced for the port. What is your first step?”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Read the internal circular to understand how it changes my daily work",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Wait until someone forces me to attend training",
+              "ar": ""
+            },
+            {
+              "en": "Share the rumour in a group chat",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S2-Q3",
+          "template": "T2",
+          "prompt": {
+            "en": "“Sort the trend cards: relevant to my role / not relevant.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "AI risk profiling → relevant",
+              "ar": ""
+            },
+            {
+              "en": "Paperless declarations → relevant",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Retail loyalty apps → not relevant",
+              "ar": ""
+            },
+            {
+              "en": "Tourism campaign → not relevant",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S2-Q4",
+          "template": "T1",
+          "prompt": {
+            "en": "“At the sources terminal, touch the official channels for staying up to date.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "ADC internal circulars",
+              "ar": ""
+            },
+            {
+              "en": "WCO bulletins",
+              "ar": ""
+            },
+            {
+              "en": "The official training portal",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Anonymous group chats",
+              "ar": ""
+            },
+            {
+              "en": "Unofficial blogs",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S2-Q5",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “You hear a rumour about a new inspection rule. What do you do?”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Verify it through the official circular or my supervisor before acting",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Apply it immediately — better safe than sorry",
+              "ar": ""
+            },
+            {
+              "en": "Forward it to colleagues as-is",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S2-Q6",
+          "template": "T2",
+          "prompt": {
+            "en": "“On the timeline, place each 'new practice' card next to the old practice it replaced.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "E-declarations → paper declarations",
+              "ar": ""
+            },
+            {
+              "en": "AI-assisted profiling → manual risk checks",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Longer queues → (matches nothing)",
+              "ar": ""
+            },
+            {
+              "en": "Fax updates → (matches nothing)",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": {
+        "en": "Identifies opportunities",
+        "ar": ""
+      },
+      "levelAnchor": {
+        "en": "Identifies opportunities to increase efficiencies in own area of work",
+        "ar": ""
+      },
+      "scene": {
+        "name": {
+          "en": "The Inspection Bay",
+          "ar": ""
+        },
+        "description": {
+          "en": "A working truck-inspection bay at mid-morning: a queue building outside, a document desk, sample shelf, label printer and a process-flow board on the wall.",
+          "ar": ""
+        }
+      },
+      "questions": [
+        {
+          "id": "S3-Q1",
+          "template": "T4",
+          "prompt": {
+            "en": "“Watch the morning queue build up, then touch the step on the flow board where trucks wait longest.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Manual document check step",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Arrival gate",
+              "ar": ""
+            },
+            {
+              "en": "X-ray step",
+              "ar": ""
+            },
+            {
+              "en": "Release gate",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S3-Q2",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “You re-enter the same shipment data into two screens every time. What do you do?”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Note it and suggest an improvement to my supervisor",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Keep doing it — it is not my problem",
+              "ar": ""
+            },
+            {
+              "en": "Skip one screen to save time",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S3-Q3",
+          "template": "T2",
+          "prompt": {
+            "en": "“Sort the idea cards: improves efficiency in my area / outside my scope for now.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Pre-check documents before the truck arrives → my area",
+              "ar": ""
+            },
+            {
+              "en": "Label the sample shelf → my area",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Change the national tariff law → outside my scope",
+              "ar": ""
+            },
+            {
+              "en": "Buy new port cranes → outside my scope",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S3-Q4",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the item at the desk that causes the most wasted time.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Unsorted paper forms tray",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "The scanner",
+              "ar": ""
+            },
+            {
+              "en": "The desk phone",
+              "ar": ""
+            },
+            {
+              "en": "The stamp",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S3-Q5",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “The label printer sits far from the sample shelf — constant walking back and forth. Your suggestion?”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Move the printer next to the shelf and raise it at the team huddle",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Stop labelling samples to save steps",
+              "ar": ""
+            },
+            {
+              "en": "Ask to be moved to another bay",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S3-Q6",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the change in your own routine that would save time today.” Options float over the desk.",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Batch similar declarations and process them together",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Take longer breaks between trucks",
+              "ar": ""
+            },
+            {
+              "en": "Check personal phone between entries",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": {
+        "en": "Leverages systems perspective",
+        "ar": ""
+      },
+      "levelAnchor": {
+        "en": "Has awareness of the inter-dependencies between own area of work and that of the team",
+        "ar": ""
+      },
+      "scene": {
+        "name": {
+          "en": "The Cargo Journey Wall",
+          "ar": ""
+        },
+        "description": {
+          "en": "An animated wall tracing one container's journey from ship to city: berth, documentation, risk check, physical inspection, release gate — each station owned by a different team.",
+          "ar": ""
+        }
+      },
+      "questions": [
+        {
+          "id": "S4-Q1",
+          "template": "T4",
+          "prompt": {
+            "en": "“Touch the stations in the order a container passes through them.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Arrival / berth",
+              "ar": ""
+            },
+            {
+              "en": "Documentation",
+              "ar": ""
+            },
+            {
+              "en": "Risk check",
+              "ar": ""
+            },
+            {
+              "en": "Physical inspection",
+              "ar": ""
+            },
+            {
+              "en": "Release gate",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "(order-based — wrong sequence scores 0)",
+              "ar": ""
+            }
+          ],
+          "ordered": true
+        },
+        {
+          "id": "S4-Q2",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “Documentation is running late this morning. Who feels it downstream?”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "The inspection team and the release gate — trucks stack up behind us",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Nobody — each team works independently",
+              "ar": ""
+            },
+            {
+              "en": "Only the shipping line's head office",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S4-Q3",
+          "template": "T2",
+          "prompt": {
+            "en": "“Place each team card on the station it owns.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Documentation team → documentation",
+              "ar": ""
+            },
+            {
+              "en": "Risk analysts → risk check",
+              "ar": ""
+            },
+            {
+              "en": "Inspectors → physical inspection",
+              "ar": ""
+            },
+            {
+              "en": "Gate officers → release gate",
+              "ar": ""
+            }
+          ],
+          "distractors": [],
+          "ordered": false
+        },
+        {
+          "id": "S4-Q4",
+          "template": "T1",
+          "prompt": {
+            "en": "“You flag a suspicious shipment. Touch everyone you must inform.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "My supervisor",
+              "ar": ""
+            },
+            {
+              "en": "The risk team",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Human resources",
+              "ar": ""
+            },
+            {
+              "en": "Finance",
+              "ar": ""
+            },
+            {
+              "en": "The cafeteria",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S4-Q5",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “Why does the quality of your inspection report matter to the release gate?”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "They rely on it to release or hold the truck — my errors delay everyone",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "It doesn't — they run their own checks",
+              "ar": ""
+            },
+            {
+              "en": "Only managers read reports",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S4-Q6",
+          "template": "T4",
+          "prompt": {
+            "en": "“A delay appears at the release gate. Touch the two upstream stations that could be the cause.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Documentation",
+              "ar": ""
+            },
+            {
+              "en": "Physical inspection",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Arrival / berth",
+              "ar": ""
+            },
+            {
+              "en": "The city road network",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": {
+        "en": "Articulates vision",
+        "ar": ""
+      },
+      "levelAnchor": {
+        "en": "Has awareness of the organization’s vision",
+        "ar": ""
+      },
+      "scene": {
+        "name": {
+          "en": "The Vision Wall",
+          "ar": ""
+        },
+        "description": {
+          "en": "ADC's lobby: the vision statement wall (blocks removable for the exercise), a visitor NPC at reception, and photo panels of daily customs work.",
+          "ar": ""
+        }
+      },
+      "questions": [
+        {
+          "id": "S5-Q1",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the statement that reflects ADC's vision.” Three statements float on the wall.",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Secure borders and facilitated trade for a thriving, safe Abu Dhabi",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Maximum revenue from every shipment, whatever the delay",
+              "ar": ""
+            },
+            {
+              "en": "Inspect as little as possible to keep queues short",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S5-Q2",
+          "template": "T2",
+          "prompt": {
+            "en": "“Build the vision wall: place the three pillars that belong on it.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Security",
+              "ar": ""
+            },
+            {
+              "en": "Trade facilitation",
+              "ar": ""
+            },
+            {
+              "en": "Community prosperity",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Entertainment",
+              "ar": ""
+            },
+            {
+              "en": "Real-estate growth",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S5-Q3",
+          "template": "T3",
+          "prompt": {
+            "en": "Visitor at reception: “What does Abu Dhabi Customs stand for?”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Protecting the community while keeping legitimate trade moving smoothly",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Collecting fees from travellers",
+              "ar": ""
+            },
+            {
+              "en": "Checking passports at the airport",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S5-Q4",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the daily action that best expresses the vision.” Photo panels of work situations.",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "A thorough inspection completed without unnecessary delay",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Waving trucks through unchecked to be fast",
+              "ar": ""
+            },
+            {
+              "en": "Holding all trucks all day to be safe",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S5-Q5",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “How does your own role connect to the vision?”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Every accurate check protects the community and keeps trade moving",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "My role is too junior to connect to the vision",
+              "ar": ""
+            },
+            {
+              "en": "Vision statements are for managers",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S5-Q6",
+          "template": "T2",
+          "prompt": {
+            "en": "“Sort the statement cards: in line with our vision / against it.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Help the trader fix his declaration quickly → in line",
+              "ar": ""
+            },
+            {
+              "en": "Report the prohibited item even if it causes delay → in line",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Ignore a small violation to keep the queue moving → against",
+              "ar": ""
+            },
+            {
+              "en": "Treat every trader as a suspect → against",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": {
+        "en": "Drives strategy",
+        "ar": ""
+      },
+      "levelAnchor": {
+        "en": "Has awareness of the link between own objectives and organization’s strategic objectives",
+        "ar": ""
+      },
+      "scene": {
+        "name": {
+          "en": "The Objectives Board",
+          "ar": ""
+        },
+        "description": {
+          "en": "The trainee's personal objectives board stands beside ADC's strategy wall with its pillars (trade facilitation, community protection, workforce excellence) — connectable with light beams.",
+          "ar": ""
+        }
+      },
+      "questions": [
+        {
+          "id": "S6-Q1",
+          "template": "T2",
+          "prompt": {
+            "en": "“Link each personal objective card to the strategic pillar it supports.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Reduce truck processing time → Trade facilitation",
+              "ar": ""
+            },
+            {
+              "en": "Increase detection accuracy → Community protection",
+              "ar": ""
+            },
+            {
+              "en": "Complete my e-learning path → Workforce excellence",
+              "ar": ""
+            }
+          ],
+          "distractors": [],
+          "ordered": false
+        },
+        {
+          "id": "S6-Q2",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “Why does your accuracy target matter beyond your own desk?”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "It feeds ADC's community-protection goal — my numbers roll up into the organization's results",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "It only affects my personal appraisal",
+              "ar": ""
+            },
+            {
+              "en": "Targets are just paperwork",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S6-Q3",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the objective on your board that supports the community-protection pillar.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Detect prohibited items accurately",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Answer emails within one day",
+              "ar": ""
+            },
+            {
+              "en": "Keep my desk tidy",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S6-Q4",
+          "template": "T4",
+          "prompt": {
+            "en": "“A shipment of medical supplies needs fast clearance. Touch the pillar this serves.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Trade facilitation",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Workforce excellence",
+              "ar": ""
+            },
+            {
+              "en": "(other pillars on the wall)",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S6-Q5",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “Your team must cut clearance time by 10%. Which of your objectives contributes?”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Reduce truck processing time at my bay",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Attend the annual staff gathering",
+              "ar": ""
+            },
+            {
+              "en": "Renew my parking permit",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "S6-Q6",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the matching pair: your objective ↔ the organization objective it serves.”",
+            "ar": ""
+          },
+          "correct": [
+            {
+              "en": "Faster document checks ↔ Smoother trade flow",
+              "ar": ""
+            }
+          ],
+          "distractors": [
+            {
+              "en": "Faster document checks ↔ Higher parking capacity",
+              "ar": ""
+            },
+            {
+              "en": "Tidier desk ↔ National security",
+              "ar": ""
+            }
+          ],
+          "ordered": false
+        }
+      ]
+    }
+  ]
+}

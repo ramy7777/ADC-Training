@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADC POC — Web Prototype</title>
+<!-- Internal evaluation prototype. Admin PIN: 2026 -->
+<style>
+:root{--navy:#0C2340;--navy2:#16355c;--gold:#C2992F;--soft:#F5F8FC;--muted:#5B6472;
+--green:#1F9D6B;--red:#B42318;--amber:#FDF6E7;--border:#d9e1ec}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Tahoma,sans-serif;background:var(--soft);color:#1a2432;min-height:100vh}
+header{background:var(--navy);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{font-size:17px;font-weight:600}
+header .tag{font-size:11px;background:var(--gold);color:#fff;border-radius:4px;padding:2px 8px}
+header .spacer{flex:1}
+button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;font-size:14px}
+.btn{background:var(--navy);color:#fff;padding:10px 20px}
+.btn:hover{background:var(--navy2)}
+.btn.gold{background:var(--gold)}
+.btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.45);padding:7px 14px;font-size:12.5px}
+.btn.small{padding:6px 12px;font-size:12.5px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+main{max-width:960px;margin:26px auto;padding:0 16px}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:16px;box-shadow:0 1px 3px rgba(12,35,64,.06)}
+.eyebrow{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+h2{color:var(--navy);font-size:20px;margin-bottom:10px}
+h3{color:var(--navy);font-size:15px;margin-bottom:8px}
+label{font-size:13px;color:var(--muted);display:block;margin:10px 0 4px}
+input[type=text],input[type=password]{width:100%;max-width:340px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit}
+.langrow{display:flex;gap:10px;margin:6px 0 14px}
+.langbtn{padding:9px 22px;border:1.5px solid var(--border);background:#fff;border-radius:8px;font-size:14px}
+.langbtn.sel{border-color:var(--navy);background:var(--navy);color:#fff}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:12px}
+.level{border:1.5px solid var(--border);border-radius:10px;padding:14px;text-align:center;background:#fff}
+.level .num{font-size:22px;font-weight:700;color:var(--navy)}
+.level .st{font-size:12px;color:var(--muted);margin-top:4px}
+.level.open{border-color:var(--green);cursor:pointer}
+.level.open:hover{background:#f2fbf7}
+.level.locked{opacity:.55}
+.level.bypassed{border-color:var(--gold)}
+.hud{display:flex;gap:18px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:14px}
+.hud b{color:var(--navy);font-size:15px}
+.hud .pill{background:#fff;border:1px solid var(--border);border-radius:99px;padding:6px 14px}
+.scene{background:var(--amber);border-radius:8px;padding:10px 14px;font-size:12.5px;color:#5a4a1c;margin-bottom:14px}
+.scene b{color:var(--navy)}
+.prompt{font-size:16.5px;color:var(--navy);font-weight:600;margin-bottom:14px;line-height:1.5}
+.opts{display:grid;gap:9px}
+.opt{border:1.5px solid var(--border);background:#fff;border-radius:10px;padding:12px 15px;font-size:14px;text-align:start;line-height:1.45;transition:border-color .12s}
+.opt:hover{border-color:var(--navy)}
+.opt.sel{border-color:var(--gold);background:#fdf9ef;box-shadow:0 0 0 1px var(--gold)}
+.zones{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:12px}
+.zone{border:1.5px dashed var(--border);border-radius:10px;padding:10px;min-height:74px;background:#fbfdff}
+.zone.target{border-color:var(--gold);background:#fdf9ef}
+.zone h4{font-size:12.5px;color:var(--navy);margin-bottom:6px}
+.chip{display:inline-block;background:var(--navy);color:#fff;border-radius:6px;padding:5px 10px;font-size:12.5px;margin:3px;cursor:pointer}
+.seq{margin-top:10px;font-size:13px;color:var(--muted)}
+.seq .chip{background:var(--gold)}
+.feedback{margin-top:14px;font-weight:700;font-size:15px;min-height:22px}
+.feedback.ok{color:var(--green)}.feedback.no{color:var(--red)}
+.actions{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap}
+.big{font-size:42px;font-weight:800;color:var(--navy)}
+.pass{color:var(--green)}.fail{color:var(--red)}
+.bar{height:8px;background:#e7edf5;border-radius:99px;overflow:hidden;margin:10px 0 4px}
+.bar i{display:block;height:100%;background:var(--gold)}
+table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:10px}
+th{background:var(--navy);color:#fff;padding:7px 9px;text-align:start;font-weight:600}
+td{border:1px solid var(--border);padding:6px 9px;vertical-align:top}
+tr:nth-child(even) td{background:var(--soft)}
+.drawer{position:fixed;top:0;inset-inline-end:0;width:min(430px,95vw);height:100vh;background:#fff;border-inline-start:1px solid var(--border);box-shadow:-6px 0 24px rgba(12,35,64,.15);transform:translateX(105%);transition:transform .25s;z-index:50;display:flex;flex-direction:column}
+[dir=rtl] .drawer{transform:translateX(-105%)}
+.drawer.open{transform:translateX(0)!important}
+.drawer .dhead{background:var(--navy);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:10px}
+.drawer .dbody{padding:16px 18px;overflow-y:auto;flex:1;font-size:13px}
+.loglines{font-size:12px;color:var(--muted);max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;margin-top:6px}
+.notice{font-size:11.5px;color:var(--muted);background:#eef3fa;border-radius:8px;padding:8px 12px;margin-top:14px}
+.review .q{border-inline-start:3px solid var(--gold);padding:8px 12px;margin:10px 0;background:#fff;border-radius:0 8px 8px 0}
+.review .q .qp{font-weight:600;color:var(--navy);font-size:13.5px}
+.review .q .qa{font-size:12.5px;margin-top:4px}
+.review .q .qa.c{color:var(--green)}.review .q .qa.d{color:var(--muted)}
+.badge{font-size:10.5px;border-radius:4px;padding:1px 6px;background:var(--navy);color:#fff;vertical-align:middle}
+footer{max-width:960px;margin:10px auto 30px;padding:0 16px;font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="hTitle">ADC VR Training POC — Web Prototype</h1>
+  <span class="tag" id="hTag">EVALUATION</span>
+  <span class="spacer"></span>
+  <button class="btn ghost" id="btnReview">Review content</button>
+  <button class="btn ghost" id="btnAdmin">Admin</button>
+</header>
+<main id="app"></main>
+<footer id="foot"></footer>
+
+<div class="drawer" id="drawer">
+  <div class="dhead"><b style="flex:1" id="dTitle">Admin</b>
+    <button class="btn ghost small" id="dClose">✕</button></div>
+  <div class="dbody" id="dBody"></div>
+</div>
+
+<script>
+const CONTENT = {"module": {"number": 1, "name": {"en": "The Strategic Thinker", "ar": "المفكر الاستراتيجي"}, "level": 1}, "scoring": {"marksPerQuestion": 5, "questionsPerLevel": 24, "fullMark": 120, "passMark": 96, "maxTries": 5, "drawPerSkill": 4}, "templates": {"T1": {"name": "Select & Inspect", "description": "Trainee touches the correct option(s) among distractors on a holographic board or physical props."}, "T2": {"name": "Sort & Place", "description": "Trainee physically picks up cards/objects and places them into labeled zones or onto matching targets."}, "T3": {"name": "Dialogue Choice", "description": "An NPC (mentor/visitor) speaks; trainee touches one of three floating response panels."}, "T4": {"name": "Hotspot / Sequence", "description": "Trainee touches points on a map, wall or process board — a single hotspot or a correct order."}}, "skills": [{"id": 1, "name": {"en": "Scans business environment", "ar": "استكشاف بيئة العمل"}, "levelAnchor": {"en": "Has awareness of business activities, organization products/services and the market environment", "ar": "لديه إلمام بأنشطة العمل ومنتجات وخدمات المؤسسة وبيئة السوق"}, "scene": {"name": {"en": "The Operations Gallery", "ar": "قاعة العمليات"}, "description": {"en": "The mentor welcomes the trainee in ADC's orientation hall: an interactive wall showing ADC services, a UAE map with entry points, and service-counter dioramas.", "ar": "يستقبل الموجّه المتدرب في قاعة التعريف: جدار تفاعلي يعرض خدمات الجمارك وخريطة المنافذ ونماذج مكاتب الخدمة."}}, "questions": [{"id": "S1-Q1", "template": "T1", "prompt": {"en": "“Touch the services Abu Dhabi Customs provides.” Holographic board shows six service cards.", "ar": "«المس الخدمات التي تقدمها جمارك أبوظبي.» تعرض اللوحة ست بطاقات خدمات."}, "correct": [{"en": "Customs declaration processing", "ar": "معالجة البيانات الجمركية"}, {"en": "Cargo inspection", "ar": "تفتيش البضائع"}, {"en": "Passenger baggage clearance", "ar": "تخليص أمتعة المسافرين"}], "distractors": [{"en": "Issuing driving licences", "ar": "إصدار رخص القيادة"}, {"en": "Electricity billing", "ar": "فواتير الكهرباء"}, {"en": "School registration", "ar": "تسجيل المدارس"}], "ordered": false}, {"id": "S1-Q2", "template": "T3", "prompt": {"en": "Mentor: “Through which channels does trade reach Abu Dhabi?”", "ar": "الموجّه: «عبر أي منافذ تصل التجارة إلى أبوظبي؟»"}, "correct": [{"en": "By sea, land and air — ports, border crossings and airports", "ar": "بحراً وبراً وجواً — الموانئ والمنافذ الحدودية والمطارات"}], "distractors": [{"en": "Only by sea, through Zayed Port", "ar": "بحراً فقط عبر ميناء زايد"}, {"en": "Mainly by rail from neighbouring countries", "ar": "بالسكك الحديدية من الدول المجاورة بشكل أساسي"}], "ordered": false}, {"id": "S1-Q3", "template": "T2", "prompt": {"en": "“Place each visitor card into the right zone: ADC customer / not an ADC customer.”", "ar": "«ضع كل بطاقة زائر في المنطقة الصحيحة: متعامل مع الجمارك / ليس متعاملاً.»"}, "correct": [{"en": "Importer → customer", "ar": "المستورد → متعامل"}, {"en": "Traveller → customer", "ar": "المسافر → متعامل"}, {"en": "Shipping agent → customer", "ar": "وكيل الشحن → متعامل"}], "distractors": [{"en": "Job applicant → not a customer", "ar": "طالب وظيفة → ليس متعاملاً"}, {"en": "Utility subscriber → not a customer", "ar": "مشترك الكهرباء → ليس متعاملاً"}], "ordered": false}, {"id": "S1-Q4", "template": "T4", "prompt": {"en": "“On the map wall, touch the three main customs entry points of the Emirate.”", "ar": "«على الخريطة، المس المنافذ الجمركية الرئيسية الثلاثة للإمارة.»"}, "correct": [{"en": "Zayed Port", "ar": "ميناء زايد"}, {"en": "Abu Dhabi International Airport", "ar": "مطار أبوظبي الدولي"}, {"en": "Al Ghuweifat land border", "ar": "منفذ الغويفات الحدودي"}], "distractors": [{"en": "Corniche", "ar": "الكورنيش"}, {"en": "Yas Island", "ar": "جزيرة ياس"}, {"en": "Liwa Oasis", "ar": "واحة ليوا"}], "ordered": false}, {"id": "S1-Q5", "template": "T1", "prompt": {"en": "“Touch the goods categories commonly processed through the port.” Cards on the cargo shelf.", "ar": "«المس فئات البضائع الأكثر معالجةً عبر الميناء.»"}, "correct": [{"en": "Construction materials", "ar": "مواد البناء"}, {"en": "Vehicles", "ar": "المركبات"}, {"en": "Foodstuffs", "ar": "المواد الغذائية"}], "distractors": [{"en": "Real-estate deeds", "ar": "صكوك العقارات"}, {"en": "School certificates", "ar": "الشهادات المدرسية"}], "ordered": false}, {"id": "S1-Q6", "template": "T3", "prompt": {"en": "Mentor: “Who are ADC's main partners at the border?”", "ar": "الموجّه: «من هم شركاء الجمارك الرئيسيون في المنفذ؟»"}, "correct": [{"en": "Police, immigration and the port authorities", "ar": "الشرطة والإقامة وسلطات الموانئ"}], "distractors": [{"en": "Travel agencies and hotels", "ar": "وكالات السفر والفنادق"}, {"en": "Private car dealerships", "ar": "معارض السيارات الخاصة"}], "ordered": false}]}, {"id": 2, "name": {"en": "Analyzes leading practices & global trends", "ar": "تحليل الممارسات الرائدة والتوجهات العالمية"}, "levelAnchor": {"en": "Has awareness of developments that are relevant to own role", "ar": "لديه إلمام بالمستجدات المتصلة بدوره"}, "scene": {"name": {"en": "The Innovation Corner", "ar": "ركن الابتكار"}, "description": {"en": "A news-and-trends wall beside the operations room: rotating headline cards, a timeline of customs modernisation, and an 'official sources' terminal.", "ar": "جدار للأخبار والتوجهات بجوار غرفة العمليات: بطاقات عناوين متغيرة وخط زمني لتحديث العمل الجمركي وشاشة المصادر الرسمية."}}, "questions": [{"id": "S2-Q1", "template": "T1", "prompt": {"en": "“Touch the developments relevant to your role as a customs officer.” Headline cards rotate on the wall.", "ar": "«المس المستجدات المتصلة بعملك كموظف جمارك.»"}, "correct": [{"en": "New smart X-ray scanners", "ar": "أجهزة أشعة سينية ذكية جديدة"}, {"en": "Updated e-declaration platform", "ar": "تحديث منصة البيان الجمركي الإلكتروني"}, {"en": "New WCO data standards", "ar": "معايير بيانات جديدة من منظمة الجمارك العالمية"}], "distractors": [{"en": "Celebrity news", "ar": "أخبار المشاهير"}, {"en": "Fashion week opens", "ar": "افتتاح أسبوع الموضة"}, {"en": "Football transfer rumours", "ar": "شائعات انتقالات كرة القدم"}], "ordered": false}, {"id": "S2-Q2", "template": "T3", "prompt": {"en": "Mentor: “A smart-gate system is announced for the port. What is your first step?”", "ar": "الموجّه: «أُعلن عن نظام بوابات ذكية في الميناء. ما خطوتك الأولى؟»"}, "correct": [{"en": "Read the internal circular to understand how it changes my daily work", "ar": "قراءة التعميم الداخلي لفهم أثره على عملي اليومي"}], "distractors": [{"en": "Wait until someone forces me to attend training", "ar": "الانتظار حتى يُفرض عليّ التدريب"}, {"en": "Share the rumour in a group chat", "ar": "مشاركة الخبر في مجموعة دردشة"}], "ordered": false}, {"id": "S2-Q3", "template": "T2", "prompt": {"en": "“Sort the trend cards: relevant to my role / not relevant.”", "ar": "«صنّف بطاقات التوجهات: متصلة بعملي / غير متصلة.»"}, "correct": [{"en": "AI risk profiling → relevant", "ar": "تحليل المخاطر بالذكاء الاصطناعي → متصلة بعملي"}, {"en": "Paperless declarations → relevant", "ar": "البيانات الجمركية اللاورقية → متصلة بعملي"}], "distractors": [{"en": "Retail loyalty apps → not relevant", "ar": "تطبيقات ولاء المتاجر → غير متصلة"}, {"en": "Tourism campaign → not relevant", "ar": "حملة سياحية → غير متصلة"}], "ordered": false}, {"id": "S2-Q4", "template": "T1", "prompt": {"en": "“At the sources terminal, touch the official channels for staying up to date.”", "ar": "«عند شاشة المصادر، المس القنوات الرسمية للمتابعة والاطلاع.»"}, "correct": [{"en": "ADC internal circulars", "ar": "التعاميم الداخلية للجمارك"}, {"en": "WCO bulletins", "ar": "نشرات منظمة الجمارك العالمية"}, {"en": "The official training portal", "ar": "بوابة التدريب الرسمية"}], "distractors": [{"en": "Anonymous group chats", "ar": "مجموعات دردشة مجهولة"}, {"en": "Unofficial blogs", "ar": "مدونات غير رسمية"}], "ordered": false}, {"id": "S2-Q5", "template": "T3", "prompt": {"en": "Mentor: “You hear a rumour about a new inspection rule. What do you do?”", "ar": "الموجّه: «سمعت إشاعة عن قاعدة تفتيش جديدة. ماذا تفعل؟»"}, "correct": [{"en": "Verify it through the official circular or my supervisor before acting", "ar": "أتحقق منها عبر التعميم الرسمي أو مسؤولي المباشر قبل التصرف"}], "distractors": [{"en": "Apply it immediately — better safe than sorry", "ar": "أطبقها فوراً — الحيطة أفضل"}, {"en": "Forward it to colleagues as-is", "ar": "أعيد إرسالها للزملاء كما هي"}], "ordered": false}, {"id": "S2-Q6", "template": "T2", "prompt": {"en": "“On the timeline, place each 'new practice' card next to the old practice it replaced.”", "ar": "«على الخط الزمني، ضع بطاقة كل ممارسة جديدة بجانب الممارسة القديمة التي حلّت محلها.»"}, "correct": [{"en": "E-declarations → paper declarations", "ar": "البيانات الإلكترونية → البيانات الورقية"}, {"en": "AI-assisted profiling → manual risk checks", "ar": "التحليل بمساعدة الذكاء الاصطناعي → الفحص اليدوي للمخاطر"}], "distractors": [{"en": "Longer queues → (matches nothing)", "ar": "طوابير أطول → (بلا مقابل)"}, {"en": "Fax updates → (matches nothing)", "ar": "تحديثات الفاكس → (بلا مقابل)"}], "ordered": false}]}, {"id": 3, "name": {"en": "Identifies opportunities", "ar": "اكتشاف الفرص"}, "levelAnchor": {"en": "Identifies opportunities to increase efficiencies in own area of work", "ar": "يحدد فرص رفع الكفاءة في نطاق عمله"}, "scene": {"name": {"en": "The Inspection Bay", "ar": "منصة التفتيش"}, "description": {"en": "A working truck-inspection bay at mid-morning: a queue building outside, a document desk, sample shelf, label printer and a process-flow board on the wall.", "ar": "منصة تفتيش شاحنات في منتصف الصباح: طابور يتكوّن في الخارج، مكتب مستندات، رف عينات، طابعة ملصقات، ولوحة سير العمل."}}, "questions": [{"id": "S3-Q1", "template": "T4", "prompt": {"en": "“Watch the morning queue build up, then touch the step on the flow board where trucks wait longest.”", "ar": "«راقب تكدّس الطابور الصباحي، ثم المس الخطوة التي تنتظر عندها الشاحنات أطول وقت.»"}, "correct": [{"en": "Manual document check step", "ar": "خطوة التدقيق اليدوي للمستندات"}], "distractors": [{"en": "Arrival gate", "ar": "بوابة الوصول"}, {"en": "X-ray step", "ar": "خطوة الأشعة السينية"}, {"en": "Release gate", "ar": "بوابة الإفراج"}], "ordered": false}, {"id": "S3-Q2", "template": "T3", "prompt": {"en": "Mentor: “You re-enter the same shipment data into two screens every time. What do you do?”", "ar": "الموجّه: «تعيد إدخال بيانات الشحنة نفسها في شاشتين كل مرة. ماذا تفعل؟»"}, "correct": [{"en": "Note it and suggest an improvement to my supervisor", "ar": "أدوّن الملاحظة وأقترح تحسيناً على مسؤولي المباشر"}], "distractors": [{"en": "Keep doing it — it is not my problem", "ar": "أستمر كما هو — ليست مشكلتي"}, {"en": "Skip one screen to save time", "ar": "أتجاوز إحدى الشاشتين لتوفير الوقت"}], "ordered": false}, {"id": "S3-Q3", "template": "T2", "prompt": {"en": "“Sort the idea cards: improves efficiency in my area / outside my scope for now.”", "ar": "«صنّف بطاقات الأفكار: يحسّن الكفاءة في نطاق عملي / خارج نطاقي حالياً.»"}, "correct": [{"en": "Pre-check documents before the truck arrives → my area", "ar": "تدقيق المستندات قبل وصول الشاحنة → نطاق عملي"}, {"en": "Label the sample shelf → my area", "ar": "ترقيم رف العينات → نطاق عملي"}], "distractors": [{"en": "Change the national tariff law → outside my scope", "ar": "تغيير قانون التعرفة الجمركية → خارج نطاقي"}, {"en": "Buy new port cranes → outside my scope", "ar": "شراء رافعات جديدة للميناء → خارج نطاقي"}], "ordered": false}, {"id": "S3-Q4", "template": "T1", "prompt": {"en": "“Touch the item at the desk that causes the most wasted time.”", "ar": "«المس العنصر الذي يسبب أكبر هدر للوقت على المكتب.»"}, "correct": [{"en": "Unsorted paper forms tray", "ar": "صينية النماذج الورقية غير المصنفة"}], "distractors": [{"en": "The scanner", "ar": "الماسح الضوئي"}, {"en": "The desk phone", "ar": "هاتف المكتب"}, {"en": "The stamp", "ar": "الختم"}], "ordered": false}, {"id": "S3-Q5", "template": "T3", "prompt": {"en": "Mentor: “The label printer sits far from the sample shelf — constant walking back and forth. Your suggestion?”", "ar": "الموجّه: «طابعة الملصقات بعيدة عن رف العينات — ذهاب وإياب مستمر. ما اقتراحك؟»"}, "correct": [{"en": "Move the printer next to the shelf and raise it at the team huddle", "ar": "نقل الطابعة بجانب الرف وطرح الفكرة في اجتماع الفريق"}], "distractors": [{"en": "Stop labelling samples to save steps", "ar": "التوقف عن ترقيم العينات لتوفير الخطوات"}, {"en": "Ask to be moved to another bay", "ar": "طلب النقل إلى منصة أخرى"}], "ordered": false}, {"id": "S3-Q6", "template": "T1", "prompt": {"en": "“Touch the change in your own routine that would save time today.” Options float over the desk.", "ar": "«المس التغيير في روتينك اليومي الذي سيوفر الوقت اليوم.»"}, "correct": [{"en": "Batch similar declarations and process them together", "ar": "تجميع البيانات المتشابهة ومعالجتها دفعة واحدة"}], "distractors": [{"en": "Take longer breaks between trucks", "ar": "أخذ استراحات أطول بين الشاحنات"}, {"en": "Check personal phone between entries", "ar": "تفقد الهاتف الشخصي بين المعاملات"}], "ordered": false}]}, {"id": 4, "name": {"en": "Leverages systems perspective", "ar": "التفكير المنظومي"}, "levelAnchor": {"en": "Has awareness of the inter-dependencies between own area of work and that of the team", "ar": "لديه إلمام بالترابط بين عمله وعمل فريقه"}, "scene": {"name": {"en": "The Cargo Journey Wall", "ar": "جدارية رحلة الشحنة"}, "description": {"en": "An animated wall tracing one container's journey from ship to city: berth, documentation, risk check, physical inspection, release gate — each station owned by a different team.", "ar": "جدارية متحركة تتتبع رحلة حاوية من السفينة إلى المدينة: الرصيف، المستندات، فحص المخاطر، التفتيش، بوابة الإفراج."}}, "questions": [{"id": "S4-Q1", "template": "T4", "prompt": {"en": "“Touch the stations in the order a container passes through them.”", "ar": "«المس المحطات بالترتيب الذي تمر به الحاوية.»"}, "correct": [{"en": "Arrival / berth", "ar": "الوصول / الرصيف"}, {"en": "Documentation", "ar": "المستندات"}, {"en": "Risk check", "ar": "فحص المخاطر"}, {"en": "Physical inspection", "ar": "التفتيش الفعلي"}, {"en": "Release gate", "ar": "بوابة الإفراج"}], "distractors": [{"en": "(order-based — wrong sequence scores 0)", "ar": "(سؤال ترتيبي — التسلسل الخاطئ = صفر)"}], "ordered": true}, {"id": "S4-Q2", "template": "T3", "prompt": {"en": "Mentor: “Documentation is running late this morning. Who feels it downstream?”", "ar": "الموجّه: «قسم المستندات متأخر هذا الصباح. من يتأثر بعده؟»"}, "correct": [{"en": "The inspection team and the release gate — trucks stack up behind us", "ar": "فريق التفتيش وبوابة الإفراج — تتكدس الشاحنات خلفنا"}], "distractors": [{"en": "Nobody — each team works independently", "ar": "لا أحد — كل فريق يعمل باستقلالية"}, {"en": "Only the shipping line's head office", "ar": "المكتب الرئيسي لخط الشحن فقط"}], "ordered": false}, {"id": "S4-Q3", "template": "T2", "prompt": {"en": "“Place each team card on the station it owns.”", "ar": "«ضع بطاقة كل فريق على المحطة التي يتولاها.»"}, "correct": [{"en": "Documentation team → documentation", "ar": "فريق المستندات → المستندات"}, {"en": "Risk analysts → risk check", "ar": "محللو المخاطر → فحص المخاطر"}, {"en": "Inspectors → physical inspection", "ar": "المفتشون → التفتيش الفعلي"}, {"en": "Gate officers → release gate", "ar": "ضباط البوابة → بوابة الإفراج"}], "distractors": [], "ordered": false}, {"id": "S4-Q4", "template": "T1", "prompt": {"en": "“You flag a suspicious shipment. Touch everyone you must inform.”", "ar": "«رصدت شحنة مشبوهة. المس كل من يجب إبلاغه.»"}, "correct": [{"en": "My supervisor", "ar": "مسؤولي المباشر"}, {"en": "The risk team", "ar": "فريق المخاطر"}], "distractors": [{"en": "Human resources", "ar": "الموارد البشرية"}, {"en": "Finance", "ar": "المالية"}, {"en": "The cafeteria", "ar": "الكافتيريا"}], "ordered": false}, {"id": "S4-Q5", "template": "T3", "prompt": {"en": "Mentor: “Why does the quality of your inspection report matter to the release gate?”", "ar": "الموجّه: «لماذا تهم جودة تقرير تفتيشك بوابة الإفراج؟»"}, "correct": [{"en": "They rely on it to release or hold the truck — my errors delay everyone", "ar": "يعتمدون عليه للإفراج عن الشاحنة أو حجزها — أخطائي تؤخر الجميع"}], "distractors": [{"en": "It doesn't — they run their own checks", "ar": "لا تهمهم — لديهم فحوصهم الخاصة"}, {"en": "Only managers read reports", "ar": "المدراء فقط يقرؤون التقارير"}], "ordered": false}, {"id": "S4-Q6", "template": "T4", "prompt": {"en": "“A delay appears at the release gate. Touch the two upstream stations that could be the cause.”", "ar": "«ظهر تأخير عند بوابة الإفراج. المس المحطتين السابقتين المحتمل أنهما السبب.»"}, "correct": [{"en": "Documentation", "ar": "المستندات"}, {"en": "Physical inspection", "ar": "التفتيش الفعلي"}], "distractors": [{"en": "Arrival / berth", "ar": "الوصول / الرصيف"}, {"en": "The city road network", "ar": "شبكة طرق المدينة"}], "ordered": false}]}, {"id": 5, "name": {"en": "Articulates vision", "ar": "التعبير عن الرؤية"}, "levelAnchor": {"en": "Has awareness of the organization’s vision", "ar": "لديه إلمام برؤية المؤسسة"}, "scene": {"name": {"en": "The Vision Wall", "ar": "جدارية الرؤية"}, "description": {"en": "ADC's lobby: the vision statement wall (blocks removable for the exercise), a visitor NPC at reception, and photo panels of daily customs work.", "ar": "بهو الجمارك: جدارية الرؤية بقطع قابلة للتحريك، وزائر عند الاستقبال، ولوحات صور من العمل اليومي."}}, "questions": [{"id": "S5-Q1", "template": "T1", "prompt": {"en": "“Touch the statement that reflects ADC's vision.” Three statements float on the wall.", "ar": "«المس العبارة التي تعبّر عن رؤية جمارك أبوظبي.»"}, "correct": [{"en": "Secure borders and facilitated trade for a thriving, safe Abu Dhabi", "ar": "حدود آمنة وتجارة ميسّرة لأبوظبي مزدهرة وآمنة"}], "distractors": [{"en": "Maximum revenue from every shipment, whatever the delay", "ar": "أقصى إيرادات من كل شحنة مهما بلغ التأخير"}, {"en": "Inspect as little as possible to keep queues short", "ar": "تفتيش أقل ما يمكن لتقصير الطوابير"}], "ordered": false}, {"id": "S5-Q2", "template": "T2", "prompt": {"en": "“Build the vision wall: place the three pillars that belong on it.”", "ar": "«ابنِ جدارية الرؤية: ضع الركائز الثلاث الصحيحة.»"}, "correct": [{"en": "Security", "ar": "الأمن"}, {"en": "Trade facilitation", "ar": "تيسير التجارة"}, {"en": "Community prosperity", "ar": "ازدهار المجتمع"}], "distractors": [{"en": "Entertainment", "ar": "الترفيه"}, {"en": "Real-estate growth", "ar": "النمو العقاري"}], "ordered": false}, {"id": "S5-Q3", "template": "T3", "prompt": {"en": "Visitor at reception: “What does Abu Dhabi Customs stand for?”", "ar": "زائر عند الاستقبال: «ماذا تمثل جمارك أبوظبي؟»"}, "correct": [{"en": "Protecting the community while keeping legitimate trade moving smoothly", "ar": "حماية المجتمع مع إبقاء التجارة المشروعة تتدفق بسلاسة"}], "distractors": [{"en": "Collecting fees from travellers", "ar": "تحصيل الرسوم من المسافرين"}, {"en": "Checking passports at the airport", "ar": "فحص الجوازات في المطار"}], "ordered": false}, {"id": "S5-Q4", "template": "T1", "prompt": {"en": "“Touch the daily action that best expresses the vision.” Photo panels of work situations.", "ar": "«المس التصرف اليومي الذي يجسّد الرؤية.»"}, "correct": [{"en": "A thorough inspection completed without unnecessary delay", "ar": "تفتيش دقيق يُنجز دون تأخير غير ضروري"}], "distractors": [{"en": "Waving trucks through unchecked to be fast", "ar": "تمرير الشاحنات دون فحص طلباً للسرعة"}, {"en": "Holding all trucks all day to be safe", "ar": "حجز كل الشاحنات طوال اليوم طلباً للأمان"}], "ordered": false}, {"id": "S5-Q5", "template": "T3", "prompt": {"en": "Mentor: “How does your own role connect to the vision?”", "ar": "الموجّه: «كيف يرتبط دورك بالرؤية؟»"}, "correct": [{"en": "Every accurate check protects the community and keeps trade moving", "ar": "كل فحص دقيق يحمي المجتمع ويبقي التجارة متدفقة"}], "distractors": [{"en": "My role is too junior to connect to the vision", "ar": "دوري أصغر من أن يرتبط بالرؤية"}, {"en": "Vision statements are for managers", "ar": "عبارات الرؤية للمدراء فقط"}], "ordered": false}, {"id": "S5-Q6", "template": "T2", "prompt": {"en": "“Sort the statement cards: in line with our vision / against it.”", "ar": "«صنّف البطاقات: منسجمة مع رؤيتنا / مخالفة لها.»"}, "correct": [{"en": "Help the trader fix his declaration quickly → in line", "ar": "مساعدة التاجر على تصحيح بيانه بسرعة → منسجمة"}, {"en": "Report the prohibited item even if it causes delay → in line", "ar": "الإبلاغ عن المادة المحظورة حتى لو سبب تأخيراً → منسجمة"}], "distractors": [{"en": "Ignore a small violation to keep the queue moving → against", "ar": "التغاضي عن مخالفة صغيرة لإبقاء الطابور متحركاً → مخالفة"}, {"en": "Treat every trader as a suspect → against", "ar": "معاملة كل تاجر كمشتبه به → مخالفة"}], "ordered": false}]}, {"id": 6, "name": {"en": "Drives strategy", "ar": "قيادة الاستراتيجية"}, "levelAnchor": {"en": "Has awareness of the link between own objectives and organization’s strategic objectives", "ar": "لديه إلمام بالصلة بين أهدافه وأهداف المؤسسة الاستراتيجية"}, "scene": {"name": {"en": "The Objectives Board", "ar": "لوحة الأهداف"}, "description": {"en": "The trainee's personal objectives board stands beside ADC's strategy wall with its pillars (trade facilitation, community protection, workforce excellence) — connectable with light beams.", "ar": "لوحة الأهداف الشخصية للمتدرب بجانب جدار الاستراتيجية بركائزه — تُربط بينها حزم ضوئية."}}, "questions": [{"id": "S6-Q1", "template": "T2", "prompt": {"en": "“Link each personal objective card to the strategic pillar it supports.”", "ar": "«اربط كل بطاقة هدف شخصي بالركيزة الاستراتيجية التي يخدمها.»"}, "correct": [{"en": "Reduce truck processing time → Trade facilitation", "ar": "تقليص زمن معالجة الشاحنات → تيسير التجارة"}, {"en": "Increase detection accuracy → Community protection", "ar": "رفع دقة الكشف → حماية المجتمع"}, {"en": "Complete my e-learning path → Workforce excellence", "ar": "إتمام مساري التعليمي الإلكتروني → تميز الكوادر"}], "distractors": [], "ordered": false}, {"id": "S6-Q2", "template": "T3", "prompt": {"en": "Mentor: “Why does your accuracy target matter beyond your own desk?”", "ar": "الموجّه: «لماذا يهم هدف الدقة الخاص بك خارج نطاق مكتبك؟»"}, "correct": [{"en": "It feeds ADC's community-protection goal — my numbers roll up into the organization's results", "ar": "يصب في هدف حماية المجتمع — أرقامي تتجمع ضمن نتائج المؤسسة"}], "distractors": [{"en": "It only affects my personal appraisal", "ar": "يؤثر فقط في تقييمي الشخصي"}, {"en": "Targets are just paperwork", "ar": "الأهداف مجرد أوراق"}], "ordered": false}, {"id": "S6-Q3", "template": "T1", "prompt": {"en": "“Touch the objective on your board that supports the community-protection pillar.”", "ar": "«المس الهدف على لوحتك الذي يخدم ركيزة حماية المجتمع.»"}, "correct": [{"en": "Detect prohibited items accurately", "ar": "كشف المواد المحظورة بدقة"}], "distractors": [{"en": "Answer emails within one day", "ar": "الرد على البريد خلال يوم"}, {"en": "Keep my desk tidy", "ar": "إبقاء مكتبي مرتباً"}], "ordered": false}, {"id": "S6-Q4", "template": "T4", "prompt": {"en": "“A shipment of medical supplies needs fast clearance. Touch the pillar this serves.”", "ar": "«شحنة مستلزمات طبية تحتاج تخليصاً سريعاً. المس الركيزة التي يخدمها ذلك.»"}, "correct": [{"en": "Trade facilitation", "ar": "تيسير التجارة"}], "distractors": [{"en": "Workforce excellence", "ar": "تميز الكوادر"}, {"en": "(other pillars on the wall)", "ar": "(بقية الركائز على الجدار)"}], "ordered": false}, {"id": "S6-Q5", "template": "T3", "prompt": {"en": "Mentor: “Your team must cut clearance time by 10%. Which of your objectives contributes?”", "ar": "الموجّه: «مطلوب من فريقك خفض زمن التخليص ١٠٪. أي من أهدافك يسهم في ذلك؟»"}, "correct": [{"en": "Reduce truck processing time at my bay", "ar": "تقليص زمن معالجة الشاحنات في منصتي"}], "distractors": [{"en": "Attend the annual staff gathering", "ar": "حضور الملتقى السنوي للموظفين"}, {"en": "Renew my parking permit", "ar": "تجديد تصريح المواقف"}], "ordered": false}, {"id": "S6-Q6", "template": "T1", "prompt": {"en": "“Touch the matching pair: your objective ↔ the organization objective it serves.”", "ar": "«المس الثنائي المتطابق: هدفك ↔ هدف المؤسسة الذي يخدمه.»"}, "correct": [{"en": "Faster document checks ↔ Smoother trade flow", "ar": "تدقيق أسرع للمستندات ↔ انسياب أسلس للتجارة"}], "distractors": [{"en": "Faster document checks ↔ Higher parking capacity", "ar": "تدقيق أسرع للمستندات ↔ سعة مواقف أكبر"}, {"en": "Tidier desk ↔ National security", "ar": "مكتب مرتب ↔ الأمن الوطني"}], "ordered": false}]}]};
+const ADMIN_PIN = "2026";
+let LANG = "en";
+const UI = {
+ en:{title:"ADC VR Training POC — Web Prototype",tag:"EVALUATION PROTOTYPE",start:"Start session",
+  trainee:"Trainee name",lang:"Session language",begin:"Begin",module:"Module 1 — ",level:"Level",
+  locked:"Locked",open:"Open",q:"Question",of:"of",score:"Score",attempt:"Attempt",confirm:"Confirm",
+  undo:"Undo",ok:"Correct  +5",no:"Incorrect  +0",selectN:n=>`Select ${n}, then confirm`,
+  clickOrder:"Touch the items in order:",yourOrder:"Your order:",assignHint:"Touch a card, then touch its zone. Touch a placed card to return it.",
+  notUsed:"Not used / set aside",passed:"PASSED",failed:"NOT PASSED",needed:"Pass mark: 96 / 120 (80%)",
+  retry:"Retry — new questions",retriesLeft:n=>`${n} of 5 tries remaining`,poolNote:"Tries exhausted — pool recycles, order reshuffled",
+  backHome:"Back to levels",l2unlocked:"Level 2 unlocked by admin",l2locked:"Locked — pass Level 1 first. Admin can bypass.",
+  l2content:"Level 2 content is project scope — this screen proves the gate and the admin bypass only.",
+  admin:"Admin panel",pin:"Admin PIN",adminName:"Admin name",unlock:"Bypass: unlock Level 2",unlocked:"Level 2 is unlocked",
+  wrongPin:"Wrong PIN",results:"Session results",csv:"Export CSV",noresults:"No attempts yet",
+  live:"Live session",none:"—",review:"Content review — all 36 questions",reviewNote:"★ = Monday client sample. Engine draws 4 of 6 per skill per try (24 per attempt).",
+  correctLbl:"Correct:",distLbl:"Distractors:",close:"Close",scene:"Scene",
+  arDraft:"Arabic content is a DRAFT translation pending human review (per plan, Tue).",
+  foot:"Virtual Worlds Studios — internal evaluation prototype. Same content JSON and engine rules as the VR build: 24 drawn of 36, 5 marks, pass 96/120, 5 tries with different draws, level gating with logged admin bypass.",
+  welcome:name=>`Welcome, ${name}. The mentor will guide you through six stations.`},
+ ar:{title:"نموذج ويب تجريبي — تدريب جمارك أبوظبي الافتراضي",tag:"نموذج تقييم",start:"بدء الجلسة",
+  trainee:"اسم المتدرب",lang:"لغة الجلسة",begin:"ابدأ",module:"الوحدة ١ — ",level:"المستوى",
+  locked:"مقفل",open:"ادخل",q:"السؤال",of:"من",score:"النتيجة",attempt:"المحاولة",confirm:"تأكيد",
+  undo:"تراجع",ok:"إجابة صحيحة  +5",no:"إجابة غير صحيحة  +0",selectN:n=>`اختر ${n} ثم أكّد`,
+  clickOrder:"المس العناصر بالترتيب:",yourOrder:"ترتيبك:",assignHint:"المس بطاقة ثم المس منطقتها. المس بطاقة موضوعة لإرجاعها.",
+  notUsed:"غير مستخدم / جانباً",passed:"ناجح",failed:"لم يجتز",needed:"علامة النجاح: ٩٦ / ١٢٠ (٨٠٪)",
+  retry:"محاولة جديدة — أسئلة مختلفة",retriesLeft:n=>`تبقى ${n} من ٥ محاولات`,poolNote:"استُنفدت المحاولات — يُعاد استخدام المجموعة بترتيب جديد",
+  backHome:"عودة إلى المستويات",l2unlocked:"فُتح المستوى ٢ بواسطة المشرف",l2locked:"مقفل — اجتز المستوى ١ أولاً. يمكن للمشرف الفتح استثنائياً.",
+  l2content:"محتوى المستوى ٢ ضمن نطاق المشروع — هذه الشاشة تثبت القفل وصلاحية المشرف فقط.",
+  admin:"لوحة المشرف",pin:"الرقم السري للمشرف",adminName:"اسم المشرف",unlock:"فتح استثنائي: المستوى ٢",unlocked:"المستوى ٢ مفتوح",
+  wrongPin:"رقم سري خاطئ",results:"نتائج الجلسات",csv:"تصدير CSV",noresults:"لا توجد محاولات بعد",
+  live:"الجلسة المباشرة",none:"—",review:"مراجعة المحتوى — الأسئلة الـ٣٦ كاملة",reviewNote:"★ = نموذج الاثنين للعميل. المحرك يسحب ٤ من ٦ لكل مهارة في كل محاولة (٢٤ سؤالاً).",
+  correctLbl:"الصحيح:",distLbl:"المشتتات:",close:"إغلاق",scene:"المشهد",
+  arDraft:"المحتوى العربي ترجمة أولية بانتظار المراجعة البشرية (الثلاثاء حسب الخطة).",
+  foot:"استوديوهات العوالم الافتراضية — نموذج تقييم داخلي. نفس ملف المحتوى وقواعد المحرك في نسخة الواقع الافتراضي: ٢٤ من ٣٦، ٥ علامات، النجاح ٩٦/١٢٠، ٥ محاولات بأسئلة مختلفة، قفل المستويات مع فتح استثنائي مسجّل.",
+  welcome:name=>`أهلاً ${name}. سيرافقك الموجّه عبر ست محطات.`}
+};
+const T = k=>UI[LANG][k];
+const L = o=>(LANG==="ar"&&o.ar)?o.ar:o.en;
+
+// ---------- persistent state ----------
+const store = {
+ get(){try{return JSON.parse(localStorage.getItem("adc_poc")||"{}")}catch(e){return{}}},
+ set(d){localStorage.setItem("adc_poc",JSON.stringify(d))}
+};
+let DB = Object.assign({results:[],log:[],bypass:null},store.get());
+function save(){store.set(DB)}
+
+// ---------- seeded rng ----------
+function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+function hash(str){let h=2166136261;for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function shuffled(arr,r){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+// combinations of [0..5] choose 4
+const COMBOS=[];
+for(let a=0;a<6;a++)for(let b=a+1;b<6;b++)for(let c=b+1;c<6;c++)for(let d=c+1;d<6;d++)COMBOS.push([a,b,c,d]);
+
+// ---------- session ----------
+let S=null; // {trainee, seed, attempt, qlist, idx, score, answers, active}
+function draw(attempt){
+ const qs=[];
+ for(const sk of CONTENT.skills){
+   const r=rng(S.seed+sk.id*7919);
+   const order=shuffled(COMBOS,r)[(attempt-1)%COMBOS.length];
+   const rq=rng(S.seed+sk.id*104729+attempt*31);
+   const picked=shuffled(order.map(i=>sk.questions[i]),rq);
+   picked.forEach(q=>qs.push({q,sk}));
+ }
+ return qs;
+}
+function resolveWidget(q){
+ const hasArrow=q.correct.some(c=>c.en.includes("→"));
+ if(q.template==="T2"&&hasArrow)return"assign";
+ if(q.template==="T4"&&q.ordered)return"sequence";
+ if(q.template==="T3")return"single";
+ return q.correct.length>1?"multi":"single";
+}
+function realDistractors(q){return q.distractors.filter(d=>!d.en.trim().startsWith("("))}
+
+// ---------- views ----------
+const app=document.getElementById("app");
+function setLangUI(){
+ document.documentElement.lang=LANG;
+ document.documentElement.dir=LANG==="ar"?"rtl":"ltr";
+ document.getElementById("hTitle").textContent=T("title");
+ document.getElementById("hTag").textContent=T("tag");
+ document.getElementById("btnReview").textContent=T("review").split(" — ")[0];
+ document.getElementById("btnAdmin").textContent=T("admin").split(" ")[0]==="Admin"?"Admin":"المشرف";
+ document.getElementById("foot").textContent=T("foot");
+}
+function levelState(n){
+ if(n===1)return"open";
+ const passed=DB.results.some(r=>r.pass&&r.level===1);
+ if(n===2&&(passed||DB.bypass))return DB.bypass&&!passed?"bypassed":"open";
+ return"locked";
+}
+function viewStart(){
+ S=null;
+ const name=(DB.lastName||"");
+ app.innerHTML=`
+ <div class="card">
+  <div class="eyebrow">${T("module")}${L(CONTENT.module.name)}</div>
+  <h2>${T("start")}</h2>
+  <label>${T("trainee")}</label><input id="inName" type="text" value="${name.replace(/"/g,"&quot;")}">
+  <label>${T("lang")}</label>
+  <div class="langrow">
+    <button class="langbtn ${LANG==="en"?"sel":""}" data-l="en">English</button>
+    <button class="langbtn ${LANG==="ar"?"sel":""}" data-l="ar">العربية</button>
+  </div>
+  <h3>${T("level")}s</h3>
+  <div class="levels">${[1,2,3,4,5].map(n=>{
+    const st=levelState(n);
+    return`<div class="level ${st==="locked"?"locked":st}" data-lv="${n}">
+      <div class="num">${n}</div>
+      <div class="st">${st==="locked"?"🔒 "+T("locked"):(st==="bypassed"?"🔓 "+T("l2unlocked"):T("open"))}</div></div>`
+  }).join("")}</div>
+  <div class="notice">${T("arDraft")}</div>
+ </div>`;
+ app.querySelectorAll(".langbtn").forEach(b=>b.onclick=()=>{LANG=b.dataset.l;setLangUI();viewStart()});
+ app.querySelectorAll(".level.open,.level.bypassed").forEach(el=>el.onclick=()=>{
+   const nm=document.getElementById("inName").value.trim();
+   if(!nm){document.getElementById("inName").focus();return}
+   DB.lastName=nm;save();
+   const lv=+el.dataset.lv;
+   if(lv===1)startSession(nm);else viewL2();
+ });
+}
+function viewL2(){
+ app.innerHTML=`<div class="card"><h2>${T("level")} 2</h2><p style="margin:10px 0">${T("l2content")}</p>
+ <div class="actions"><button class="btn" id="back">${T("backHome")}</button></div></div>`;
+ document.getElementById("back").onclick=viewStart;
+}
+function startSession(name){
+ const prev=DB.results.filter(r=>r.trainee===name&&r.level===1).length;
+ S={trainee:name,seed:hash(name+"|adc-poc"),attempt:prev+1,score:0,idx:0,answers:[],active:true};
+ S.qlist=draw(S.attempt);
+ log(`session.start · ${name} · ${LANG} · attempt ${S.attempt}`);
+ viewQuestion();
+}
+function hud(){
+ return`<div class="hud">
+  <span class="pill">${T("q")} <b>${S.idx+1}</b> ${T("of")} <b>24</b></span>
+  <span class="pill">${T("score")}: <b>${S.score}</b>/120</span>
+  <span class="pill">${T("attempt")}: <b>${((S.attempt-1)%5)+1}</b>/5${S.attempt>5?" ⟳":""}</span>
+ </div><div class="bar"><i style="width:${(S.idx)/24*100}%"></i></div>`;
+}
+function viewQuestion(){
+ const {q,sk}=S.qlist[S.idx];
+ const w=resolveWidget(q);
+ const dis=realDistractors(q);
+ let body="",state={sel:new Set(),seq:[],assign:{}};
+ const opts=(items)=>items.map((o,i)=>`<button class="opt" data-i="${i}">${L(o)}</button>`).join("");
+ if(w==="single"||w==="multi"){
+   state.items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
+   body=`<div class="opts">${opts(state.items)}</div>`+
+     (w==="multi"?`<div class="seq">${T("selectN")(q.correct.length)}</div>`:"");
+ }else if(w==="sequence"){
+   state.items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
+   body=`<div class="seq">${T("clickOrder")}</div><div class="opts">${opts(state.items)}</div>
+   <div class="seq">${T("yourOrder")} <span id="seqOut"></span></div>`;
+ }else{ // assign
+   const cards=q.correct.concat(dis).map(o=>{const[c,z]=o.en.split("→").map(s=>s.trim());
+     const[ca,za]=(o.ar||o.en).split("→").map(s=>s.trim());
+     return{en:c,ar:ca,zoneEn:/matches nothing/i.test(z)?"__none__":z,zoneAr:za}});
+   const zones=[];cards.forEach(c=>{if(c.zoneEn!=="__none__"&&!zones.some(z=>z.en===c.zoneEn))zones.push({en:c.zoneEn,ar:c.zoneAr})});
+   if(cards.some(c=>c.zoneEn==="__none__"))zones.push({en:"__none__",ar:""});
+   state.cards=shuffled(cards,rng(S.seed+hash(q.id)));state.zones=zones;
+   body=`<div class="seq">${T("assignHint")}</div>
+   <div class="opts" id="cardRow">${state.cards.map((c,i)=>`<button class="opt" data-c="${i}">${LANG==="ar"?c.ar:c.en}</button>`).join("")}</div>
+   <div class="zones">${zones.map((z,i)=>`<div class="zone" data-z="${i}"><h4>${z.en==="__none__"?T("notUsed"):(LANG==="ar"?z.ar:z.en)}</h4><div class="zc"></div></div>`).join("")}</div>`;
+ }
+ app.innerHTML=`${hud()}
+ <div class="card">
+  <div class="scene"><b>${T("scene")} ${sk.id}/6 — ${L(sk.scene.name)}:</b> ${L(sk.name)}</div>
+  <div class="prompt">${L(q.prompt)}</div>
+  ${body}
+  <div class="feedback" id="fb"></div>
+  <div class="actions">
+    ${(w!=="single")?`<button class="btn small" id="undo">${T("undo")}</button><button class="btn gold" id="confirm" disabled>${T("confirm")}</button>`:""}
+  </div>
+ </div>`;
+ wireQuestion(q,w,state,dis);
+}
+function wireQuestion(q,w,state,dis){
+ const fb=document.getElementById("fb");
+ const done=(correct)=>{
+   if(correct)S.score+=5;
+   S.answers.push({id:q.id,ok:correct});
+   log(`answer.scored · ${q.id} · ${correct?"+5":"0"} · total ${S.score}`);
+   fb.className="feedback "+(correct?"ok":"no");
+   fb.textContent=correct?T("ok"):T("no");
+   app.querySelectorAll("button.opt,#confirm,#undo").forEach(b=>b.disabled=true);
+   setTimeout(()=>{S.idx++; S.idx<24?viewQuestion():viewResult()},900);
+ };
+ if(w==="single"){
+   app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+     b.classList.add("sel");
+     done(q.correct.some(c=>c.en===state.items[+b.dataset.i].en));
+   });
+ }else if(w==="multi"){
+   const btn=document.getElementById("confirm");
+   app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+     const i=+b.dataset.i;
+     state.sel.has(i)?state.sel.delete(i):state.sel.add(i);
+     b.classList.toggle("sel");btn.disabled=state.sel.size===0;
+   });
+   document.getElementById("undo").onclick=()=>{state.sel.clear();app.querySelectorAll(".opt").forEach(b=>b.classList.remove("sel"));btn.disabled=true};
+   btn.onclick=()=>{
+     const chosen=[...state.sel].map(i=>state.items[i].en).sort();
+     const want=q.correct.map(c=>c.en).sort();
+     done(chosen.length===want.length&&chosen.every((v,i)=>v===want[i]));
+   };
+ }else if(w==="sequence"){
+   const btn=document.getElementById("confirm"),out=document.getElementById("seqOut");
+   const paint=()=>{out.innerHTML=state.seq.map(i=>`<span class="chip">${L(state.items[i])}</span>`).join(" ");
+     btn.disabled=state.seq.length!==q.correct.length};
+   app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{
+     const i=+b.dataset.i;if(state.seq.includes(i))return;
+     state.seq.push(i);b.classList.add("sel");paint();
+   });
+   document.getElementById("undo").onclick=()=>{const i=state.seq.pop();if(i!=null)app.querySelector(`.opt[data-i="${i}"]`).classList.remove("sel");paint()};
+   btn.onclick=()=>{
+     const chosen=state.seq.map(i=>state.items[i].en);
+     const want=q.correct.map(c=>c.en);
+     done(chosen.length===want.length&&chosen.every((v,i)=>v===want[i]));
+   };
+ }else{ // assign
+   const btn=document.getElementById("confirm");let selCard=null;
+   const paint=()=>{
+     app.querySelectorAll(".zone .zc").forEach((zc,zi)=>{zc.innerHTML=Object.entries(state.assign)
+       .filter(([ci,z])=>z===zi).map(([ci])=>`<span class="chip" data-rc="${ci}">${LANG==="ar"?state.cards[ci].ar:state.cards[ci].en}</span>`).join("")});
+     app.querySelectorAll("#cardRow .opt").forEach(b=>{b.style.display=state.assign[b.dataset.c]!=null?"none":""});
+     app.querySelectorAll(".chip[data-rc]").forEach(ch=>ch.onclick=()=>{delete state.assign[ch.dataset.rc];paint()});
+     btn.disabled=Object.keys(state.assign).length!==state.cards.length;
+   };
+   app.querySelectorAll("#cardRow .opt").forEach(b=>b.onclick=()=>{
+     app.querySelectorAll("#cardRow .opt").forEach(x=>x.classList.remove("sel"));
+     selCard=+b.dataset.c;b.classList.add("sel");
+     app.querySelectorAll(".zone").forEach(z=>z.classList.add("target"));
+   });
+   app.querySelectorAll(".zone").forEach(z=>z.onclick=()=>{
+     if(selCard==null)return;
+     state.assign[selCard]=+z.dataset.z;selCard=null;
+     app.querySelectorAll(".zone").forEach(x=>x.classList.remove("target"));paint();
+   });
+   document.getElementById("undo").onclick=()=>{state.assign={};selCard=null;paint()};
+   btn.onclick=()=>{
+     const ok=state.cards.every((c,ci)=>{
+       const z=state.zones[state.assign[ci]];
+       return z&&z.en===(c.zoneEn==="__none__"?"__none__":c.zoneEn);
+     });
+     done(ok);
+   };
+   paint();
+ }
+}
+function viewResult(){
+ const pass=S.score>=96;
+ const tryNo=((S.attempt-1)%5)+1;
+ DB.results.push({trainee:S.trainee,level:1,attempt:S.attempt,score:S.score,pass,lang:LANG,
+   ts:new Date().toISOString(),answers:S.answers});
+ save();
+ log(`level.result · ${S.trainee} · ${S.score}/120 · ${pass?"PASS":"FAIL"}`);
+ S.active=false;
+ app.innerHTML=`<div class="card" style="text-align:center">
+  <div class="eyebrow">${T("module")}${L(CONTENT.module.name)} — ${T("level")} 1</div>
+  <div class="big ${pass?"pass":"fail"}">${S.score} / 120</div>
+  <h2 class="${pass?"pass":"fail"}">${pass?T("passed"):T("failed")}</h2>
+  <p style="color:var(--muted);font-size:13px;margin-top:4px">${T("needed")}</p>
+  ${!pass&&tryNo===5?`<p style="color:var(--gold);font-size:13px;margin-top:8px">${T("poolNote")}</p>`:""}
+  <div class="actions" style="justify-content:center">
+   ${!pass?`<button class="btn gold" id="again">${T("retry")}</button>`:""}
+   <button class="btn" id="home">${T("backHome")}</button>
+  </div>
+  ${!pass?`<p style="color:var(--muted);font-size:12px;margin-top:10px">${T("retriesLeft")(Math.max(0,5-tryNo))}</p>`:""}
+ </div>`;
+ const a=document.getElementById("again");if(a)a.onclick=()=>startSession(S.trainee);
+ document.getElementById("home").onclick=viewStart;
+}
+// ---------- review mode ----------
+function viewReview(){
+ app.innerHTML=`<div class="card review"><h2>${T("review")}</h2>
+ <p style="font-size:12.5px;color:var(--muted)">${T("reviewNote")} · ${T("arDraft")}</p>
+ ${CONTENT.skills.map(sk=>`
+   <h3 style="margin-top:16px">Skill ${sk.id}: ${L(sk.name)} <span class="badge">${L(sk.scene.name)}</span></h3>
+   <p style="font-size:12px;color:var(--muted)">${L(sk.scene.description)}</p>
+   ${sk.questions.map(q=>`<div class="q"><div class="qp">${q.id}${["S1-Q1","S6-Q1","S3-Q2","S4-Q1"].includes(q.id)?" ★":""} · ${q.template} — ${L(q.prompt)}</div>
+     <div class="qa c">${T("correctLbl")} ${q.correct.map(c=>L(c)).join(" · ")}</div>
+     ${q.distractors.length?`<div class="qa d">${T("distLbl")} ${q.distractors.map(d=>L(d)).join(" · ")}</div>`:""}</div>`).join("")}
+ `).join("")}
+ <div class="actions"><button class="btn" id="back">${T("backHome")}</button></div></div>`;
+ document.getElementById("back").onclick=viewStart;
+}
+// ---------- admin ----------
+function log(m){DB.log.push(new Date().toISOString().slice(11,19)+" "+m);if(DB.log.length>400)DB.log=DB.log.slice(-400);save();paintAdmin()}
+let adminAuthed=false;
+function paintAdmin(){
+ const body=document.getElementById("dBody");
+ if(!document.getElementById("drawer").classList.contains("open"))return;
+ if(!adminAuthed){
+  body.innerHTML=`<label>${T("pin")}</label><input id="pin" type="password" style="max-width:160px">
+   <div class="actions"><button class="btn small" id="go">OK</button></div><div id="perr" style="color:var(--red);font-size:12px;margin-top:6px"></div>`;
+  document.getElementById("go").onclick=()=>{
+    if(document.getElementById("pin").value===ADMIN_PIN){adminAuthed=true;paintAdmin()}
+    else document.getElementById("perr").textContent=T("wrongPin");
+  };
+  return;
+ }
+ const live=S&&S.active?`${S.trainee} · ${T("q")} ${S.idx+1}/24 · ${T("score")} ${S.score}/120 · ${T("attempt")} ${((S.attempt-1)%5)+1}/5`:T("none");
+ body.innerHTML=`
+  <h3>${T("live")}</h3><p>${live}</p>
+  <h3 style="margin-top:14px">${T("results")}</h3>
+  ${DB.results.length?`<table><tr><th>${T("trainee")}</th><th>${T("attempt")}</th><th>${T("score")}</th><th>%</th><th></th></tr>
+   ${DB.results.map(r=>`<tr><td>${r.trainee}</td><td>${r.attempt}</td><td>${r.score}/120</td><td>${Math.round(r.score/120*100)}%</td><td style="color:${r.pass?"var(--green)":"var(--red)"}">${r.pass?"✓":"✗"}</td></tr>`).join("")}</table>`
+   :`<p style="color:var(--muted)">${T("noresults")}</p>`}
+  <div class="actions"><button class="btn small" id="csv">${T("csv")}</button>
+   ${DB.bypass?`<span style="font-size:12px;color:var(--gold)">🔓 ${T("unlocked")} (${DB.bypass.by})</span>`
+     :`<button class="btn small gold" id="bypass">${T("unlock")}</button>`}</div>
+  ${!DB.bypass?`<label>${T("adminName")}</label><input id="aname" type="text" style="max-width:200px">`:""}
+  <h3 style="margin-top:14px">Log</h3><div class="loglines">${DB.log.slice(-60).reverse().map(l=>`<div>${l}</div>`).join("")}</div>`;
+ const bp=document.getElementById("bypass");
+ if(bp)bp.onclick=()=>{
+   const nm=(document.getElementById("aname").value||"").trim();
+   if(!nm){document.getElementById("aname").focus();return}
+   DB.bypass={by:nm,ts:new Date().toISOString()};
+   log(`gate.bypass · Level 2 unlocked by ${nm}`);save();paintAdmin();
+   if(!S||!S.active)viewStart();
+ };
+ document.getElementById("csv").onclick=()=>{
+   const rows=[["trainee","level","attempt","language","score","percent","pass","timestamp"]];
+   DB.results.forEach(r=>rows.push([r.trainee,r.level,r.attempt,r.lang,r.score,Math.round(r.score/120*100)+"%",r.pass?"PASS":"FAIL",r.ts]));
+   const csv=rows.map(r=>r.join(",")).join("\r\n");
+   const a=document.createElement("a");
+   a.href="data:text/csv;charset=utf-8,﻿"+encodeURIComponent(csv);
+   a.download="adc_poc_results.csv";a.click();
+ };
+}
+document.getElementById("btnAdmin").onclick=()=>{document.getElementById("drawer").classList.add("open");paintAdmin()};
+document.getElementById("dClose").onclick=()=>document.getElementById("drawer").classList.remove("open");
+document.getElementById("btnReview").onclick=viewReview;
+setLangUI();viewStart();
+</script>
+</body>
+</html>
