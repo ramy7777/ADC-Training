@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADC Training — A Morning at Abu Dhabi Customs</title>
+<style>
+:root{--navy:#0C2340;--gold:#e0b34c;--green:#2fd08b;--red:#ff5a48;--muted:#9fb0c8;--glass:rgba(10,22,40,.72)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:"Segoe UI",Tahoma,sans-serif;background:#050b14;color:#eef3fb}
+#c3d{position:fixed;inset:0;display:block}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:10;background:radial-gradient(ellipse at center,transparent 55%,rgba(3,7,14,.55) 100%)}
+.ov{position:fixed;inset:0;background:rgba(3,8,16,.78);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:40}
+.panel{background:linear-gradient(160deg,#0d1e36,#091528);border:1px solid #274a7a;border-radius:18px;padding:30px 34px;max-width:600px;width:92vw;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.eyebrow{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px}
+h2{font-size:24px;margin-bottom:12px;font-weight:700}
+label{font-size:12.5px;color:var(--muted);display:block;margin:13px 0 5px}
+input[type=text],input[type=password]{width:100%;padding:11px 13px;border:1px solid #274a7a;border-radius:10px;font-size:14px;font-family:inherit;background:#081426;color:#eef3fb;outline:none}
+input:focus{border-color:var(--gold)}
+button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;font-size:14px}
+.btn{background:linear-gradient(135deg,#e8bd58,#c9922f);color:#081426;padding:12px 24px;font-weight:700;box-shadow:0 4px 18px rgba(224,179,76,.25)}
+.btn:hover{filter:brightness(1.08)}
+.btn.navy{background:#16355c;color:#eef3fb;font-weight:500;box-shadow:none}
+.btn.small{padding:7px 14px;font-size:12.5px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.langrow{display:flex;gap:10px;margin-top:4px}
+.langbtn{padding:10px 24px;border:1.5px solid #274a7a;background:#081426;color:#eef3fb;border-radius:10px}
+.langbtn.sel{border-color:var(--gold);background:linear-gradient(135deg,#e8bd58,#c9922f);color:#081426;font-weight:700}
+.levels{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:10px}
+.level{border:1.5px solid #274a7a;border-radius:12px;padding:12px 6px;text-align:center;background:#081426}
+.level .num{font-size:20px;font-weight:700}
+.level .st{font-size:10.5px;color:var(--muted);margin-top:4px}
+.level.open{border-color:var(--green);cursor:pointer;box-shadow:0 0 18px rgba(47,208,139,.15)}
+.level.open:hover{background:#0c2038}
+.level.locked{opacity:.42}
+.level.bypassed{border-color:var(--gold);cursor:pointer}
+.hint{font-size:11.5px;color:var(--muted);margin-top:15px;line-height:1.7}
+.mic-note{display:flex;gap:9px;align-items:center;margin-top:14px;background:rgba(47,208,139,.08);border:1px solid rgba(47,208,139,.3);border-radius:10px;padding:9px 13px;font-size:12px;color:#bfe9d6}
+#hud{position:fixed;top:16px;left:50%;transform:translateX(-50%);display:none;gap:10px;z-index:20;font-size:12.5px;align-items:center}
+#hud .pill{background:var(--glass);border:1px solid #274a7a;border-radius:99px;padding:7px 16px;backdrop-filter:blur(8px)}
+#hud b{color:var(--gold)}
+#beatdots{display:flex;gap:4px;align-items:center;background:var(--glass);border:1px solid #274a7a;border-radius:99px;padding:9px 14px}
+#beatdots i{width:7px;height:7px;border-radius:50%;background:#22436e;display:block}
+#beatdots i.ok{background:var(--green)}#beatdots i.no{background:var(--red)}#beatdots i.cur{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+#topbtns{position:fixed;top:16px;right:16px;display:flex;gap:8px;z-index:41}
+#topbtns .btn{background:var(--glass);color:#eef3fb;border:1px solid #274a7a;font-weight:500;font-size:12.5px;padding:9px 15px;box-shadow:none;backdrop-filter:blur(8px)}
+#sub{position:fixed;bottom:132px;left:50%;transform:translateX(-50%);max-width:780px;width:92vw;text-align:center;z-index:20;display:none}
+#sub .who{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-shadow:0 1px 6px #000}
+#sub .txt{background:var(--glass);border:1px solid #274a7a;border-radius:14px;padding:13px 20px;font-size:16.5px;line-height:1.55;margin-top:5px;backdrop-filter:blur(8px);text-shadow:0 1px 2px #000}
+#usub{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);font-size:12.5px;color:#9fd8ff;z-index:20;display:none;background:rgba(8,20,38,.6);border-radius:9px;padding:4px 12px;max-width:70vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#voicebar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:12px;z-index:21}
+#orb{width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#37e0a0,#0d7a52);box-shadow:0 0 22px rgba(47,208,139,.5);display:flex;align-items:center;justify-content:center;font-size:20px;transition:transform .1s,box-shadow .2s}
+#orb.ai{background:radial-gradient(circle at 35% 30%,#ffd97a,#b3801f);box-shadow:0 0 26px rgba(224,179,76,.6)}
+#orb.off{background:radial-gradient(circle at 35% 30%,#5a6b84,#232f42);box-shadow:none}
+#vtxt{font-size:11.5px;color:var(--muted);max-width:210px;line-height:1.5}
+#chatin{display:flex;gap:7px}
+#chatin input{width:240px;padding:10px 13px;border-radius:99px;border:1px solid #274a7a;background:var(--glass);color:#eef3fb;font-size:13px;font-family:inherit;outline:none}
+#ctrlhint{position:fixed;bottom:20px;left:18px;font-size:11px;color:var(--muted);z-index:19;background:var(--glass);padding:9px 13px;border-radius:11px;line-height:1.75;max-width:300px;border:1px solid #1c3a63}
+#cross{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:18;display:none;pointer-events:none}
+#cross i{display:block;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.85);box-shadow:0 0 6px rgba(0,0,0,.8);transition:transform .12s}
+#cross.hot i{transform:scale(2);background:var(--gold)}
+#flash{position:fixed;inset:0;pointer-events:none;z-index:17;opacity:0;transition:opacity .5s}
+#errbar{position:fixed;top:0;left:0;right:0;background:#7a1710;color:#fff;font-size:12px;padding:6px 12px;z-index:99;display:none;white-space:pre-wrap}
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--glass);border:1px solid #274a7a;border-radius:11px;padding:10px 18px;font-size:13px;z-index:45;display:none;backdrop-filter:blur(8px)}
+.drawer{position:fixed;top:0;right:0;width:min(440px,95vw);height:100vh;background:#0b1a2e;border-left:1px solid #274a7a;transform:translateX(105%);transition:transform .25s;z-index:50;display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.drawer .dhead{background:#16355c;padding:15px 18px;display:flex;align-items:center;gap:10px}
+.drawer .dbody{padding:16px 18px;overflow-y:auto;flex:1;font-size:13px}
+.drawer h3{font-size:13.5px;color:var(--gold);margin:12px 0 5px}
+table{border-collapse:collapse;width:100%;font-size:12px;margin-top:8px}
+th{background:#16355c;padding:6px 8px;text-align:start;font-weight:600}
+td{border:1px solid #274a7a;padding:5px 8px}
+.loglines{font-size:11.5px;color:var(--muted);max-height:180px;overflow-y:auto;border:1px solid #274a7a;border-radius:8px;padding:8px;margin-top:6px}
+.big{font-size:46px;font-weight:800;text-align:center}
+.pass{color:var(--green)}.fail{color:var(--red)}
+.center{text-align:center}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+#orb.ai{animation:pulse 1.1s infinite}
+</style>
+</head>
+<body>
+<div id="errbar"></div>
+<canvas id="c3d"></canvas>
+<div id="vignette"></div>
+<div id="hud">
+  <span class="pill" id="hs"></span>
+  <span id="beatdots"></span>
+  <span class="pill" id="ha"></span>
+</div>
+<div id="topbtns"><button class="btn" id="btnAdmin">Admin</button></div>
+<div id="sub"><div class="who" id="subwho"></div><div class="txt" id="subtxt"></div></div>
+<div id="usub"></div>
+<div id="voicebar">
+  <div id="orb">🎙️</div>
+  <div id="vtxt"></div>
+  <div id="chatin"><input id="chattext" type="text"><button class="btn small" id="chatsend">➤</button></div>
+</div>
+<div id="ctrlhint"></div>
+<div id="cross"><i></i></div>
+<div id="flash"></div>
+<div id="toast"></div>
+
+<div class="ov" id="startOv"><div class="panel">
+  <div class="eyebrow" id="soEyebrow"></div>
+  <h2 id="soTitle"></h2>
+  <p style="font-size:13.5px;color:var(--muted);line-height:1.65" id="soDesc"></p>
+  <label id="soNameL"></label><input id="inName" type="text">
+  <label id="soLangL"></label>
+  <div class="langrow">
+    <button class="langbtn sel" data-l="en">English</button>
+    <button class="langbtn" data-l="ar">العربية</button>
+  </div>
+  <label id="soLvlL"></label>
+  <div class="levels" id="lvGrid"></div>
+  <div class="mic-note" id="micNote"></div>
+  <div class="hint" id="soHint"></div>
+</div></div>
+
+<div class="ov" id="resultOv" style="display:none"><div class="panel center">
+  <div class="eyebrow" id="roEyebrow"></div>
+  <div class="big" id="roScore"></div>
+  <h2 id="roVerdict"></h2>
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:18px">
+    <button class="btn" id="roRetry" style="display:none"></button>
+    <button class="btn navy" id="roHome"></button>
+  </div>
+</div></div>
+
+<div class="drawer" id="drawer">
+  <div class="dhead"><b style="flex:1">Admin</b><button class="btn navy small" id="dClose">✕</button></div>
+  <div class="dbody" id="dBody"></div>
+</div>
+
+<script src="content.js"></script>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+window.addEventListener('error',e=>{const b=document.getElementById('errbar');b.style.display='block';b.textContent+='ERR: '+e.message+' @'+(e.lineno||'')+'\n';});
+
+const CONTENT=window.ADC_CONTENT;
+const ADMIN_PIN="2026";
+let LANG="en";
+let CFG={aiAvailable:false};
+const PARAMS=new URLSearchParams(location.search);
+const FAST=PARAMS.has("fast");
+let autoStarted=false;
+
+const UI={
+ en:{eyebrow:"ADC VR TRAINING — CONVERSATIONAL 3D PROTOTYPE",title:"A Morning at Abu Dhabi Customs",
+  desc:"You are a new ADC employee on your orientation morning. Saif, a senior officer, walks with you through six stations of the customs house and simply… talks with you. Answer him with your voice. What you say and do is your assessment — there is no quiz.",
+  name:"Your name",lang:"Language",lvl:"Levels",open:"Enter",locked:"Locked",
+  micNote:"🎙️ This experience is voice-first: allow microphone access and speak to Saif naturally. No mic? You can type instead — or the app falls back to guided mode.",
+  hint:"Click the world to look around (Esc releases) · WASD / arrows walk · Shift runs · ENTER glides to the active station · type to Saif any time in the box below",
+  score:"Score",attempt:"Attempt",correct:"+5 — well done",wrong:"+0 — noted",
+  passed:"LEVEL PASSED",failed:"NOT PASSED — 96/120 needed",retry:"Try again — different situations",home:"Back to entrance",
+  l2:"Level 2 content is project scope. The gate and the admin bypass are the point.",
+  saif:"Saif — Senior Officer",you:"You",connecting:"Connecting to Saif…",micDenied:"Mic unavailable — guided mode with narration.",
+  liveFail:"Voice link unavailable — guided mode with narration.",voiceOn:"Saif hears you — just speak. Walk with WASD, click cards when he shows you something.",
+  typed:"Message sent",csv:"Export CSV",unlock:"Bypass: unlock Level 2",unlocked:"Level 2 unlocked",results:"Results",live:"Live",log:"Log",
+  pin:"Admin PIN",aname:"Admin name",wrongPin:"Wrong PIN",noresults:"No attempts yet",
+  classicPrompt:"Answer by typing (or click Show choices)",showOpts:"Show choices",judging:"Saif is considering…"},
+ ar:{eyebrow:"تدريب جمارك أبوظبي — نموذج محادثة ثلاثي الأبعاد",title:"صباح في جمارك أبوظبي",
+  desc:"أنت موظف جديد في يوم تعريفي. سيف، ضابط أول، يمشي معك عبر ست محطات في دار الجمارك ويتحدث معك ببساطة. أجب بصوتك. ما تقوله وتفعله هو تقييمك — لا يوجد اختبار تقليدي.",
+  name:"اسمك",lang:"اللغة",lvl:"المستويات",open:"ادخل",locked:"مقفل",
+  micNote:"🎙️ التجربة صوتية أولاً: اسمح بالميكروفون وتحدث مع سيف بشكل طبيعي. لا يوجد ميكروفون؟ يمكنك الكتابة — أو ينتقل التطبيق للوضع الموجّه.",
+  hint:"انقر العالم للنظر (Esc للخروج) · WASD أو الأسهم للمشي · Shift للركض · ENTER للانتقال إلى المحطة · اكتب لسيف في أي وقت في الصندوق أدناه",
+  score:"النتيجة",attempt:"المحاولة",correct:"+5 — أحسنت",wrong:"+0 — سنكمل",
+  passed:"اجتزت المستوى",failed:"لم تجتز — المطلوب ٩٦/١٢٠",retry:"حاول مجدداً — مواقف مختلفة",home:"عودة إلى المدخل",
+  l2:"محتوى المستوى ٢ ضمن نطاق المشروع. المهم هنا: القفل وصلاحية المشرف.",
+  saif:"سيف — ضابط أول",you:"أنت",connecting:"جارٍ الاتصال بسيف…",micDenied:"الميكروفون غير متاح — الوضع الموجّه مع السرد.",
+  liveFail:"الاتصال الصوتي غير متاح — الوضع الموجّه مع السرد.",voiceOn:"سيف يسمعك — تحدث فقط. تحرك بـ WASD وانقر البطاقات عندما يعرض عليك شيئاً.",
+  typed:"أُرسلت الرسالة",csv:"تصدير CSV",unlock:"فتح استثنائي: المستوى ٢",unlocked:"المستوى ٢ مفتوح",results:"النتائج",live:"مباشر",log:"السجل",
+  pin:"رمز المشرف",aname:"اسم المشرف",wrongPin:"رمز خاطئ",noresults:"لا محاولات بعد",
+  classicPrompt:"أجب كتابةً (أو اضغط أظهر الخيارات)",showOpts:"أظهر الخيارات",judging:"سيف يفكر…"}
+};
+const T=k=>UI[LANG][k];
+const L=o=>(LANG==="ar"&&o.ar)?o.ar:o.en;
+
+// ---------- persistence ----------
+const store={get(){try{return JSON.parse(localStorage.getItem("adc_v2")||"{}")}catch(e){return{}}},set(d){localStorage.setItem("adc_v2",JSON.stringify(d))}};
+let DB=Object.assign({results:[],log:[],bypass:null},store.get());
+function save(){store.set(DB)}
+function log(m){DB.log.push(new Date().toISOString().slice(11,19)+" "+m);if(DB.log.length>400)DB.log=DB.log.slice(-400);save();paintAdmin()}
+
+// ---------- engine ----------
+function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+function hash(str){let h=2166136261;for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function shuffled(arr,r){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const COMBOS=[];for(let a=0;a<6;a++)for(let b=a+1;b<6;b++)for(let c=b+1;c<6;c++)for(let d=c+1;d<6;d++)COMBOS.push([a,b,c,d]);
+let S=null;
+function draw(attempt){
+ const per=[];
+ for(const sk of CONTENT.skills){
+   const r=rng(S.seed+sk.id*7919);
+   const combo=shuffled(COMBOS,r)[(attempt-1)%COMBOS.length];
+   const rq=rng(S.seed+sk.id*104729+attempt*31);
+   per.push(shuffled(combo.map(i=>sk.questions[i]),rq).map(q=>({q,sk,done:false,ok:null})));
+ }
+ return per;
+}
+function widgetOf(q){
+ const hasArrow=q.correct.some(c=>c.en.includes("→"));
+ if(q.template==="T2"&&hasArrow)return"assign";
+ if(q.template==="T4"&&q.ordered)return"sequence";
+ if(q.template==="T3")return"verbal";
+ return q.correct.length>1?"multi":"single";
+}
+const realDis=q=>q.distractors.filter(d=>!d.en.trim().startsWith("("));
+
+// ---------- three world ----------
+const ACCENTS=[0x35c4ff,0x9a7bff,0xff9d5c,0x35e0c4,0xe0b34c,0x5cff9d];
+const canvas=document.getElementById("c3d");
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.05;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(68,1,0.1,300);
+let yaw=0,pitch=0;
+const camPos=new THREE.Vector3(0,1.6,14);
+scene.fog=new THREE.Fog(0x070f1c,30,110);
+scene.add(new THREE.HemisphereLight(0x9dbcf0,0x141f33,1.15));
+const dl=new THREE.DirectionalLight(0xffe2b0,.9);dl.position.set(8,18,6);scene.add(dl);
+
+// sky dome (gradient)
+{const cv=document.createElement("canvas");cv.width=32;cv.height=256;const x=cv.getContext("2d");
+ const g=x.createLinearGradient(0,0,0,256);
+ g.addColorStop(0,"#02050c");g.addColorStop(.55,"#081527");g.addColorStop(.82,"#14304f");g.addColorStop(1,"#3d4d63");
+ x.fillStyle=g;x.fillRect(0,0,32,256);
+ const tex=new THREE.CanvasTexture(cv);
+ const dome=new THREE.Mesh(new THREE.SphereGeometry(160,32,24),new THREE.MeshBasicMaterial({map:tex,side:THREE.BackSide,fog:false}));
+ scene.add(dome);}
+// stars
+{const g=new THREE.BufferGeometry();const n=900;const p=new Float32Array(n*3);
+ for(let i=0;i<n;i++){const r=150,th=Math.random()*Math.PI*2,ph=Math.random()*1.1;
+  p[i*3]=r*Math.cos(th)*Math.sin(ph);p[i*3+1]=r*Math.cos(ph)*.7+18;p[i*3+2]=r*Math.sin(th)*Math.sin(ph)}
+ g.setAttribute("position",new THREE.BufferAttribute(p,3));
+ scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x9db8dd,size:.5,transparent:true,opacity:.8,fog:false})));}
+// dust motes
+let dust;{const g=new THREE.BufferGeometry();const n=350;const p=new Float32Array(n*3);
+ for(let i=0;i<n;i++){p[i*3]=(Math.random()-0.5)*90;p[i*3+1]=Math.random()*8+.3;p[i*3+2]=(Math.random()-0.5)*90}
+ g.setAttribute("position",new THREE.BufferAttribute(p,3));
+ dust=new THREE.Points(g,new THREE.PointsMaterial({color:0xe0b34c,size:.06,transparent:true,opacity:.5}));
+ scene.add(dust);}
+
+// floor with radial gradient
+{const cv=document.createElement("canvas");cv.width=512;cv.height=512;const x=cv.getContext("2d");
+ const g=x.createRadialGradient(256,256,40,256,256,256);
+ g.addColorStop(0,"#14273f");g.addColorStop(.6,"#0d1b2e");g.addColorStop(1,"#070f1c");
+ x.fillStyle=g;x.fillRect(0,0,512,512);
+ x.strokeStyle="rgba(80,130,190,.14)";x.lineWidth=1;
+ for(let i=0;i<=16;i++){x.beginPath();x.moveTo(i*32,0);x.lineTo(i*32,512);x.stroke();x.beginPath();x.moveTo(0,i*32);x.lineTo(512,i*32);x.stroke()}
+ const tex=new THREE.CanvasTexture(cv);tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(10,10);
+ const floor=new THREE.Mesh(new THREE.CircleGeometry(80,72),new THREE.MeshStandardMaterial({map:tex,roughness:.6,metalness:.35}));
+ floor.rotation.x=-Math.PI/2;scene.add(floor);}
+
+const R=26,WALK=R-7.2,stations=[];
+function stationAngle(i){return (-62+i*24.8)*Math.PI/180}
+function stationPos(i){const a=stationAngle(i);return new THREE.Vector3(Math.sin(a)*R,0,-Math.cos(a)*R)}
+// glowing walkway
+{const curve=new THREE.EllipseCurve(0,0,WALK,WALK,stationAngle(0)-Math.PI/2-.25,stationAngle(5)-Math.PI/2+.25,false,0);
+ const pts=curve.getPoints(80).map(p=>new THREE.Vector3(p.x,0.03,p.y));
+ const geo=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),80,.06,6,false);
+ scene.add(new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0xe0b34c,transparent:true,opacity:.5})));}
+
+function mat(c,e=0,ei=.6,extra={}){return new THREE.MeshStandardMaterial(Object.assign({color:c,emissive:e,emissiveIntensity:ei,roughness:.45,metalness:.35},extra))}
+function box(g,w,h,d,c,x,y,z,e){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,e||0,e?.7:0));m.position.set(x,y,z);g.add(m);return m}
+
+function roundRect(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+function wrap(x,text,maxw){
+ const out=[];
+ for(const seg of String(text).split("\n")){
+   const words=seg.split(/\s+/);let cur="";
+   for(const w of words){const t=cur?cur+" "+w:w;
+     if(x.measureText(t).width>maxw&&cur){out.push(cur);cur=w}else cur=t}
+   if(cur)out.push(cur);
+ }
+ return out.slice(0,7);
+}
+function textTexture(text,{w=512,h=256,size=34,color="#eef3fb",bg="rgba(13,26,46,.9)",border="#e0b34c",pad=26,bold=false,glow=true}={}){
+ const cv=document.createElement("canvas");cv.width=w;cv.height=h;const x=cv.getContext("2d");
+ if(glow){x.shadowColor=border;x.shadowBlur=18}
+ x.fillStyle=bg;roundRect(x,6,6,w-12,h-12,20);x.fill();
+ x.shadowBlur=0;
+ const gr=x.createLinearGradient(0,0,0,h);gr.addColorStop(0,"rgba(255,255,255,.09)");gr.addColorStop(.4,"rgba(255,255,255,0)");
+ x.fillStyle=gr;roundRect(x,6,6,w-12,h-12,20);x.fill();
+ x.strokeStyle=border;x.lineWidth=3;roundRect(x,6,6,w-12,h-12,20);x.stroke();
+ x.fillStyle=color;x.font=`${bold?"700":"400"} ${size}px "Segoe UI",Tahoma`;
+ x.textAlign="center";x.textBaseline="middle";x.direction=LANG==="ar"?"rtl":"ltr";
+ const lines=wrap(x,text,w-pad*2);
+ const lh=size*1.25,y0=h/2-(lines.length-1)*lh/2;
+ lines.forEach((ln,i)=>x.fillText(ln,w/2,y0+i*lh));
+ const t=new THREE.CanvasTexture(cv);t.anisotropy=4;return t;
+}
+function textPanel(text,wm,hm,opts={}){
+ const px=Math.round(wm*256),py=Math.round(hm*256);
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(wm,hm),
+   new THREE.MeshBasicMaterial({map:textTexture(text,Object.assign({w:px,h:py},opts)),transparent:true}));
+ m.userData.setText=(t,o={})=>{m.material.map=textTexture(t,Object.assign({w:px,h:py},opts,o));m.material.needsUpdate=true};
+ return m;
+}
+function wallTexture(accent,num){
+ const cv=document.createElement("canvas");cv.width=1024;cv.height=512;const x=cv.getContext("2d");
+ const g=x.createLinearGradient(0,0,0,512);
+ g.addColorStop(0,"#16324f");g.addColorStop(1,"#0a1a30");
+ x.fillStyle=g;x.fillRect(0,0,1024,512);
+ x.strokeStyle="rgba(120,170,230,.09)";
+ for(let i=0;i<24;i++){x.beginPath();x.moveTo(i*44,0);x.lineTo(i*44,512);x.stroke()}
+ x.fillStyle="rgba(255,255,255,.045)";x.font="700 420px Segoe UI";x.textAlign="right";x.fillText(String(num),1000,470);
+ const ac="#"+accent.toString(16).padStart(6,"0");
+ x.fillStyle=ac;x.globalAlpha=.14;x.fillRect(0,492,1024,20);x.globalAlpha=1;
+ return new THREE.CanvasTexture(cv);
+}
+function addTheme(g,i,accent){
+ if(i===0){
+   for(let k=0;k<3;k++)box(g,1.6,1.1,.7,0x1b3c63,-3+k*3,0.62,-3.1);
+   box(g,3.2,2.2,.12,0x0f2c4e,3.6,2.2,-4.35,accent);
+   for(const[mx,my]of[[-.7,.4],[.4,-.2],[1,.6]]){const dot=new THREE.Mesh(new THREE.SphereGeometry(.09),mat(0xe0b34c,0xe0b34c,1));dot.position.set(3.6+mx,2.2+my,-4.2);g.add(dot)}
+ }else if(i===1){
+   for(let k=0;k<3;k++){const p=box(g,2.1,1.4,.1,0x0f2c4e,-3.2+k*3.2,3,-4.35,accent);p.userData.spin=.14+k*.07}
+   box(g,.9,1.5,.9,0x1b3c63,3.4,.8,-2.6,0xe0b34c);
+ }else if(i===2){
+   const t=new THREE.Group();
+   box(t,2.6,1.7,1.5,0x2a4d78,0,1.15,0);box(t,1.1,1.25,1.4,0x1b3c63,1.85,.92,0);
+   for(const wx of[-.8,.8,1.9])for(const wz of[-.8,.8]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(.32,.32,.24,18),mat(0x0a1426));wh.rotation.x=Math.PI/2;wh.position.set(wx,.32,wz);t.add(wh)}
+   t.position.set(-3.1,0,-2.2);t.rotation.y=.5;g.add(t);
+   box(g,1.7,.95,.8,0x1b3c63,2.6,.55,-2.4);box(g,1.4,1.9,.5,0x0f2c4e,4.1,1,-4.2,accent);
+ }else if(i===3){
+   for(let k=0;k<5;k++)box(g,1.15,1.15,.14,0x0f2c4e,-4.1+k*2.05,2.35,-4.35,accent);
+   const c=box(g,.8,.55,.5,0xe0b34c,-4.1,1.35,-3.9,0xe0b34c);g.userData.container=c;
+ }else if(i===4){
+   for(let k=0;k<3;k++)box(g,1.1,.5+k*.25,1.1,0x1b3c63,-2.4+k*2.4,(.5+k*.25)/2,-2.7);
+   box(g,2,1,.7,0x1b3c63,3.6,.55,-1.6);
+   const v=new THREE.Group();
+   const body=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.85,6,14),mat(0x2c6f92,accent,.35));body.position.y=1.05;v.add(body);
+   const head=new THREE.Mesh(new THREE.SphereGeometry(.26,18,14),mat(0xd9b58a));head.position.y=1.95;v.add(head);
+   v.position.set(3.6,0,-.5);g.add(v);g.userData.visitor=v;
+ }else{
+   box(g,3.4,2.4,.14,0x0f2c4e,-2.7,2.1,-4.35,accent);box(g,3.4,2.4,.14,0x0f2c4e,2.7,2.1,-4.35,0xe0b34c);
+ }
+}
+function buildStation(i,sk){
+ const g=new THREE.Group();const pos=stationPos(i);g.position.copy(pos);
+ g.lookAt(0,0,0); // +z faces arena center; -z is the station's back
+ const accent=ACCENTS[i];
+ const plat=new THREE.Mesh(new THREE.CylinderGeometry(5.4,5.7,.16,48),mat(0x1b3c63,0x14304f,.35,{metalness:.55,roughness:.35}));plat.position.y=.08;g.add(plat);
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(5.55,.06,10,64),mat(accent,accent,.9));ring.rotation.x=Math.PI/2;ring.position.y=.18;g.add(ring);
+ const wall=new THREE.Mesh(new THREE.BoxGeometry(10.5,5.2,.3),new THREE.MeshStandardMaterial({map:wallTexture(accent,i+1),roughness:.5,metalness:.3}));
+ wall.position.set(0,2.7,-4.6);g.add(wall);
+ const trim=new THREE.Mesh(new THREE.BoxGeometry(10.9,.12,.36),mat(0xe0b34c,0xe0b34c,.9));trim.position.set(0,5.35,-4.6);g.add(trim);
+ const title=textPanel(`${i+1} · ${L(sk.scene.name)}`,7,1,{size:54,bold:true,bg:"rgba(0,0,0,0)",border:"rgba(0,0,0,0)",glow:false});
+ title.position.set(0,4.55,-4.4);g.add(title);
+ const pl=new THREE.PointLight(0xffd98a,42,22,1.6);pl.position.set(0,4.2,-1);g.add(pl);
+ const al=new THREE.PointLight(accent,14,10,1.8);al.position.set(0,1,-3.8);g.add(al);
+ addTheme(g,i,accent);
+ const beam=new THREE.Mesh(new THREE.CylinderGeometry(.5,1.5,7.5,24,1,true),
+   new THREE.MeshBasicMaterial({color:0xe0b34c,transparent:true,opacity:.13,side:THREE.DoubleSide,depthWrite:false}));
+ beam.position.set(0,3.7,2.5);g.add(beam);
+ g.userData.beam=beam;
+ scene.add(g);
+ return {group:g,pos,sk};
+}
+// Saif
+const saif=new THREE.Group();
+{const body=new THREE.Mesh(new THREE.CapsuleGeometry(.37,.92,6,18),mat(0x1d4a7a,0x35c4ff,.45,{metalness:.6,roughness:.3}));body.position.y=1.12;saif.add(body);
+ const chest=new THREE.Mesh(new THREE.CircleGeometry(.09,16),mat(0xe0b34c,0xe0b34c,1));chest.position.set(0,1.45,.37);saif.add(chest);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.28,20,16),mat(0xe0bd92,0x000000,0,{roughness:.6,metalness:.1}));head.position.y=2.08;saif.add(head);
+ const visor=new THREE.Mesh(new THREE.TorusGeometry(.31,.03,8,28),mat(0xe0b34c,0xe0b34c,1));visor.position.y=2.08;visor.rotation.x=Math.PI/2.15;saif.add(visor);
+ const base=new THREE.Mesh(new THREE.TorusGeometry(.5,.04,8,32),mat(0x35c4ff,0x35c4ff,1));base.rotation.x=Math.PI/2;base.position.y=.06;saif.add(base);
+ const tag=textPanel("SAIF · سيف",1.6,.42,{size:40,bold:true,bg:"rgba(8,20,38,.75)",border:"rgba(53,196,255,.6)",glow:false});
+ tag.position.y=2.75;saif.add(tag);saif.userData.tag=tag;
+ const glow=new THREE.PointLight(0x35c4ff,4,6);glow.position.y=1.6;saif.add(glow);saif.userData.glow=glow;
+ saif.position.set(1.6,0,10);scene.add(saif)}
+let saifTarget=saif.position.clone(),saifSpeaking=false;
+// entrance arch
+{const a=new THREE.Group();
+ box(a,.5,4.4,.5,0x1b3c63,-2.6,2.2,0);box(a,.5,4.4,.5,0x1b3c63,2.6,2.2,0);
+ box(a,5.8,.5,.6,0x1b3c63,0,4.6,0,0xe0b34c);
+ const sign=new THREE.Group();sign.add(a);
+ a.position.set(0,0,17);scene.add(a)}
+CONTENT.skills.forEach((sk,i)=>stations.push(buildStation(i,sk)));
+
+// ---------- FPS controls ----------
+const ray=new THREE.Raycaster();const mouse=new THREE.Vector2();
+let interact=[];let hovered=null;let locked=false;
+function setInteract(list){interact=list}
+canvas.addEventListener("click",()=>{
+ if(!locked&&S&&S.active){canvas.requestPointerLock();return}
+ if(locked)clickRay(true);
+});
+document.addEventListener("pointerlockchange",()=>{locked=document.pointerLockElement===canvas;
+ document.getElementById("cross").style.display=locked?"block":"none"});
+let dragging=false,dragMoved=0;
+canvas.addEventListener("pointerdown",e=>{if(!locked){dragging=true;dragMoved=0}});
+canvas.addEventListener("pointermove",e=>{
+ if(locked){yaw-=e.movementX*.0026;pitch=Math.max(-1.25,Math.min(1.25,pitch-e.movementY*.0026));return}
+ mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;
+ if(dragging){yaw-=e.movementX*.0032;pitch=Math.max(-1.25,Math.min(1.25,pitch-e.movementY*.0032));dragMoved+=Math.abs(e.movementX)+Math.abs(e.movementY)}});
+addEventListener("pointerup",()=>{const was=dragging;dragging=false;if(was&&dragMoved<6&&!locked)clickRay(false)});
+function clickRay(center){
+ if(center)ray.setFromCamera(new THREE.Vector2(0,0),camera);else ray.setFromCamera(mouse,camera);
+ const hits=ray.intersectObjects(interact,false);
+ if(hits.length){const o=hits[0].object;if(o.userData.onClick)o.userData.onClick(o)}
+}
+function hoverTick(){
+ const cross=document.getElementById("cross");
+ if(!interact.length){if(!locked)document.body.style.cursor="default";cross.classList.remove("hot");return}
+ if(locked)ray.setFromCamera(new THREE.Vector2(0,0),camera);else ray.setFromCamera(mouse,camera);
+ const hits=ray.intersectObjects(interact,false);
+ const o=hits.length?hits[0].object:null;
+ if(hovered&&hovered!==o)hovered.scale.setScalar(hovered.userData.baseScale||1);
+ hovered=o;
+ cross.classList.toggle("hot",!!o);
+ if(o){o.userData.baseScale=o.userData.baseScale||o.scale.x;o.scale.setScalar((o.userData.baseScale||1)*1.07);if(!locked)document.body.style.cursor="pointer"}
+ else if(!locked)document.body.style.cursor=dragging?"grabbing":"default";
+}
+const keys={};
+addEventListener("keydown",e=>{
+ if(e.target.tagName==="INPUT")return;
+ keys[e.key.toLowerCase()]=true;keys["shift"]=e.shiftKey;
+ if(e.key==="Enter"&&S&&S.active)glideTo(S.st);});
+addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false;keys["shift"]=e.shiftKey});
+let glide=null;
+function glideTo(i){const st=stations[i];const a=stationAngle(i);
+ const target=new THREE.Vector3(Math.sin(a)*WALK,1.6,-Math.cos(a)*WALK);
+ glide={from:camPos.clone(),to:target,t:0,yawTo:Math.atan2(st.pos.x-target.x,-(st.pos.z-target.z))}}
+function moveTick(dt){
+ if(glide){glide.t=Math.min(1,glide.t+dt*(FAST?6:.85));const k=glide.t*glide.t*(3-2*glide.t);
+   camPos.lerpVectors(glide.from,glide.to,k);
+   let dy=glide.yawTo-yaw;while(dy>Math.PI)dy-=2*Math.PI;while(dy<-Math.PI)dy+=2*Math.PI;
+   yaw+=dy*Math.min(1,dt*4);
+   if(glide.t>=1)glide=null;return}
+ const run=keys["shift"]?1.9:1;
+ const sp=5.4*run*dt;
+ const f=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),r=new THREE.Vector3(f.z,0,-f.x);
+ let moved=false;
+ if(keys.w||keys.arrowup){camPos.addScaledVector(f,sp);moved=true}
+ if(keys.s||keys.arrowdown){camPos.addScaledVector(f,-sp);moved=true}
+ if(keys.a||keys.arrowleft){camPos.addScaledVector(r,-sp);moved=true}
+ if(keys.d||keys.arrowright){camPos.addScaledVector(r,sp);moved=true}
+ const l=Math.hypot(camPos.x,camPos.z);if(l>70){camPos.x*=70/l;camPos.z*=70/l}
+ // head bob
+ camPos.y=1.6+(moved?Math.sin(performance.now()*.011*run)*.035:0);
+}
+
+// ---------- UI helpers ----------
+let subTimer=null;
+function subtitle(who,text,sticky){
+ const s=document.getElementById("sub");
+ document.getElementById("subwho").textContent=who;
+ document.getElementById("subtxt").textContent=text;
+ s.style.display="block";
+ clearTimeout(subTimer);
+ if(!sticky)subTimer=setTimeout(()=>s.style.display="none",Math.max(3800,text.length*70));
+}
+function toast(t,ms=3200){const el=document.getElementById("toast");el.textContent=t;el.style.display="block";clearTimeout(el._t);el._t=setTimeout(()=>el.style.display="none",ms)}
+let AC=null;function beep(ok){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+ const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);
+ o.frequency.value=ok?880:220;o.type="sine";g.gain.setValueAtTime(.1,AC.currentTime);
+ g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.35);o.start();o.stop(AC.currentTime+.36);
+ if(ok){const o2=AC.createOscillator(),g2=AC.createGain();o2.connect(g2);g2.connect(AC.destination);
+  o2.frequency.value=1320;g2.gain.setValueAtTime(.08,AC.currentTime+.12);g2.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.5);o2.start(AC.currentTime+.12);o2.stop(AC.currentTime+.52)}}catch(e){}}
+function speakTTS(text,who){
+ subtitle(who||T("saif"),text);
+ try{if(!window.speechSynthesis)return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang=LANG==="ar"?"ar-SA":"en-GB";u.rate=1.02;
+  const v=speechSynthesis.getVoices().find(v=>v.lang&&v.lang.toLowerCase().startsWith(LANG==="ar"?"ar":"en"));
+  if(v)u.voice=v;
+  saifSpeaking=true;u.onend=()=>saifSpeaking=false;
+  speechSynthesis.speak(u);}catch(e){}
+}
+function flash(ok){const f=document.getElementById("flash");
+ f.style.background=ok?"radial-gradient(circle,rgba(47,208,139,.2),transparent 70%)":"radial-gradient(circle,rgba(255,90,72,.2),transparent 70%)";
+ f.style.opacity=1;setTimeout(()=>f.style.opacity=0,420)}
+function hud(){
+ document.getElementById("hud").style.display=S&&S.active?"flex":"none";
+ if(!S)return;
+ document.getElementById("hs").innerHTML=`${T("score")} <b>${S.score}</b>/120`;
+ document.getElementById("ha").innerHTML=`${T("attempt")} <b>${((S.attempt-1)%5)+1}</b>/5`;
+ const dots=document.getElementById("beatdots");
+ const cells=[];
+ let n=0;
+ for(let i=0;i<6;i++)for(let b=0;b<4;b++){const beat=S.plan[i][b];
+  let cls="";if(beat.done)cls=beat.ok?"ok":"no";else if(n===S.doneCount)cls="cur";
+  cells.push(`<i class="${cls}"></i>`);n++}
+ dots.innerHTML=cells.join("");
+}
+
+// ---------- Live voice (Gemini native audio via server relay) ----------
+class LiveVoice{
+ constructor(){this.ws=null;this.micCtx=null;this.micNode=null;this.micStream=null;
+  this.playCtx=null;this.playCursor=0;this.sources=[];this.onTool=null;this.onText=null;this.onUserText=null;this.onClose=null;
+  this.analyser=null;this.level=0}
+ async initMic(){
+  if(this.micStream)return true;
+  try{
+   this.micStream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}});
+   this.micCtx=new AudioContext({sampleRate:16000});
+   const src=this.micCtx.createMediaStreamSource(this.micStream);
+   this.analyser=this.micCtx.createAnalyser();this.analyser.fftSize=256;src.connect(this.analyser);
+   this.micNode=this.micCtx.createScriptProcessor(4096,1,1);
+   src.connect(this.micNode);this.micNode.connect(this.micCtx.destination);
+   this.micNode.onaudioprocess=(e)=>{
+    if(!this.ws||this.ws.readyState!==1)return;
+    const f=e.inputBuffer.getChannelData(0);
+    const i16=new Int16Array(f.length);
+    for(let i=0;i<f.length;i++){const s=Math.max(-1,Math.min(1,f[i]));i16[i]=s<0?s*0x8000:s*0x7FFF}
+    const b=btoa(String.fromCharCode(...new Uint8Array(i16.buffer)));
+    this.ws.send(JSON.stringify({realtimeInput:{audio:{data:b,mimeType:"audio/pcm;rate=16000"}}}));
+   };
+   return true;
+  }catch(e){log("mic error: "+e.message);return false}
+ }
+ micLevel(){if(!this.analyser)return 0;const d=new Uint8Array(this.analyser.frequencyBinCount);this.analyser.getByteFrequencyData(d);let s=0;for(const v of d)s+=v;return s/d.length/255}
+ connect(systemPrompt,tools){
+  return new Promise((resolve,reject)=>{
+   const proto=location.protocol==="https:"?"wss":"ws";
+   const ws=new WebSocket(`${proto}://${location.host}/live`);
+   this.ws=ws;this.intentional=false;
+   let settled=false;
+   const to=setTimeout(()=>{if(!settled){settled=true;try{ws.close()}catch{};reject(new Error("timeout"))}},12000);
+   ws.onopen=()=>{
+    ws.send(JSON.stringify({setup:{
+     model:CFG.liveModel,
+     generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:"Charon"}}}},
+     systemInstruction:{parts:[{text:systemPrompt}]},
+     tools:[{functionDeclarations:tools}],
+     outputAudioTranscription:{},inputAudioTranscription:{},
+    }}));
+   };
+   ws.onmessage=async(ev)=>{
+    const m=JSON.parse(typeof ev.data==="string"?ev.data:await ev.data.text());
+    if(m.setupComplete!==undefined){if(!settled){settled=true;clearTimeout(to);resolve()}return}
+    if(m.serverContent){
+     const sc=m.serverContent;
+     if(sc.interrupted){this.stopPlayback();return}
+     for(const p of (sc.modelTurn?.parts||[])){
+      if(p.inlineData?.data)this.enqueueAudio(p.inlineData.data);
+     }
+     if(sc.outputTranscription?.text&&this.onText)this.onText(sc.outputTranscription.text,!!sc.turnComplete);
+     if(sc.inputTranscription?.text&&this.onUserText)this.onUserText(sc.inputTranscription.text);
+     if(sc.turnComplete&&this.onText)this.onText("",true);
+    }
+    if(m.toolCall&&this.onTool){
+     for(const fc of m.toolCall.functionCalls||[]){
+      const resp=await this.onTool(fc.name,fc.args||{});
+      if(this.ws&&this.ws.readyState===1)
+       this.ws.send(JSON.stringify({toolResponse:{functionResponses:[{id:fc.id,name:fc.name,response:resp||{ok:true}}]}}));
+     }
+    }
+   };
+   ws.onerror=()=>{if(!settled){settled=true;clearTimeout(to);reject(new Error("ws error"))}};
+   ws.onclose=(e)=>{if(!settled){settled=true;clearTimeout(to);reject(new Error("closed "+e.code))}else if(!this.intentional&&this.onClose)this.onClose(e)};
+  });
+ }
+ sendText(t){if(this.ws&&this.ws.readyState===1)this.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:t}]}],turnComplete:true}}))}
+ enqueueAudio(b64){
+  if(!this.playCtx)this.playCtx=new AudioContext({sampleRate:24000});
+  const bin=atob(b64);const n=bin.length/2;
+  const f=new Float32Array(n);
+  for(let i=0;i<n;i++){let v=bin.charCodeAt(i*2)|(bin.charCodeAt(i*2+1)<<8);if(v>=0x8000)v-=0x10000;f[i]=v/0x8000}
+  const buf=this.playCtx.createBuffer(1,n,24000);
+  buf.getChannelData(0).set(f);
+  const src=this.playCtx.createBufferSource();src.buffer=buf;src.connect(this.playCtx.destination);
+  const t0=Math.max(this.playCtx.currentTime+.02,this.playCursor);
+  src.start(t0);this.playCursor=t0+buf.duration;
+  this.sources.push(src);src.onended=()=>{this.sources=this.sources.filter(s=>s!==src)};
+ }
+ stopPlayback(){for(const s of this.sources){try{s.stop()}catch{}}this.sources=[];this.playCursor=0}
+ get speaking(){return this.sources.length>0}
+ close(){this.intentional=true;this.stopPlayback();if(this.ws){try{this.ws.close()}catch{};this.ws=null}}
+ destroy(){this.close();if(this.micStream){this.micStream.getTracks().forEach(t=>t.stop());this.micStream=null}
+  if(this.micCtx){try{this.micCtx.close()}catch{}}if(this.playCtx){try{this.playCtx.close()}catch{}}}
+}
+const live=new LiveVoice();
+let liveMode=false;
+
+// ---------- conversation orchestration ----------
+const TOOLS=[
+ {name:"show_interaction",description:"Display a 3D interactive exercise at the current station. Use it exactly when the scenario reaches that assessment moment. A system message will report the result afterwards.",
+  parameters:{type:"OBJECT",properties:{question_id:{type:"STRING",description:"The id of the interactive moment, e.g. S1-Q3"}},required:["question_id"]}},
+ {name:"score_answer",description:"Record the assessment of a VERBAL answer the trainee just gave in conversation.",
+  parameters:{type:"OBJECT",properties:{question_id:{type:"STRING"},correct:{type:"BOOLEAN"},feedback:{type:"STRING",description:"One short in-character spoken sentence"}},required:["question_id","correct"]}},
+ {name:"station_complete",description:"Call when all assessment moments of this station are done and you have said a short handover line.",
+  parameters:{type:"OBJECT",properties:{}}},
+];
+function stationPrompt(i){
+ const st=S.plan[i];const sk=CONTENT.skills[i];
+ const beats=st.map(b=>{
+  const q=b.q;const w=widgetOf(q);
+  if(w==="verbal")
+   return `- [${q.id}] VERBAL. Weave this into conversation naturally: “${L(q.prompt)}”. Correct idea: ${q.correct.map(c=>L(c)).join(" / ")}. Wrong ideas (do not accept): ${realDis(q).map(d=>L(d)).join(" / ")||"—"}. When the trainee answers by voice, immediately call score_answer (correct=true if the answer substantially conveys the correct idea — paraphrase or naming most items is fine), with one short spoken feedback sentence, then continue.`;
+  return `- [${q.id}] INTERACTIVE. Lead into it naturally in one sentence (e.g. “let me show you something — try it yourself”), then call show_interaction with question_id "${q.id}". Do not describe the options or reveal answers. After the system reports the result, react in one short sentence and move on.`;
+ }).join("\n");
+ return `You are Saif (سيف), a warm, encouraging senior training officer at Abu Dhabi Customs, guiding new employee "${S.trainee}" through an immersive 3D simulation called "A Morning at Abu Dhabi Customs". You are physically standing with them at station ${i+1} of 6: "${L(sk.scene.name)}" — ${L(sk.scene.description)}. The behavioral skill being developed here: ${L(sk.name)} ("${L(sk.levelAnchor)}").
+
+YOU lead the conversation, like a mentor giving a lively guided tour. Rules:
+- Speak ${LANG==="ar"?"Arabic (Gulf-flavored, natural)":"English"} only. Keep every reply SHORT: one to three spoken sentences.
+- Be human and specific to this station; react to what the trainee says. If they go off-topic or ask questions, answer briefly in character, then steer back.
+- NEVER mention: scores, marks, question IDs, tools, "assessment", or that this is a test. It is a morning walk-through with a mentor.
+- Cover these 4 moments one at a time, in any natural order, woven into the scenario:
+${beats}
+- After all 4 moments are handled, say one short handover line towards the next station and call station_complete.
+Begin by greeting ${S.trainee} in one short sentence when the system announces their arrival.`;
+}
+let saifLine="";
+function wireLiveHandlers(){
+ live.onText=(t,turnDone)=>{
+  if(t){saifLine+=t;subtitle(T("saif"),saifLine,true)}
+  if(turnDone&&saifLine){const done=saifLine;saifLine="";setTimeout(()=>{if(!saifLine)subtitle(T("saif"),done,false)},400)}
+ };
+ live.onUserText=(t)=>{const u=document.getElementById("usub");u.style.display="block";u.textContent=`${T("you")}: ${t}`;clearTimeout(u._t);u._t=setTimeout(()=>u.style.display="none",3500)};
+ live.onTool=async(name,args)=>{
+  if(name==="score_answer"){
+   const beat=findBeat(args.question_id);
+   if(!beat||beat.done)return{recorded:false,note:"unknown or already scored"};
+   applyScore(beat,!!args.correct);
+   return{recorded:true,runningScore:S.score};
+  }
+  if(name==="show_interaction"){
+   const beat=findBeat(args.question_id);
+   if(!beat)return{error:"unknown id"};
+   if(beat.done)return{error:"already completed"};
+   stageWidget(S.st,beat,(ok)=>{
+    applyScore(beat,ok);
+    live.sendText(`[SYSTEM] Interactive exercise ${beat.q.id} finished: the trainee was ${ok?"CORRECT":"INCORRECT"}. React in one short sentence (do not mention scores) and continue the scenario.`);
+   });
+   return{status:"displayed"};
+  }
+  if(name==="station_complete"){
+   const remaining=S.plan[S.st].filter(b=>!b.done).map(b=>b.q.id);
+   if(remaining.length)return{error:"moments remaining",remaining};
+   setTimeout(()=>advanceStation(),1500);
+   return{ok:true};
+  }
+  return{ok:true};
+ };
+ live.onClose=()=>{handleLiveDrop()};
+}
+async function handleLiveDrop(){
+ if(!S||!S.active||!liveMode||S._reconnecting)return;
+ S._reconnecting=true;
+ log("live dropped — reconnecting");
+ try{
+  await connectStation(S.st,true);
+ }catch(e){
+  log("reconnect failed: "+e.message);
+  liveMode=false;
+  document.getElementById("orb").classList.add("off");
+  document.getElementById("vtxt").textContent=T("liveFail");
+  toast(T("liveFail"));
+  clearQ();
+  classicBeat(S.st,0);
+ }
+ S._reconnecting=false;
+}
+function findBeat(id){for(const st of S.plan)for(const b of st)if(b.q.id===id)return b;return null}
+function applyScore(beat,ok){
+ if(beat.done)return;
+ beat.done=true;beat.ok=ok;
+ if(ok)S.score+=5;
+ S.doneCount++;
+ S.answers.push({id:beat.q.id,ok});
+ beep(ok);flash(ok);hud();
+ log(`answer · ${beat.q.id} · ${ok?"+5":"0"} · ${S.score}/120`);
+}
+
+// ---------- widgets (3D interactions) ----------
+let qGroup=null;
+function clearQ(){if(qGroup){scene.remove(qGroup);qGroup=null}setInteract([])}
+function stageBase(i){
+ clearQ();
+ qGroup=new THREE.Group();
+ const st=stations[i];
+ qGroup.position.copy(st.pos);
+ qGroup.quaternion.copy(st.group.quaternion);
+ scene.add(qGroup);
+ return qGroup;
+}
+function cardMesh(text,w,h){const m=textPanel(text,w,h,{size:40});m.userData.isCard=true;return m}
+function arcPlace(meshes,y=2.15,rad=3.7,z=-2.7){
+ const n=meshes.length;
+ meshes.forEach((m,k)=>{const a=(k-(n-1)/2)*Math.max(.28,.46-n*.02);
+  m.position.set(Math.sin(a)*rad,y+((k%2)*.14),z+(1-Math.cos(a))*1.2);
+  m.rotation.y=-a*.45;qGroup.add(m)});
+}
+function stageWidget(stIdx,beat,onDone){
+ const q=beat.q;const w=widgetOf(q);const dis=realDis(q);
+ const g=stageBase(stIdx);
+ const finish=(ok)=>{clearQ();onDone(ok)};
+ if(!liveMode)speakTTS(L(q.prompt));
+ if(w==="single"||w==="multi"){
+   const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
+   const sel=new Set();
+   const cbtn=textPanel("✓",1.4,.62,{size:46,bold:true,bg:"rgba(47,208,139,.28)",border:"#2fd08b"});
+   const cards=items.map((o,ix)=>{const m=cardMesh(L(o),2.5,1.15);
+     m.userData.onClick=()=>{
+       if(w==="single"){finish(q.correct.some(c=>c.en===items[ix].en));return}
+       sel.has(ix)?sel.delete(ix):sel.add(ix);
+       m.userData.setText((sel.has(ix)?"● ":"")+L(o),{border:sel.has(ix)?"#2fd08b":"#e0b34c"});
+       cbtn.visible=sel.size>0;};
+     return m});
+   arcPlace(cards);
+   cbtn.position.set(0,1.05,-1.7);cbtn.visible=false;g.add(cbtn);
+   cbtn.userData.onClick=()=>{const chosen=[...sel].map(i=>items[i].en).sort();
+     const want=q.correct.map(c=>c.en).sort();
+     finish(chosen.length===want.length&&chosen.every((v,i)=>v===want[i]))};
+   setInteract(w==="multi"?cards.concat([cbtn]):cards);
+ }else if(w==="sequence"){
+   const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
+   const seq=[];
+   const cards=items.map((o,ix)=>{const m=cardMesh(L(o),2.3,1.05);
+     m.userData.onClick=()=>{if(seq.includes(ix))return;
+       seq.push(ix);
+       m.userData.setText(seq.length+". "+L(o),{border:"#2fd08b"});
+       if(seq.length===q.correct.length){
+         const chosen=seq.map(i=>items[i].en);const want=q.correct.map(c=>c.en);
+         setTimeout(()=>finish(chosen.every((v,i)=>v===want[i])),300);
+       }};
+     return m});
+   arcPlace(cards);
+   setInteract(cards);
+ }else{ // assign
+   const cards=q.correct.concat(dis).map(o=>{const pe=o.en.split("→").map(s=>s.trim());
+     const pa=(o.ar||o.en).split("→").map(s=>s.trim());
+     return{en:pe[0],ar:pa[0]||pe[0],zoneEn:/matches nothing/i.test(pe[1]||"")?"__none__":(pe[1]||""),zoneAr:pa[1]||""}});
+   const zones=[];cards.forEach(c=>{if(c.zoneEn!=="__none__"&&!zones.some(z=>z.en===c.zoneEn))zones.push({en:c.zoneEn,ar:c.zoneAr})});
+   if(cards.some(c=>c.zoneEn==="__none__"))zones.push({en:"__none__",ar:""});
+   const order=shuffled(cards.map((c,i)=>i),rng(S.seed+hash(q.id)));
+   const assign={};let selCard=null;
+   const zlabel=z=>z.en==="__none__"?(LANG==="ar"?"غير مستخدم":"Not used"):(LANG==="ar"&&z.ar?z.ar:z.en);
+   const cardM=order.map(ci=>{const c=cards[ci];const m=cardMesh(LANG==="ar"?c.ar:c.en,2.3,.95);
+     m.userData.ci=ci;
+     m.userData.onClick=()=>{selCard=ci;
+       cardM.forEach(x=>x.userData.setText(LANG==="ar"?cards[x.userData.ci].ar:cards[x.userData.ci].en,{border:x.userData.ci===ci?"#2fd08b":"#e0b34c"}))};
+     return m});
+   arcPlace(cardM,2.75,4.1,-3.1);
+   const zoneM=zones.map((z,zi)=>{const m=textPanel(zlabel(z),2.7,1.05,{size:34,bg:"rgba(20,45,80,.95)",border:"#35c4ff"});
+     m.position.set(-((zones.length-1)/2)*3.0+zi*3.0,1.0,-1.9);
+     m.userData.zi=zi;
+     m.userData.onClick=()=>{if(selCard==null)return;
+       assign[selCard]=zi;
+       const cm=cardM.find(x=>x.userData.ci===selCard);if(cm)cm.visible=false;
+       selCard=null;paint()};
+     qGroup.add(m);return m});
+   const paint=()=>{
+     zoneM.forEach(zm=>{const zi=zm.userData.zi;
+       const names=Object.entries(assign).filter(([c,z])=>z===zi).map(([c])=>(LANG==="ar"?cards[c].ar:cards[c].en).split(" ").slice(0,3).join(" "));
+       zm.userData.setText(zlabel(zones[zi])+(names.length?"\n• "+names.join("  • "):""),{size:28});});
+     if(Object.keys(assign).length===cards.length){
+       const ok=cards.every((c,ci)=>{const z=zones[assign[ci]];return z&&(c.zoneEn==="__none__"?z.en==="__none__":z.en===c.zoneEn)});
+       setTimeout(()=>finish(ok),400);
+     }};
+   setInteract(cardM.concat(zoneM));
+ }
+}
+
+// ---------- session flow ----------
+async function startSession(name){
+ const prev=DB.results.filter(r=>r.trainee===name&&r.level===1).length;
+ S={trainee:name,seed:hash(name+"|adc-poc"),attempt:prev+1,score:0,doneCount:0,answers:[],active:true,st:0};
+ S.plan=draw(S.attempt);
+ log(`session.start · ${name} · ${LANG} · attempt ${S.attempt}`);
+ document.getElementById("startOv").style.display="none";
+ document.getElementById("ctrlhint").textContent=T("hint");
+ document.getElementById("voicebar").style.display="flex";
+ hud();
+ // voice setup
+ liveMode=false;
+ if(CFG.aiAvailable){
+  subtitle(T("saif"),T("connecting"),true);
+  const micOk=await live.initMic();
+  if(!micOk)toast(T("micDenied"));
+  try{
+   wireLiveHandlers();
+   await connectStation(0);
+   liveMode=true;
+   document.getElementById("orb").classList.remove("off");
+   document.getElementById("vtxt").textContent=T("voiceOn");
+  }catch(e){log("live connect failed: "+e.message);toast(T("liveFail"))}
+ }
+ if(!liveMode){document.getElementById("orb").classList.add("off");document.getElementById("vtxt").textContent=T("liveFail")}
+ runStation(0,!liveMode);
+}
+async function connectStation(i,resume){
+ live.close();saifLine="";
+ await live.connect(stationPrompt(i),TOOLS);
+ if(resume){
+  const remaining=S.plan[i].filter(b=>!b.done).map(b=>b.q.id).join(", ");
+  live.sendText(`[SYSTEM] The connection was briefly interrupted mid-station; you were already talking with ${S.trainee}. Remaining moments: ${remaining||"none — call station_complete"}. Continue naturally in one short sentence without re-greeting.`);
+ }else{
+  live.sendText(`[SYSTEM] Trainee ${S.trainee} just walked up to your station. Greet them briefly and begin the scenario.`);
+ }
+}
+function runStation(i,classic){
+ S.st=i;
+ stations.forEach((s,k)=>{s.group.userData.beam.visible=k===i});
+ const a=stationAngle(i);
+ saifTarget=new THREE.Vector3(Math.sin(a)*(R-5.2)+Math.cos(a)*1.9,0,-Math.cos(a)*(R-5.2)+Math.sin(a)*1.9);
+ glideTo(i);
+ hud();
+ if(classic)setTimeout(()=>classicBeat(i,0),FAST?400:1800);
+}
+async function advanceStation(){
+ clearQ();
+ if(S.st+1<6){
+  const next=S.st+1;
+  if(liveMode){
+   try{await connectStation(next)}catch(e){log("reconnect failed: "+e.message);liveMode=false}
+  }
+  runStation(next,!liveMode);
+ }else endLevel();
+}
+// classic (no-voice) fallback: narrated sequential beats
+function classicBeat(i,b){
+ if(b>=4){if(i+1<6){S.st=i+1;runStation(i+1,true)}else endLevel();return}
+ const beat=S.plan[i][b];
+ if(beat.done){classicBeat(i,b+1);return}
+ const q=beat.q;
+ if(widgetOf(q)==="verbal"){
+  // typed answer via REST proxy, options as fallback
+  subtitle(T("saif"),L(q.prompt),true);
+  speakTTS(L(q.prompt));
+  classicVerbal(q,(ok)=>{applyScore(beat,ok);setTimeout(()=>classicBeat(i,b+1),900)});
+ }else{
+  stageWidget(i,beat,(ok)=>{applyScore(beat,ok);setTimeout(()=>classicBeat(i,b+1),900)});
+ }
+}
+function classicVerbal(q,done){
+ const vb=document.getElementById("vtxt");vb.textContent=T("classicPrompt");
+ const input=document.getElementById("chattext");input.value="";input.focus();
+ const optBtn=document.createElement("button");optBtn.className="btn small navy";optBtn.textContent=T("showOpts");
+ document.getElementById("chatin").appendChild(optBtn);
+ const cleanup=()=>{optBtn.remove();sendBtn.onclick=defaultSend;input.onkeydown=null};
+ const fallbackOpts=()=>{cleanup();
+  const dis=realDis(q);const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
+  const cards=items.map((o,ix)=>{const m=cardMesh(L(o),2.7,1.2);
+    m.userData.onClick=()=>{clearQ();done(q.correct.some(c=>c.en===items[ix].en))};return m});
+  stageBase(S.st);arcPlace(cards);setInteract(cards)};
+ optBtn.onclick=fallbackOpts;
+ const sendBtn=document.getElementById("chatsend");
+ const submit=async()=>{
+  const t=input.value.trim();if(!t)return;input.value="";
+  subtitle(T("you"),t);vb.textContent=T("judging");
+  try{
+   const r=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    contents:[{parts:[{text:`Judge a customs-training answer. Question: ${L(q.prompt)} Correct idea: ${q.correct.map(c=>L(c)).join(" / ")}. Wrong ideas: ${realDis(q).map(d=>L(d)).join(" / ")}. Trainee said: "${t}". Accept paraphrase / mostly-correct. Reply ONLY JSON {"correct":bool,"feedback":"one short sentence in ${LANG==="ar"?"Arabic":"English"}"}`}]}],
+    generationConfig:{responseMimeType:"application/json",temperature:.2}})});
+   const d=await r.json();
+   const v=JSON.parse(d.candidates[0].content.parts[0].text);
+   speakTTS(v.feedback,T("saif"));cleanup();vb.textContent="";done(!!v.correct);
+  }catch(e){log("judge error: "+e.message);fallbackOpts()}
+ };
+ const defaultSend=sendBtn.onclick;
+ sendBtn.onclick=submit;
+ input.onkeydown=e=>{if(e.key==="Enter")submit()};
+}
+function endLevel(){
+ clearQ();live.close();
+ const pass=S.score>=96;
+ DB.results.push({trainee:S.trainee,level:1,attempt:S.attempt,score:S.score,pass,lang:LANG,ts:new Date().toISOString(),answers:S.answers});
+ save();log(`level.result · ${S.trainee} · ${S.score}/120 · ${pass?"PASS":"FAIL"}`);
+ S.active=false;hud();
+ document.getElementById("voicebar").style.display="none";
+ if(document.pointerLockElement)document.exitPointerLock();
+ document.getElementById("roEyebrow").textContent=T("eyebrow");
+ document.getElementById("roScore").textContent=S.score+" / 120";
+ document.getElementById("roScore").className="big "+(pass?"pass":"fail");
+ document.getElementById("roVerdict").textContent=pass?T("passed"):T("failed");
+ document.getElementById("roVerdict").className=pass?"pass":"fail";
+ const rr=document.getElementById("roRetry");
+ rr.style.display=pass?"none":"";rr.textContent=T("retry");
+ rr.onclick=()=>{document.getElementById("resultOv").style.display="none";startSession(S.trainee)};
+ document.getElementById("roHome").textContent=T("home");
+ document.getElementById("roHome").onclick=()=>{document.getElementById("resultOv").style.display="none";showStart()};
+ document.getElementById("resultOv").style.display="flex";
+}
+
+// chat box (live mode: sends text into the live conversation)
+document.getElementById("chatsend").onclick=()=>{
+ const i=document.getElementById("chattext");const t=i.value.trim();if(!t)return;i.value="";
+ if(liveMode){live.sendText(t);subtitle(T("you"),t)}
+};
+document.getElementById("chattext").addEventListener("keydown",e=>{
+ if(e.key==="Enter"&&liveMode){e.preventDefault();document.getElementById("chatsend").onclick()}});
+
+// ---------- start overlay ----------
+function lvState(n){
+ if(n===1)return"open";
+ const passed=DB.results.some(r=>r.pass&&r.level===1);
+ if(n===2&&(passed||DB.bypass))return DB.bypass&&!passed?"bypassed":"open";
+ return"locked";
+}
+function showStart(){
+ if(PARAMS.has("autostart")&&!autoStarted){
+   autoStarted=true;
+   LANG=PARAMS.get("lang")==="ar"?"ar":"en";
+   document.documentElement.dir=LANG==="ar"?"rtl":"ltr";
+   document.getElementById("startOv").style.display="none";
+   startSession(PARAMS.get("name")||"Demo");
+   return;
+ }
+ const so=document.getElementById("startOv");so.style.display="flex";
+ document.getElementById("soEyebrow").textContent=T("eyebrow");
+ document.getElementById("soTitle").textContent=T("title");
+ document.getElementById("soDesc").textContent=T("desc");
+ document.getElementById("soNameL").textContent=T("name");
+ document.getElementById("soLangL").textContent=T("lang");
+ document.getElementById("soLvlL").textContent=T("lvl");
+ document.getElementById("soHint").textContent=T("hint");
+ document.getElementById("micNote").textContent=T("micNote");
+ document.getElementById("inName").value=DB.lastName||"";
+ const g=document.getElementById("lvGrid");
+ g.innerHTML=[1,2,3,4,5].map(n=>{const st=lvState(n);
+  return`<div class="level ${st}" data-lv="${n}"><div class="num">${n}</div><div class="st">${st==="locked"?"🔒 "+T("locked"):(st==="bypassed"?"🔓":T("open"))}</div></div>`}).join("");
+ g.querySelectorAll(".level.open,.level.bypassed").forEach(el=>el.onclick=()=>{
+   const nm=document.getElementById("inName").value.trim();
+   if(!nm){document.getElementById("inName").focus();return}
+   DB.lastName=nm;save();
+   if(+el.dataset.lv===1){so.style.display="none";startSession(nm)}
+   else{so.style.display="none";subtitle(T("saif"),T("l2"));setTimeout(showStart,4200)}
+ });
+}
+document.querySelectorAll(".langbtn").forEach(b=>b.onclick=()=>{
+ LANG=b.dataset.l;
+ document.documentElement.dir=LANG==="ar"?"rtl":"ltr";
+ document.querySelectorAll(".langbtn").forEach(x=>x.classList.toggle("sel",x===b));
+ showStart();
+});
+
+// ---------- admin ----------
+let adminAuthed=false;
+document.getElementById("btnAdmin").onclick=()=>{document.getElementById("drawer").classList.add("open");if(document.pointerLockElement)document.exitPointerLock();paintAdmin()};
+document.getElementById("dClose").onclick=()=>document.getElementById("drawer").classList.remove("open");
+function paintAdmin(){
+ if(!document.getElementById("drawer").classList.contains("open"))return;
+ const body=document.getElementById("dBody");
+ if(!adminAuthed){
+  body.innerHTML=`<label>${T("pin")}</label><input id="pin" type="password" style="max-width:150px">
+   <div style="margin-top:10px"><button class="btn small" id="go">OK</button></div><div id="perr" style="color:var(--red);font-size:12px;margin-top:6px"></div>`;
+  document.getElementById("go").onclick=()=>{if(document.getElementById("pin").value===ADMIN_PIN){adminAuthed=true;paintAdmin()}else document.getElementById("perr").textContent=T("wrongPin")};
+  return;
+ }
+ const live_=S&&S.active?`${S.trainee} · ${S.doneCount}/24 · ${S.score}/120 · ${liveMode?"🎙️ live voice":"guided"}`:"—";
+ body.innerHTML=`<h3>${T("live")}</h3><p>${live_}</p>
+  <h3>${T("results")}</h3>
+  ${DB.results.length?`<table><tr><th>${T("name")}</th><th>#</th><th>${T("score")}</th><th></th></tr>
+   ${DB.results.map(r=>`<tr><td>${r.trainee}</td><td>${r.attempt}</td><td>${r.score}/120</td><td style="color:${r.pass?"var(--green)":"var(--red)"}">${r.pass?"✓":"✗"}</td></tr>`).join("")}</table>`:`<p style="color:var(--muted)">${T("noresults")}</p>`}
+  <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn small" id="csv">${T("csv")}</button>
+   ${DB.bypass?`<span style="font-size:12px;color:var(--gold)">🔓 ${T("unlocked")} (${DB.bypass.by})</span>`:`<button class="btn small" id="bp">${T("unlock")}</button>`}</div>
+  ${!DB.bypass?`<label>${T("aname")}</label><input id="an" type="text" style="max-width:200px">`:""}
+  <h3>${T("log")}</h3><div class="loglines">${DB.log.slice(-60).reverse().map(l=>`<div>${l}</div>`).join("")}</div>`;
+ const bp=document.getElementById("bp");
+ if(bp)bp.onclick=()=>{const nm=(document.getElementById("an").value||"").trim();
+  if(!nm){document.getElementById("an").focus();return}
+  DB.bypass={by:nm,ts:new Date().toISOString()};log(`gate.bypass · by ${nm}`);save();paintAdmin();
+  if(!S||!S.active)showStart()};
+ document.getElementById("csv").onclick=()=>{
+  const rows=[["trainee","level","attempt","language","score","percent","pass","timestamp"]];
+  DB.results.forEach(r=>rows.push([r.trainee,r.level,r.attempt,r.lang,r.score,Math.round(r.score/120*100)+"%",r.pass?"PASS":"FAIL",r.ts]));
+  const a=document.createElement("a");
+  a.href="data:text/csv;charset=utf-8,﻿"+encodeURIComponent(rows.map(r=>r.join(",")).join("\r\n"));
+  a.download="adc_results.csv";a.click()};
+}
+
+// ---------- render loop ----------
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
+addEventListener("resize",resize);resize();
+const clock=new THREE.Clock();
+function animate(){
+ requestAnimationFrame(animate);
+ const dt=Math.min(clock.getDelta(),.05);
+ const t=clock.elapsedTime;
+ moveTick(dt);hoverTick();
+ camera.position.copy(camPos);
+ camera.rotation.set(0,0,0);camera.rotateY(yaw);camera.rotateX(pitch);
+ saifSpeaking=liveMode?live.speaking:saifSpeaking;
+ saif.position.lerp(new THREE.Vector3(saifTarget.x,0,saifTarget.z),Math.min(1,dt*2));
+ saif.children[2].position.y=2.08+Math.sin(t*2)*.04;
+ saif.children[3].rotation.z=t*.8;
+ saif.userData.glow.intensity=3.5+(saifSpeaking?Math.sin(t*16)*2.2+2:0)+Math.sin(t*3)*.4;
+ saif.userData.tag.lookAt(camPos.x,2.6,camPos.z);
+ saif.lookAt(camPos.x,1.2,camPos.z);
+ stations.forEach((s,i)=>{
+  s.group.userData.beam.rotation.y=t*.6;
+  s.group.children.forEach(ch=>{if(ch.userData.spin)ch.rotation.y=Math.sin(t*ch.userData.spin*8)*.22});
+  if(s.group.userData.container){const ph=(t*.18)%1;s.group.userData.container.position.x=-4.1+ph*8.2}
+  if(s.group.userData.visitor)s.group.userData.visitor.children[1].position.y=1.95+Math.sin(t*1.6)*.03;
+ });
+ if(qGroup)qGroup.children.forEach((m,i)=>{if(m.userData.isCard)m.position.y+=Math.sin(t*1.4+i)*.0008});
+ dust.rotation.y=t*.006;
+ // voice orb
+ const orb=document.getElementById("orb");
+ if(S&&S.active&&liveMode){
+  const lv=live.micLevel();
+  orb.classList.toggle("ai",live.speaking);
+  orb.style.transform=`scale(${1+Math.min(.5,lv*2.2)})`;
+ }
+ renderer.render(scene,camera);
+}
+animate();
+window.__adc={get S(){return S},get qGroup(){return qGroup},get cam(){return camPos},get liveMode(){return liveMode},stations};
+
+// ---------- boot ----------
+fetch("/api/config").then(r=>r.json()).then(c=>{CFG=c}).catch(()=>{CFG={aiAvailable:false}}).finally(()=>{showStart()});
+</script>
+</body>
+</html>

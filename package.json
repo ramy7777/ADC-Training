@@ -1,0 +1,16 @@
+{
+  "name": "adc-training",
+  "version": "2.0.0",
+  "description": "ADC VR Training POC — 3D conversational scenario prototype (A Morning at Abu Dhabi Customs)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
+  }
+}
