@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ADC Training — A Morning at Abu Dhabi Customs</title>
+<link rel="icon" type="image/png" href="assets/adc-logo.png">
 <style>
 :root{--ink:#22312c;--sage:#5c7470;--sageL:#7f9d95;--sageD:#4c5b52;--line:#d3ddd6;--gold:#c9a24a;--green:#1f9d6b;--red:#c0392b;--muted:#6b7a72;--paper:#ffffff;--glass:rgba(255,255,255,.9)}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -183,6 +184,9 @@ const UI={
   saif:"Saif — Senior Officer",you:"You",connecting:"Connecting to Saif…",micDenied:"Mic unavailable — guided mode with narration.",
   liveFail:"Voice link unavailable — guided mode with narration.",voiceOn:"Hold the mic button (or SPACE) while you speak — release when done. You can also type below.",
   noSR:"Speech recognition unavailable — please type",holdTalk:"Hold to talk · Space",listening:"Listening… release when done",
+  micNoAudio:"No audio was captured — check the microphone and try again",
+  holdScan:"This wall scans: press AND HOLD a card to select it",
+  welcome:"Welcome to the Abu Dhabi Customs Training Academy! This morning we will walk together through six stations that reflect our values and our daily work. I am Saif, your guide — let us begin at the Operations Gallery.",
   typed:"Message sent",csv:"Export CSV",unlock:"Bypass: unlock Level 2",unlocked:"Level 2 unlocked",results:"Results",live:"Live",log:"Log",
   pin:"Admin PIN",aname:"Admin name",wrongPin:"Wrong PIN",noresults:"No attempts yet",
   classicPrompt:"Answer by typing (or click Show choices)",showOpts:"Show choices",judging:"Saif is considering…"},
@@ -197,6 +201,9 @@ const UI={
   saif:"سيف — ضابط أول",you:"أنت",connecting:"جارٍ الاتصال بسيف…",micDenied:"الميكروفون غير متاح — الوضع الموجّه مع السرد.",
   liveFail:"الاتصال الصوتي غير متاح — الوضع الموجّه مع السرد.",voiceOn:"اضغط زر الميكروفون (أو مسطرة المسافة) أثناء الكلام — واتركه عند الانتهاء. يمكنك الكتابة أيضاً.",
   noSR:"التعرف على الصوت غير متاح — اكتب من فضلك",holdTalk:"اضغط للتحدث · Space",listening:"يستمع… اترك الزر عند الانتهاء",
+  micNoAudio:"لم يُلتقط صوت — تحقق من الميكروفون وحاول مجدداً",
+  holdScan:"هذا الجدار يمسح: اضغط مطولاً على البطاقة لاختيارها",
+  welcome:"أهلاً بك في أكاديمية تدريب جمارك أبوظبي! هذا الصباح سنمشي معاً عبر ست محطات تعكس قيمنا وعملنا اليومي. أنا سيف، مرشدك — لنبدأ من قاعة العمليات.",
   typed:"أُرسلت الرسالة",csv:"تصدير CSV",unlock:"فتح استثنائي: المستوى ٢",unlocked:"المستوى ٢ مفتوح",results:"النتائج",live:"مباشر",log:"السجل",
   pin:"رمز المشرف",aname:"اسم المشرف",wrongPin:"رمز خاطئ",noresults:"لا محاولات بعد",
   classicPrompt:"أجب كتابةً (أو اضغط أظهر الخيارات)",showOpts:"أظهر الخيارات",judging:"سيف يفكر…"}
@@ -292,7 +299,7 @@ function drawHero(){
  x.fillStyle="#e3d7b8";x.fillRect(0,268,w,32);
  return cv.toDataURL();
 }
-document.getElementById("hero").src=drawHero();
+{const h=document.getElementById("hero");h.src="assets/hero.png";h.onerror=()=>{h.onerror=null;h.src=drawHero()}}
 
 // sky dome (gradient)
 {const cv=document.createElement("canvas");cv.width=32;cv.height=256;const x=cv.getContext("2d");
@@ -475,6 +482,9 @@ function drawStationArt(i){
 function artPanel(i,w,h,px,py,pz){
  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
   new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(drawStationArt(i))}));
+ new THREE.TextureLoader().load(`assets/station${i+1}.png`,t=>{
+  t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;
+  m.material.map=t;m.material.needsUpdate=true;});
  m.position.set(px,py,pz);return m;
 }
 function addTheme(g,i,accent){
@@ -573,17 +583,32 @@ canvas.addEventListener("click",()=>{
 document.addEventListener("pointerlockchange",()=>{locked=document.pointerLockElement===canvas;
  document.getElementById("cross").style.display=locked?"block":"none"});
 let dragging=false,dragMoved=0;
-canvas.addEventListener("pointerdown",e=>{if(!locked){dragging=true;dragMoved=0}});
+canvas.addEventListener("pointerdown",e=>{if(!locked){dragging=true;dragMoved=0}tryHoldStart(locked)});
 canvas.addEventListener("pointermove",e=>{
  if(locked){yaw-=e.movementX*.0026;pitch=Math.max(-1.25,Math.min(1.25,pitch-e.movementY*.0026));return}
  mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;
  if(dragging){yaw-=e.movementX*.0032;pitch=Math.max(-1.25,Math.min(1.25,pitch-e.movementY*.0032));dragMoved+=Math.abs(e.movementX)+Math.abs(e.movementY)}});
-addEventListener("pointerup",()=>{const was=dragging;dragging=false;if(was&&dragMoved<6&&!locked)clickRay(false)});
-function clickRay(center){
+addEventListener("pointerup",()=>{holdCancel();const was=dragging;dragging=false;if(was&&dragMoved<6&&!locked)clickRay(false)});
+function rayHit(center){
  if(center)ray.setFromCamera(new THREE.Vector2(0,0),camera);else ray.setFromCamera(mouse,camera);
  const hits=ray.intersectObjects(interact,false);
- if(hits.length){const o=hits[0].object;if(o.userData.onClick)o.userData.onClick(o)}
+ return hits.length?hits[0].object:null;
 }
+function clickRay(center){
+ const o=rayHit(center);
+ if(!o)return;
+ if(o.userData.holdSelect){vstat(T("holdScan"),3000);return}
+ if(o.userData.onClick)o.userData.onClick(o);
+}
+let holdPending=null;
+function tryHoldStart(center){
+ const o=rayHit(center);
+ if(o&&o.userData.holdSelect){
+  o.scale.setScalar((o.userData.baseScale||o.scale.x)*1.16);
+  holdPending={m:o,t:setTimeout(()=>{holdPending=null;if(o.userData.onClick)o.userData.onClick(o)},600)};
+ }
+}
+function holdCancel(){if(holdPending){clearTimeout(holdPending.t);holdPending.m.scale.setScalar(holdPending.m.userData.baseScale||1);holdPending=null}}
 function hoverTick(){
  const cross=document.getElementById("cross");
  if(!interact.length){if(!locked)document.body.style.cursor="default";cross.classList.remove("hot");return}
@@ -686,16 +711,28 @@ class LiveVoice{
    this.micCtx=new AudioContext({sampleRate:16000});
    const src=this.micCtx.createMediaStreamSource(this.micStream);
    this.analyser=this.micCtx.createAnalyser();this.analyser.fftSize=256;src.connect(this.analyser);
-   this.micNode=this.micCtx.createScriptProcessor(4096,1,1);
-   src.connect(this.micNode);this.micNode.connect(this.micCtx.destination);
-   this.micNode.onaudioprocess=(e)=>{
+   this.chunksSent=0;
+   const send=(f)=>{
     if(this.muted||!this.ws||this.ws.readyState!==1)return;
-    const f=e.inputBuffer.getChannelData(0);
     const i16=new Int16Array(f.length);
-    for(let i=0;i<f.length;i++){const s=Math.max(-1,Math.min(1,f[i]));i16[i]=s<0?s*0x8000:s*0x7FFF}
-    const b=btoa(String.fromCharCode(...new Uint8Array(i16.buffer)));
-    this.ws.send(JSON.stringify({realtimeInput:{audio:{data:b,mimeType:"audio/pcm;rate=16000"}}}));
+    for(let i=0;i<f.length;i++){const v=Math.max(-1,Math.min(1,f[i]));i16[i]=v<0?v*0x8000:v*0x7FFF}
+    let bin="";const u8=new Uint8Array(i16.buffer);
+    for(let i=0;i<u8.length;i+=8192)bin+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));
+    this.ws.send(JSON.stringify({realtimeInput:{audio:{data:btoa(bin),mimeType:"audio/pcm;rate=16000"}}}));
+    this.chunksSent++;
    };
+   try{
+    const code=`class P extends AudioWorkletProcessor{constructor(){super();this.buf=[]}process(inputs){const c=inputs[0][0];if(c){for(let i=0;i<c.length;i++)this.buf.push(c[i]);if(this.buf.length>=1600){this.port.postMessage(Float32Array.from(this.buf));this.buf.length=0}}return true}}registerProcessor("pcm",P)`;
+    await this.micCtx.audioWorklet.addModule(URL.createObjectURL(new Blob([code],{type:"application/javascript"})));
+    this.micNode=new AudioWorkletNode(this.micCtx,"pcm");
+    this.micNode.port.onmessage=(e)=>send(e.data);
+    src.connect(this.micNode);
+   }catch(err){
+    log("worklet unavailable, using fallback: "+err.message);
+    this.micNode=this.micCtx.createScriptProcessor(4096,1,1);
+    src.connect(this.micNode);this.micNode.connect(this.micCtx.destination);
+    this.micNode.onaudioprocess=(e)=>send(e.inputBuffer.getChannelData(0));
+   }
    return true;
   }catch(e){log("mic error: "+e.message);return false}
  }
@@ -787,7 +824,7 @@ function stationPrompt(i){
  return `You are Saif (سيف), a warm, encouraging senior training officer at Abu Dhabi Customs, guiding new employee "${S.trainee}" through an immersive 3D simulation called "A Morning at Abu Dhabi Customs". You are physically standing with them at station ${i+1} of 6: "${L(sk.scene.name)}" — ${L(sk.scene.description)}. The behavioral skill being developed here: ${L(sk.name)} ("${L(sk.levelAnchor)}").
 
 YOU lead the conversation, like a mentor giving a lively guided tour. Rules:
-- Speak ${LANG==="ar"?"Arabic (Gulf-flavored, natural)":"English"} only. Keep every reply SHORT: one to three spoken sentences.
+- Speak ${LANG==="ar"?"Arabic (Gulf-flavored, natural)":"English"} only. Be genuinely conversational: two to four spoken sentences, warm and lively. Between assessment moments, share a one-line anecdote or example from your years at the customs house, ask the trainee a light follow-up question about what they think, and react personally to their answers. Never lecture in long blocks.
 - Be human and specific to this station; react to what the trainee says. If they go off-topic or ask questions, answer briefly in character, then steer back.
 - NEVER mention: scores, marks, question IDs, tools, "assessment", or that this is a test. It is a morning walk-through with a mentor.
 - Cover these 4 moments one at a time, in any natural order, woven into the scenario:
@@ -798,8 +835,10 @@ Begin by greeting ${S.trainee} in one short sentence when the system announces t
 let saifLine="";
 function wireLiveHandlers(){
  live.onText=(t,turnDone)=>{
-  if(t){saifLine+=t;subtitle(T("saif"),saifLine,true)}
-  if(turnDone&&saifLine){const done=saifLine;saifLine="";setTimeout(()=>{if(!saifLine)subtitle(T("saif"),done,false)},400)}
+  if(t){saifLine+=t;
+   const shown=saifLine.length>230?"…"+saifLine.slice(-230):saifLine;
+   subtitle(T("saif"),shown,true)}
+  if(turnDone&&saifLine){const done=saifLine.length>230?"…"+saifLine.slice(-230):saifLine;saifLine="";setTimeout(()=>{if(!saifLine)subtitle(T("saif"),done,false)},400)}
  };
  live.onUserText=(t)=>{const u=document.getElementById("usub");u.style.display="block";u.textContent=`${T("you")}: ${t}`;clearTimeout(u._t);u._t=setTimeout(()=>u.style.display="none",3500)};
  live.onTool=async(name,args)=>{
@@ -858,8 +897,8 @@ function applyScore(beat,ok){
 }
 
 // ---------- widgets (3D interactions) ----------
-let qGroup=null;
-function clearQ(){if(qGroup){scene.remove(qGroup);qGroup=null}setInteract([])}
+let qGroup=null,carryMesh=null;
+function clearQ(){if(qGroup){scene.remove(qGroup);qGroup=null}carryMesh=null;setInteract([])}
 function stageBase(i){
  clearQ();
  qGroup=new THREE.Group();
@@ -870,11 +909,16 @@ function stageBase(i){
  return qGroup;
 }
 function cardMesh(text,w,h){const m=textPanel(text,w,h,{size:40});m.userData.isCard=true;return m}
-function arcPlace(meshes,y=2.15,rad=3.7,z=-2.7){
- const n=meshes.length;
- meshes.forEach((m,k)=>{const a=(k-(n-1)/2)*Math.max(.28,.46-n*.02);
-  m.position.set(Math.sin(a)*rad,y+((k%2)*.14),z+(1-Math.cos(a))*1.2);
-  m.rotation.y=-a*.45;qGroup.add(m)});
+function arcPlace(meshes,y=2.15,rad=3.8,z=-2.7){
+ const per=3,rows=Math.ceil(meshes.length/per);
+ const yTop=y+(rows>1?.55:0);
+ meshes.forEach((m,k)=>{
+  const row=Math.floor(k/per),inRow=Math.min(per,meshes.length-row*per),col=k%per;
+  const a=(col-(inRow-1)/2)*.68;
+  m.position.set(Math.sin(a)*rad,yTop-row*1.16,z+(1-Math.cos(a))*1.3);
+  m.rotation.y=-a*.42;
+  m.userData.homePos=m.position.clone();
+  qGroup.add(m)});
 }
 function stageWidget(stIdx,beat,onDone){
  const q=beat.q;const w=widgetOf(q);const dis=realDis(q);
@@ -893,6 +937,7 @@ function stageWidget(stIdx,beat,onDone){
        cbtn.visible=sel.size>0;};
      return m});
    arcPlace(cards);
+   if(stIdx===1||stIdx===4){cards.forEach(c=>c.userData.holdSelect=true);vstat(T("holdScan"),6000)}
    cbtn.position.set(0,1.05,-1.7);cbtn.visible=false;g.add(cbtn);
    cbtn.userData.onClick=()=>{const chosen=[...sel].map(i=>items[i].en).sort();
      const want=q.correct.map(c=>c.en).sort();
@@ -905,6 +950,12 @@ function stageWidget(stIdx,beat,onDone){
      m.userData.onClick=()=>{if(seq.includes(ix))return;
        seq.push(ix);
        m.userData.setText(seq.length+". "+L(o),{border:"#2fd08b"});
+       if(seq.length>1){
+        const a=cards[seq[seq.length-2]].position,b=m.position;
+        const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([a.clone(),b.clone()]),
+         new THREE.LineBasicMaterial({color:0xc9a24a,transparent:true,opacity:.9}));
+        qGroup.add(line);
+       }
        if(seq.length===q.correct.length){
          const chosen=seq.map(i=>items[i].en);const want=q.correct.map(c=>c.en);
          setTimeout(()=>finish(chosen.every((v,i)=>v===want[i])),300);
@@ -923,7 +974,9 @@ function stageWidget(stIdx,beat,onDone){
    const zlabel=z=>z.en==="__none__"?(LANG==="ar"?"غير مستخدم":"Not used"):(LANG==="ar"&&z.ar?z.ar:z.en);
    const cardM=order.map(ci=>{const c=cards[ci];const m=cardMesh(LANG==="ar"?c.ar:c.en,2.3,.95);
      m.userData.ci=ci;
-     m.userData.onClick=()=>{selCard=ci;
+     m.userData.onClick=()=>{
+       if(carryMesh&&carryMesh!==m&&carryMesh.userData.homePos)carryMesh.position.copy(carryMesh.userData.homePos);
+       selCard=ci;carryMesh=m;
        cardM.forEach(x=>x.userData.setText(LANG==="ar"?cards[x.userData.ci].ar:cards[x.userData.ci].en,{border:x.userData.ci===ci?"#2fd08b":"#8fa8a0"}))};
      return m});
    arcPlace(cardM,2.75,4.1,-3.1);
@@ -932,8 +985,13 @@ function stageWidget(stIdx,beat,onDone){
      m.userData.zi=zi;
      m.userData.onClick=()=>{if(selCard==null)return;
        assign[selCard]=zi;
-       const cm=cardM.find(x=>x.userData.ci===selCard);if(cm)cm.visible=false;
-       selCard=null;paint()};
+       const cm=cardM.find(x=>x.userData.ci===selCard);
+       if(cm){cm.visible=false;
+        if(cm.userData.homePos){
+         const beam=new THREE.Line(new THREE.BufferGeometry().setFromPoints([cm.userData.homePos.clone(),m.position.clone().add(new THREE.Vector3(0,.35,0))]),
+          new THREE.LineBasicMaterial({color:0x5c7470,transparent:true,opacity:.75}));
+         qGroup.add(beam);}}
+       selCard=null;carryMesh=null;paint()};
      qGroup.add(m);return m});
    const paint=()=>{
      zoneM.forEach(zm=>{const zi=zm.userData.zi;
@@ -983,6 +1041,8 @@ async function connectStation(i,resume){
  if(resume){
   const remaining=S.plan[i].filter(b=>!b.done).map(b=>b.q.id).join(", ");
   live.sendText(`[SYSTEM] The connection was briefly interrupted mid-station; you were already talking with ${S.trainee}. Remaining moments: ${remaining||"none — call station_complete"}. Continue naturally in one short sentence without re-greeting.`);
+ }else if(i===0){
+  live.sendText(`[SYSTEM] Trainee ${S.trainee} has just entered the Abu Dhabi Customs Training Academy through the main gate, on their first-morning orientation. Give a warm welcome (about 3 sentences): greet them by name, explain that this morning the two of you will walk through six stations that reflect ADC's values and daily work — and that they can simply talk with you at any moment. Then lead into this first station's scenario.`);
  }else{
   live.sendText(`[SYSTEM] Trainee ${S.trainee} just walked up to your station. Greet them briefly and begin the scenario.`);
  }
@@ -994,7 +1054,10 @@ function runStation(i,classic){
  saifTarget=new THREE.Vector3(Math.sin(a)*(R-5.2)+Math.cos(a)*1.9,0,-Math.cos(a)*(R-5.2)+Math.sin(a)*1.9);
  glideTo(i);
  hud();
- if(classic)setTimeout(()=>classicBeat(i,0),FAST?400:1800);
+ if(classic){
+  speakTTS(i===0?T("welcome"):T("stationIntro")[i]);
+  setTimeout(()=>classicBeat(i,0),FAST?400:(i===0?7000:2600));
+ }
 }
 async function advanceStation(){
  clearQ();
@@ -1096,6 +1159,7 @@ async function startTalk(){
    const ok=await live.initMic();
    if(!ok){talking=false;orbRestore();vstat(T("noSR"));return}
   }
+  if(S)S._chunks0=live.chunksSent||0;
   live.stopPlayback(); // barge-in: silence Saif while you talk
   live.muted=false;
   if(live.micCtx&&live.micCtx.state==="suspended")live.micCtx.resume();
@@ -1123,7 +1187,10 @@ function orbRestore(){
 }
 function endTalk(){
  if(!talking)return;talking=false;
- if(liveMode){live.muted=true;live.endAudio()}
+ if(liveMode){
+  live.muted=true;live.endAudio();
+  if((live.chunksSent||0)===(S&&S._chunks0||0)){vstat(T("micNoAudio"),5000);log("PTT released but 0 audio chunks were sent")}
+ }
  else if(pttRecog){try{pttRecog.stop()}catch{};pttRecog=null}
  orbRestore();
 }
@@ -1250,7 +1317,12 @@ function animate(){
   if(s.group.userData.container){const ph=(t*.18)%1;s.group.userData.container.position.x=-4.1+ph*8.2}
   if(s.group.userData.visitor)s.group.userData.visitor.children[1].position.y=1.95+Math.sin(t*1.6)*.03;
  });
- if(qGroup)qGroup.children.forEach((m,i)=>{if(m.userData.isCard)m.position.y+=Math.sin(t*1.4+i)*.0008});
+ if(carryMesh&&qGroup){
+  const p=new THREE.Vector3(0,-.35,-2.1).applyQuaternion(camera.quaternion).add(camera.position);
+  qGroup.worldToLocal(p);
+  carryMesh.position.lerp(p,.3);
+ }
+ if(qGroup)qGroup.children.forEach((m,i)=>{if(m.userData.isCard&&m!==carryMesh)m.position.y+=Math.sin(t*1.4+i)*.0008});
  dust.rotation.y=t*.006;
  // voice orb
  const orb=document.getElementById("orb");
