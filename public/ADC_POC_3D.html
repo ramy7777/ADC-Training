@@ -746,7 +746,7 @@ function brief(text){
 /* Saif's voice = one persistent Gemini Live session for the whole level.
    No robotic browser TTS anywhere: with AI available he speaks natively;
    without it, narration is silent subtitles. */
-const HOST={on:false,failed:0,q:[],talking:false,onScore:null,who:null,buf:"",watch:null};
+const HOST={on:false,failed:0,q:[],talking:false,onScore:null,who:null,buf:"",watch:null,lastAct:0,gotAct:false,lastUser:0};
 function speak(text,who,fullSub){
  subtitle(who||T("saif"),fullSub||text);
  hostSay(text);
@@ -767,13 +767,25 @@ async function hostPump(){
  if(HOST.onScore&&HOST.q[0].kind!=="ASK")return;
  const it=HOST.q.shift();
  HOST.talking=true;
+ HOST.gotAct=false;HOST.lastAct=Date.now();
  hostArm();
  if(it.kind==="ASK")live.muted=false; // open the mic exactly when a question starts
  live.sendText(`[${it.kind}] ${it.text}`);
 }
-// failsafe fires only after 9s of real silence — long lines keep resetting it
-// via onActivity, so we never send a new turn into a still-running generation
-function hostArm(){clearTimeout(HOST.watch);HOST.watch=setTimeout(()=>{HOST.talking=false;hostPump()},9000)}
+// End-of-speech detector: turnComplete is unreliable around tool calls, so we
+// also poll for the real thing — generation went quiet AND every scheduled
+// audio chunk finished playing. Never fires into a still-running generation.
+function hostArm(){
+ clearInterval(HOST.watch);
+ HOST.watch=setInterval(()=>{
+  if(!HOST.talking){clearInterval(HOST.watch);return}
+  if(live.speaking)return; // audio still audible — not done
+  const idle=Date.now()-HOST.lastAct;
+  if(HOST.gotAct?idle>2500:idle>10000){ // quiet + drained → the turn is over
+   clearInterval(HOST.watch);HOST.talking=false;hostPump();
+  }
+ },700);
+}
 // a new beat or station makes older, still-unspoken narration obsolete
 function hostFlush(){HOST.q=HOST.q.filter(it=>it.kind==="ASK")}
 async function hostEnsure(){
@@ -801,13 +813,13 @@ You receive bracketed system commands. The trainee never sees them; never mentio
 - A plain message is the trainee talking to you. If they ask what to do now, explain the current step precisely using the latest [SAY]/[ASK] context. If they ask about ADC, its sections or services, teach them like a wise mentor — educative and entertaining, under 40 words.`;
   live.onText=(t,done)=>{
    if(t){HOST.buf+=t;subtitle(HOST.who||T("saif"),HOST.buf,true)}
-   if(done){HOST.buf="";HOST.talking=false;clearTimeout(HOST.watch);hostPump()}
+   if(done){HOST.buf="";HOST.talking=false;clearInterval(HOST.watch);hostPump()}
   };
-  live.onUserText=(t)=>{const st=document.getElementById("convstat");
+  live.onUserText=(t)=>{HOST.lastUser=Date.now();const st=document.getElementById("convstat");
    if(!live.muted&&st.style.display!=="none")st.textContent="🎙 "+t};
-  live.onActivity=()=>{if(HOST.talking)hostArm()};
+  live.onActivity=()=>{HOST.lastAct=Date.now();HOST.gotAct=true};
   live.onTool=async(n,a)=>{if(n==="score_answer"&&HOST.onScore){const f=HOST.onScore;HOST.onScore=null;f(a||{});hostPump()}return{ok:true}};
-  live.onClose=()=>{HOST.on=false;HOST.talking=false;clearTimeout(HOST.watch);
+  live.onClose=()=>{HOST.on=false;HOST.talking=false;clearInterval(HOST.watch);
    setTimeout(hostPump,800)}; // auto-reconnect on next queued line
   await live.connect(sys,[{name:"score_answer",description:"Record the assessment of the trainee's verbal answer during an [ASK] moment. Call exactly once per question.",
     parameters:{type:"OBJECT",properties:{correct:{type:"BOOLEAN"},feedback:{type:"STRING",description:"one short in-character sentence"}},required:["correct"]}}]);
@@ -817,9 +829,9 @@ You receive bracketed system commands. The trainee never sees them; never mentio
  }catch(e){HOST.failed++;log("host error: "+e.message);return false}
 }
 function hostReset(){
- HOST.on=false;HOST.failed=0;HOST.q.length=0;HOST.talking=false;HOST.onScore=null;HOST.who=null;HOST.buf="";
+ HOST.on=false;HOST.failed=0;HOST.q.length=0;HOST.talking=false;HOST.onScore=null;HOST.who=null;HOST.buf="";HOST.lastUser=0;
  HOST.pumping=false;HOST.connecting=null;
- clearTimeout(HOST.watch);live.destroy();
+ clearInterval(HOST.watch);live.destroy();
 }
 let subTimer=null;
 function subtitle(who,text,sticky){
@@ -1407,17 +1419,26 @@ async function stageConv(stIdx,q,onDone){
      live.muted=true;HOST.who=null;
      if(args.feedback)subtitle(T("saif"),args.feedback,true);
      setTimeout(()=>finish(!!args.correct),2600)};
-   const exp=q.correct.map(c=>L(c)).join(" / ");
-   const wrong=realDis(q).map(d=>L(d)).join(" / ");
-   hostSay(`${q.id==="S5-Q3"?"For this one, roleplay a VISITOR at the reception desk. ":""}Assessment question: "${L(q.prompt)}" | Correct idea: ${exp} | Wrong ideas (do not accept): ${wrong}`,"ASK");
-   stat.style.display="block";stat.textContent=T("listenLive");
-   conv.style.display="flex";convOpen=true;liveActive=true; // shows only the "Show choices" escape hatch
-   document.getElementById("convopts").onclick=()=>{if(judged)return;stop();HOST.onScore=null;fallback()};
-   // resilience: if the voice session dies or stalls, switch to clickable choices
-   const bail=()=>{if(judged)return;judged=true;stop();HOST.onScore=null;
-     stat.textContent=T("ai_no");setTimeout(fallback,500)};
-   guard=setInterval(()=>{if(!HOST.on||!live.ws||live.ws.readyState!==1)bail()},3000);
-   hardTo=setTimeout(bail,45000);
+  const exp=q.correct.map(c=>L(c)).join(" / ");
+  const wrong=realDis(q).map(d=>L(d)).join(" / ");
+  HOST.lastUser=0;
+  hostSay(`${q.id==="S5-Q3"?"For this one, roleplay a VISITOR at the reception desk. ":""}Assessment question: "${L(q.prompt)}" | Correct idea: ${exp} | Wrong ideas (do not accept): ${wrong}`,"ASK");
+  stat.style.display="block";stat.textContent=T("listenLive");
+  conv.style.display="flex";convOpen=true;liveActive=true; // shows only the "Show choices" escape hatch
+  document.getElementById("convopts").onclick=()=>{if(judged)return;stop();HOST.onScore=null;fallback()};
+  // resilience: if the voice session dies or stalls, switch to clickable choices
+  const bail=()=>{if(judged)return;judged=true;stop();HOST.onScore=null;
+    stat.textContent=T("ai_no");setTimeout(fallback,500)};
+  let nudged=false;
+  guard=setInterval(()=>{
+    if(!HOST.on||!live.ws||live.ws.readyState!==1){bail();return}
+    // model replied to the answer but forgot the score_answer call → remind it once
+    if(!nudged&&HOST.onScore&&!live.speaking&&HOST.lastUser
+       &&Date.now()-HOST.lastUser>6000&&Date.now()-HOST.lastAct>6000){
+      nudged=true;live.sendText("[NUDGE] The trainee already answered. Call score_answer NOW with your verdict on that answer, and say one short feedback sentence.");
+    }
+  },3000);
+  hardTo=setTimeout(bail,45000);
    return;
  }
 
