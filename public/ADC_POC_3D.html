@@ -110,7 +110,7 @@ td{border:1px solid var(--line);padding:5px 8px}
   <div id="hudrow"><span class="pill" id="hq"></span><span class="pill" id="hs"></span><span class="pill" id="ha"></span></div>
   <div id="prog"><div id="progfill"></div></div>
 </div>
-<div id="topbtns"><button class="btn" id="btnAsk">💬</button><button class="btn" id="btnAdmin">Admin</button></div>
+<div id="topbtns"><button class="btn" id="btnVoice">🔊</button><button class="btn" id="btnAsk">💬</button><button class="btn" id="btnAdmin">Admin</button></div>
 
 <div id="sub"><div class="card">
   <img id="subav" src="img/saif-portrait.jpg" alt="" onerror="this.style.display='none';document.getElementById('subav2').style.display='flex'">
@@ -193,6 +193,11 @@ const GMODEL="gemini-2.5-flash";
 const ADMIN_PIN="2026";
 let LANG="en";
 function getKey(){return localStorage.getItem("adc_gemini_key")||""}
+// If this page is served by server.js, AI goes through its /api/generate relay
+// (key stays on the server). Otherwise a client key from Admin is used.
+let AI_ON=false;
+try{const cfg=await (await fetch("/api/config")).json();AI_ON=!!cfg.aiAvailable}catch(e){}
+const hasAI=()=>AI_ON||!!getKey();
 
 const UI={
  en:{eyebrow:"VR TRAINING — 3D SCENARIO PROTOTYPE",title:"A Morning at Abu Dhabi Customs",
@@ -330,15 +335,24 @@ function wrap(x,text,maxw){
  }
  return out.slice(0,7);
 }
-function textTexture(text,{w=512,h=256,size=34,color="#1f2a2e",bg="rgba(255,255,255,0.97)",border="#00736a",pad=24,bold=false}={}){
+function textTexture(text,{w=512,h=256,size=34,color="#1f2a2e",bg="rgba(255,255,255,0.97)",border="#00736a",pad=24,bold=false,badge=null}={}){
  const cv=document.createElement("canvas");cv.width=w;cv.height=h;const x=cv.getContext("2d");
- x.fillStyle=bg;roundRect(x,3,3,w-6,h-6,20);x.fill();
+ if(badge!=null){const grd=x.createLinearGradient(0,0,0,h);grd.addColorStop(0,"#ffffff");grd.addColorStop(1,"#e6f2ef");x.fillStyle=grd}
+ else x.fillStyle=bg;
+ roundRect(x,3,3,w-6,h-6,20);x.fill();
  x.strokeStyle=border;x.lineWidth=4;roundRect(x,3,3,w-6,h-6,20);x.stroke();
- x.fillStyle=color;x.font=`${bold?"700":"500"} ${size}px "Segoe UI",Tahoma`;
  x.textAlign="center";x.textBaseline="middle";x.direction=LANG==="ar"?"rtl":"ltr";
- const lines=wrap(x,text,w-pad*2);
+ let cx=w/2,tpad=pad;
+ if(badge!=null){
+   const bx=LANG==="ar"?w-46:46;
+   x.fillStyle="#00736a";x.beginPath();x.arc(bx,h/2,25,0,7);x.fill();
+   x.fillStyle="#ffffff";x.font='700 30px "Segoe UI",Tahoma';x.fillText(String(badge),bx,h/2+1);
+   cx=w/2+(LANG==="ar"?-30:30);tpad=pad+55;
+ }
+ x.fillStyle=color;x.font=`${bold?"700":"500"} ${size}px "Segoe UI",Tahoma`;
+ const lines=wrap(x,text,w-tpad*2);
  const lh=size*1.25,y0=h/2-(lines.length-1)*lh/2;
- lines.forEach((ln,i)=>x.fillText(ln,w/2,y0+i*lh));
+ lines.forEach((ln,i)=>x.fillText(ln,cx,y0+i*lh));
  const t=new THREE.CanvasTexture(cv);t.anisotropy=4;t.colorSpace=THREE.SRGBColorSpace;return t;
 }
 function textPanel(text,wm,hm,opts={}){
@@ -444,8 +458,10 @@ canvas.addEventListener("pointerdown",e=>{
    const o=dh[0].object;
    drag={obj:o,plane:new THREE.Plane(),home:o.userData.home||o.position.clone()};
    o.userData.home=drag.home;
+   // plane must be built in WORLD space (o.position is local to qGroup)
+   const wp=new THREE.Vector3();o.getWorldPosition(wp);
    const n=new THREE.Vector3();camera.getWorldDirection(n);
-   drag.plane.setFromNormalAndCoplanarPoint(n,o.position);
+   drag.plane.setFromNormalAndCoplanarPoint(n,wp);
    o.scale.setScalar((o.userData.baseScale||1)*1.12);
    canvas.setPointerCapture(e.pointerId);
    return;
@@ -457,7 +473,10 @@ canvas.addEventListener("pointermove",e=>{
  if(drag){
    ray.setFromCamera(mouse,camera);
    const p=new THREE.Vector3();
-   if(ray.ray.intersectPlane(drag.plane,p)){drag.obj.position.lerp(p,.55)}
+   if(ray.ray.intersectPlane(drag.plane,p)){
+     const lp=drag.obj.parent?drag.obj.parent.worldToLocal(p.clone()):p;
+     drag.obj.position.lerp(lp,.55);
+   }
    // highlight hovered drop target
    const zh=ray.intersectObjects(dropTargets,false);
    dropTargets.forEach(z=>{if(z.userData.setHot)z.userData.setHot(zh.length&&zh[0].object===z)});
@@ -473,7 +492,9 @@ addEventListener("pointerup",e=>{
    dropTargets.forEach(z=>{if(z.userData.setHot)z.userData.setHot(false)});
    let accepted=false;
    if(zh.length&&zh[0].object.userData.onDrop)accepted=zh[0].object.userData.onDrop(o)!==false;
-   if(!accepted){flyBack(o,drag.home);if(o.userData.onReturn)o.userData.onReturn(o)}
+   if(!accepted){flyBack(o,drag.home);
+     if(o.userData.dockTilt!=null)o.rotation.x=o.userData.dockTilt;
+     if(o.userData.onReturn)o.userData.onReturn(o)}
    drag=null;return;
  }
  const was=looking;looking=false;
@@ -510,8 +531,10 @@ addEventListener("keyup",e=>{
  keys[e.key.toLowerCase()]=false});
 let glide=null;
 function glideTo(i){const st=stations[i];const a=stationAngle(i);
- const target=new THREE.Vector3(Math.sin(a)*(R-7.2),1.6,-Math.cos(a)*(R-7.2));
- glide={from:camPos.clone(),to:target,t:0,yawTo:Math.atan2(st.pos.x-target.x,-(st.pos.z-target.z))}}
+ const target=new THREE.Vector3(Math.sin(a)*(R-8.8),1.6,-Math.cos(a)*(R-8.8));
+ const yawTo=Math.atan2(-(st.pos.x-target.x),-(st.pos.z-target.z));
+ if(FAST){camPos.copy(target);yaw=yawTo;pitch=0;glide=null;return}
+ glide={from:camPos.clone(),to:target,t:0,yawTo}}
 function moveTick(dt){
  if(glide){glide.t=Math.min(1,glide.t+dt*(FAST?6:.9));const k=glide.t*glide.t*(3-2*glide.t);
    camPos.lerpVectors(glide.from,glide.to,k);
@@ -535,8 +558,18 @@ let AC=null;function beep(ok){try{AC=AC||new (window.AudioContext||window.webkit
  if(ok){const o2=AC.createOscillator(),g2=AC.createGain();o2.connect(g2);g2.connect(AC.destination);
   o2.frequency.value=1320;g2.gain.setValueAtTime(.09,AC.currentTime+.12);g2.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.5);o2.start(AC.currentTime+.12);o2.stop(AC.currentTime+.52)}}catch(e){}}
 try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{}}catch(e){}
-function speak(text,who){
- subtitle(who||T("saif"),text);
+let VOICE_ON=localStorage.getItem("adc_voice")!=="off";
+// speak only the core instruction: quoted part if present, else first sentence
+function brief(text){
+ let t=String(text).trim();
+ const qm=t.match(/[“«"]([^”»"]{8,})[”»"]/);
+ if(qm)t=qm[1];
+ else t=t.split(/(?<=[.؟?!])\s+/)[0];
+ return t.length>180?t.slice(0,177)+"…":t;
+}
+function speak(text,who,fullSub){
+ subtitle(who||T("saif"),fullSub||text);
+ if(!VOICE_ON)return;
  try{if(!window.speechSynthesis)return;
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(text);
@@ -564,12 +597,17 @@ function subtitle(who,text,sticky){
 
 /* ---------- gemini ---------- */
 async function gemini(prompt,json=true){
- const key=getKey();
- if(!key)throw new Error("nokey");
  const body={contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.3}};
  if(json)body.generationConfig.responseMimeType="application/json";
- const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GMODEL}:generateContent?key=${key}`,
-  {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+ let r;
+ if(AI_ON){
+   r=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+ }else{
+   const key=getKey();
+   if(!key)throw new Error("nokey");
+   r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GMODEL}:generateContent?key=${key}`,
+    {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+ }
  if(!r.ok)throw new Error("gemini "+r.status);
  const d=await r.json();
  return d.candidates[0].content.parts[0].text;
@@ -646,12 +684,37 @@ function stageBase(i){
  scene.add(qGroup);
  return qGroup;
 }
-function cardMesh(text,w,h){const m=textPanel(text,w,h,{size:40});m.userData.isCard=true;return m}
-function arcPlace(meshes,y=2.1,rad=3.9,z=-2.2){
+function cardMesh(text,w,h){const m=textPanel(text,w,h,{size:34});m.userData.isCard=true;return m}
+function tileMesh(text,n){const m=textPanel(text,2.2,.9,{size:30,badge:n});m.userData.isCard=true;return m}
+// A tilted console desk in front of the trainee: question header on top,
+// numbered option tiles docked in slots on the glass deck.
+function dockPlace(meshes,promptText){
  const n=meshes.length;
- meshes.forEach((m,k)=>{const a=(k-(n-1)/2)*Math.max(.3,.5-n*.02);
-  m.position.set(Math.sin(a)*rad,y+((k%2)*.16),z+(1-Math.cos(a))*1.3);
-  m.rotation.y=-a*.4;m.userData.home=m.position.clone();qGroup.add(m)});
+ const cols=Math.min(3,n<=3?n:Math.ceil(n/2)), rows=Math.ceil(n/cols);
+ const tilt=-0.52, deckPos=new THREE.Vector3(0,1.12,2.3);
+ const dw=cols*2.42+.5, dh=rows*1.08+.35;
+ const deckG=new THREE.Group();
+ const deck=new THREE.Mesh(new THREE.BoxGeometry(dw,dh,.07),
+   new THREE.MeshStandardMaterial({color:0x0f3237,roughness:.4,metalness:.3,transparent:true,opacity:.94}));
+ deckG.add(deck);
+ const rim=new THREE.Mesh(new THREE.BoxGeometry(dw+.14,dh+.14,.03),mat(TEAL,TEAL,.7));
+ rim.position.z=-.035;deckG.add(rim);
+ deckG.position.copy(deckPos);deckG.rotation.x=tilt;
+ qGroup.add(deckG);
+ box(qGroup,.14,1.06,.14,0x2a3f45,-dw/2+.4,.53,2.3);
+ box(qGroup,.14,1.06,.14,0x2a3f45,dw/2-.4,.53,2.3);
+ if(promptText){
+   const head=textPanel(promptText,7.4,1.1,{size:33,bold:true,color:"#ffffff",bg:"rgba(15,50,55,0.94)",border:"rgba(53,167,154,0.7)"});
+   head.position.set(0,3.35,0.5);qGroup.add(head);
+ }
+ const e=new THREE.Euler(tilt,0,0);
+ meshes.forEach((m,k)=>{
+   const v=new THREE.Vector3((k%cols-(cols-1)/2)*2.42,((rows-1)/2-Math.floor(k/cols))*1.08,.09);
+   v.applyEuler(e).add(deckPos);
+   m.position.copy(v);m.rotation.x=tilt;
+   m.userData.home=m.position.clone();m.userData.dockTilt=tilt;
+   qGroup.add(m);
+ });
 }
 function score(q,ok,fxAt){
  if(ok)S.score+=5;
@@ -665,17 +728,17 @@ function score(q,ok,fxAt){
 /* the answer pad: a glowing pedestal that accepts dragged cards */
 function makePad(g,label,wide){
  const grp=new THREE.Group();
- const base=new THREE.Mesh(new THREE.CylinderGeometry(wide?2.1:1.15,wide?2.25:1.3,.22,40),mat(0xffffff));
- base.position.y=.11;grp.add(base);
- const glowRing=new THREE.Mesh(new THREE.TorusGeometry(wide?2.1:1.15,.045,10,60),mat(TEAL,TEAL,1));
- glowRing.rotation.x=Math.PI/2;glowRing.position.y=.24;grp.add(glowRing);
+ const base=new THREE.Mesh(new THREE.CylinderGeometry(wide?1.7:1.0,wide?1.85:1.15,.2,40),mat(0xffffff));
+ base.position.y=.1;grp.add(base);
+ const glowRing=new THREE.Mesh(new THREE.TorusGeometry(wide?1.7:1.0,.045,10,60),mat(TEAL,TEAL,1));
+ glowRing.rotation.x=Math.PI/2;glowRing.position.y=.22;grp.add(glowRing);
  grp.userData.ring=glowRing;
- const lbl=textPanel(label,wide?4.2:3.2,.62,{size:30,bold:true,color:"#00736a",bg:"rgba(255,255,255,0.92)",border:"rgba(0,115,106,0.35)"});
- lbl.position.set(0,1.55,0);grp.add(lbl);grp.userData.lbl=lbl;
+ const lbl=textPanel(label,2.7,.85,{size:26,bold:true,color:"#00736a",bg:"rgba(255,255,255,0.92)",border:"rgba(0,115,106,0.35)"});
+ lbl.position.set(0,1.25,0);grp.add(lbl);grp.userData.lbl=lbl;
  // invisible generous catch surface for drops
- const catcher=new THREE.Mesh(new THREE.CylinderGeometry(wide?2.5:1.7,wide?2.5:1.7,2.6,20),
+ const catcher=new THREE.Mesh(new THREE.CylinderGeometry(wide?2.1:1.5,wide?2.1:1.5,2.4,20),
    new THREE.MeshBasicMaterial({visible:false}));
- catcher.position.y=1.3;grp.add(catcher);
+ catcher.position.y=1.2;grp.add(catcher);
  catcher.userData.setHot=h=>{glowRing.material.emissiveIntensity=h?2.2:1;glowRing.scale.setScalar(h?1.06:1)};
  g.add(grp);
  return {grp,catcher};
@@ -683,30 +746,31 @@ function makePad(g,label,wide){
 function playBeat(stIdx,q,onDone){
  const w=widgetOf(q);
  const dis=realDis(q);
- speak(L(q.prompt));
+ speak(brief(L(q.prompt)),T("saif"),L(q.prompt));
  if(w==="conv"){stageConv(stIdx,q,onDone);return}
  const g=stageBase(stIdx);
  const finish=(ok,at)=>{score(q,ok,at);setTimeout(()=>onDone(),1100)};
 
  if(w==="single"||w==="multi"){
-   /* -------- drag cards onto the answer pad -------- */
+   /* -------- drag tiles from the console onto the answer pad -------- */
    const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
    const pad=makePad(g,w==="single"?T("padPlace"):T("padCollect"),w==="multi");
-   pad.grp.position.set(0,0,1.1);
+   pad.grp.position.set(-4.9,0,1.2);
    const onPad=new Set();
-   const cards=items.map((o,ix)=>{const m=cardMesh(L(o),2.5,1.15);m.userData.ix=ix;return m});
-   arcPlace(cards,2.2,4.2,-2.4);
-   const relayout=()=>{ // arrange cards resting on the pad
+   const cards=items.map((o,ix)=>{const m=tileMesh(L(o),ix+1);m.userData.ix=ix;return m});
+   dockPlace(cards,L(q.prompt));
+   const relayout=()=>{ // arrange tiles resting upright on the pad
      const on=[...onPad];
      on.forEach((ix,k)=>{const m=cards.find(c=>c.userData.ix===ix);
-       const a=(k-(on.length-1)/2)*.75;
-       flyBack(m,new THREE.Vector3(pad.grp.position.x+a,1.05+Math.abs(a)*.02,pad.grp.position.z));
+       const a=(k-(on.length-1)/2)*.8;
+       m.rotation.x=0;
+       flyBack(m,new THREE.Vector3(pad.grp.position.x+a,1.0,pad.grp.position.z));
        m.userData.onPad=true});
    };
    let confirmBtn=null;
    if(w==="multi"){
      confirmBtn=textPanel(T("confirm"),1.9,.72,{size:40,bold:true,color:"#ffffff",bg:"rgba(0,115,106,0.96)",border:"#005a53"});
-     confirmBtn.position.set(3.2,1.1,1.1);confirmBtn.visible=false;g.add(confirmBtn);
+     confirmBtn.position.set(-4.9,2.2,1.2);confirmBtn.visible=false;g.add(confirmBtn);
      confirmBtn.userData.onClick=()=>{
        const chosen=[...onPad].map(i=>items[i].en).sort();
        const want=q.correct.map(c=>c.en).sort();
@@ -715,40 +779,44 @@ function playBeat(stIdx,q,onDone){
    }
    pad.catcher.userData.onDrop=o=>{
      if(w==="single"){
-       flyBack(o,new THREE.Vector3(pad.grp.position.x,1.05,pad.grp.position.z));
+       o.rotation.x=0;
+       flyBack(o,new THREE.Vector3(pad.grp.position.x,1.0,pad.grp.position.z));
        setInteract([],[],[]);
        setTimeout(()=>finish(q.correct.some(c=>c.en===items[o.userData.ix].en),pad.grp.position.clone().add(new THREE.Vector3(0,1,0))),450);
        return true;
      }
+     o.rotation.x=0;
      onPad.add(o.userData.ix);relayout();
      confirmBtn.visible=onPad.size>0;
      return true;
    };
-   // dragging a card off the pad removes it (multi only)
-   const offDrop=o=>{if(o.userData.onPad){onPad.delete(o.userData.ix);o.userData.onPad=false;flyBack(o,o.userData.home);relayout();confirmBtn&&(confirmBtn.visible=onPad.size>0);return true}return false};
+   // dragging a tile off the pad returns it to its console slot (multi only)
+   const offDrop=o=>{if(o.userData.onPad){onPad.delete(o.userData.ix);o.userData.onPad=false;
+     o.rotation.x=o.userData.dockTilt;flyBack(o,o.userData.home);relayout();
+     confirmBtn&&(confirmBtn.visible=onPad.size>0);return true}return false};
    const ground=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.MeshBasicMaterial({visible:false}));
    ground.rotation.x=-Math.PI/2;ground.position.y=.05;g.add(ground);
    ground.userData.onDrop=offDrop;
    setInteract(confirmBtn?[confirmBtn]:[],cards,[pad.catcher,ground]);
 
  }else if(w==="sequence"){
-   /* -------- touch panels in order; a light path follows -------- */
+   /* -------- touch console tiles in order; a light path follows -------- */
    const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
    const hint=textPanel(T("seqHint"),6.4,.62,{size:28,color:"#61707a",bg:"rgba(255,255,255,0.85)",border:"rgba(0,0,0,0)"});
-   hint.position.set(0,.55,0);g.add(hint);
+   hint.position.set(0,.4,4.1);g.add(hint);
    const seq=[];
-   const cards=items.map((o,ix)=>{const m=cardMesh(L(o),2.3,1.05);
+   const cards=items.map((o,ix)=>{const m=cardMesh(L(o),2.2,.9);
      m.userData.onClick=()=>{if(seq.includes(ix))return;
        seq.push(ix);
        m.userData.setText(seq.length+". "+L(o),{border:"#1fa877",bg:"rgba(234,250,244,0.97)"});
        beep(true);
-       if(seq.length>1){ // draw glowing link from previous card
+       if(seq.length>1){ // draw glowing link from previous tile
          const a=cards[seq[seq.length-2]].position,b=m.position;
          const mid=a.clone().add(b).multiplyScalar(.5);
          const len=a.distanceTo(b);
          const tube=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,len,10),
            new THREE.MeshBasicMaterial({color:TEALL,transparent:true,opacity:.85}));
-         tube.position.copy(mid);tube.lookAt(b.clone().add(qGroup.position));
+         tube.position.copy(mid);
          tube.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),b.clone().sub(a).normalize());
          g.add(tube);
        }
@@ -757,7 +825,7 @@ function playBeat(stIdx,q,onDone){
          setTimeout(()=>finish(chosen.every((v,i)=>v===want[i]),m.position.clone()),400);
        }};
      return m});
-   arcPlace(cards,2.3,4.2,-2.6);
+   dockPlace(cards,L(q.prompt));
    setInteract(cards,[],[]);
 
  }else if(w==="hotsingle"||w==="hotmulti"){
@@ -825,8 +893,8 @@ function playBeat(stIdx,q,onDone){
    const order=shuffled(cardsData.map((c,i)=>i),rng(S.seed+hash(q.id)));
    const assign={};
    const zlabel=z=>z.en==="__none__"?T("notUsed"):(LANG==="ar"&&z.ar?z.ar:z.en);
-   // draggable cards up high
-   const cardM=order.map(ci=>{const c=cardsData[ci];const m=cardMesh(LANG==="ar"?c.ar:c.en,2.3,.95);
+   // draggable tiles docked on the console
+   const cardM=order.map((ci,k)=>{const c=cardsData[ci];const m=tileMesh(LANG==="ar"?c.ar:c.en,k+1);
      m.userData.ci=ci;
      m.userData.onReturn=o=>{ // dragged off a zone and dropped nowhere: unassign
        const prev=assign[o.userData.ci];
@@ -835,7 +903,7 @@ function playBeat(stIdx,q,onDone){
          o.scale.setScalar(1);o.userData.baseScale=1}
      };
      return m});
-   arcPlace(cardM,3.1,4.4,-2.9);
+   dockPlace(cardM,L(q.prompt));
    // zone boards standing in a row
    const zw=2.9;
    const zoneM=zones.map((z,zi)=>{
@@ -869,7 +937,7 @@ function playBeat(stIdx,q,onDone){
    });
    function restack(z){
      z.grpZ.userData.stack.forEach((m,k)=>{
-       m.scale.setScalar(.72);m.userData.baseScale=.72;
+       m.scale.setScalar(.72);m.userData.baseScale=.72;m.rotation.x=0;
        flyBack(m,z.grpZ.position.clone().add(new THREE.Vector3(0,1.72-k*.55,.14)));
      });
      if(!z.grpZ.userData.stack.length&&z.grpZ.userData.slotsLbl)z.grpZ.userData.slotsLbl.visible=true;
@@ -914,10 +982,10 @@ function stageConv(stIdx,q,onDone){
  const cleanup=()=>{conv.style.display="none";stat.style.display="none";sp.style.display="none";convOpen=false;curSubmit=null};
  const fallback=()=>{cleanup();
    const dis=realDis(q);const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
-   const cards=items.map((o,ix)=>{const m=cardMesh(L(o),2.7,1.2);
+   const cards=items.map((o,ix)=>{const m=tileMesh(L(o),ix+1);
      m.userData.onClick=()=>{score(q,q.correct.some(c=>c.en===items[ix].en),m.position.clone());setTimeout(()=>onDone(),1100)};return m});
-   arcPlace(cards);setInteract(cards,[],[])};
- if(!getKey()){subtitle(who,L(q.prompt),true);stat.style.display="block";stat.textContent=T("key_no");setTimeout(fallback,50);return}
+   dockPlace(cards,L(q.prompt));setInteract(cards,[],[])};
+ if(!hasAI()){subtitle(who,L(q.prompt),true);stat.style.display="block";stat.textContent=T("key_no");setTimeout(fallback,50);return}
  conv.style.display="flex";convOpen=true;
  stat.style.display="block";stat.textContent=T("typeHint");
  sp.style.display="block";sp.textContent=T("holdSpace");
@@ -961,7 +1029,7 @@ function runStation(i){
  const a=stationAngle(i);
  saifTarget=new THREE.Vector3(Math.sin(a)*(R-5.4)+Math.cos(a)*1.8,0,-Math.cos(a)*(R-5.4)+Math.sin(a)*1.8);
  glideTo(i);
- speak(T("stationIntro")[i]);
+ speak(brief(T("stationIntro")[i]),T("saif"),T("stationIntro")[i]);
  setTimeout(()=>runBeat(i,0),FAST?350:2600);
 }
 function runBeat(i,b){
@@ -1038,6 +1106,11 @@ function toggleAsk(on){const r=document.getElementById("askrow");
  if(on){const i=document.getElementById("askin");i.placeholder=T("askPh");i.focus()}}
 document.getElementById("btnAsk").onclick=()=>toggleAsk(true);
 document.getElementById("askclose").onclick=()=>toggleAsk(false);
+const btnVoice=document.getElementById("btnVoice");
+const paintVoice=()=>btnVoice.textContent=VOICE_ON?"🔊":"🔇";
+btnVoice.onclick=()=>{VOICE_ON=!VOICE_ON;localStorage.setItem("adc_voice",VOICE_ON?"on":"off");
+ if(!VOICE_ON)try{speechSynthesis.cancel()}catch(e){};paintVoice()};
+paintVoice();
 async function doAsk(){const i=document.getElementById("askin");const t=i.value.trim();if(!t)return;
  i.value="";subtitle(T("you"),t);
  try{const r=await askSaif(t);speak(r.trim(),T("saif"))}catch(e){subtitle(T("saif"),e.message==="nokey"?T("key_no"):T("ai_no"))}}
