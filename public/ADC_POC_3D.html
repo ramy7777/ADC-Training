@@ -757,18 +757,28 @@ function hostSay(text,kind){
  hostPump();
 }
 async function hostPump(){
- if(HOST.talking||!HOST.q.length)return;
+ if(HOST.pumping||HOST.talking||!HOST.q.length)return;
  if(HOST.onScore&&HOST.q[0].kind!=="ASK")return; // narration waits until the verbal question is judged
- if(!(await hostEnsure())){HOST.q.length=0;return}
+ HOST.pumping=true;
+ const ok=await hostEnsure();
+ HOST.pumping=false;
+ if(!ok){if(HOST.failed>=2)HOST.q.length=0;else setTimeout(hostPump,1500);return}
+ if(HOST.talking||!HOST.q.length)return; // state may have changed during the await
+ if(HOST.onScore&&HOST.q[0].kind!=="ASK")return;
  const it=HOST.q.shift();
  HOST.talking=true;
  clearTimeout(HOST.watch);
- HOST.watch=setTimeout(()=>{HOST.talking=false;hostPump()},15000); // failsafe if a turn never completes
+ HOST.watch=setTimeout(()=>{HOST.talking=false;hostPump()},9000); // failsafe if a turn never completes
  if(it.kind==="ASK")live.muted=false; // open the mic exactly when a question starts
  live.sendText(`[${it.kind}] ${it.text}`);
 }
 async function hostEnsure(){
  if(HOST.on&&live.ws&&live.ws.readyState===1)return true;
+ if(HOST.connecting)return HOST.connecting; // single-flight: parallel callers share one connect
+ HOST.connecting=_hostConnect();
+ try{return await HOST.connecting}finally{HOST.connecting=null}
+}
+async function _hostConnect(){
  HOST.on=false;
  if(HOST.failed>=2||!AI_ON||!window.isSecureContext)return false;
  if(!(await live.initMic())){HOST.failed=9;log("host: mic denied");return false}
@@ -792,7 +802,8 @@ You receive bracketed system commands. The trainee never sees them; never mentio
   live.onUserText=(t)=>{const st=document.getElementById("convstat");
    if(!live.muted&&st.style.display!=="none")st.textContent="🎙 "+t};
   live.onTool=async(n,a)=>{if(n==="score_answer"&&HOST.onScore){const f=HOST.onScore;HOST.onScore=null;f(a||{});hostPump()}return{ok:true}};
-  live.onClose=()=>{HOST.on=false;HOST.talking=false};
+  live.onClose=()=>{HOST.on=false;HOST.talking=false;clearTimeout(HOST.watch);
+   setTimeout(hostPump,800)}; // auto-reconnect on next queued line
   await live.connect(sys,[{name:"score_answer",description:"Record the assessment of the trainee's verbal answer during an [ASK] moment. Call exactly once per question.",
     parameters:{type:"OBJECT",properties:{correct:{type:"BOOLEAN"},feedback:{type:"STRING",description:"one short in-character sentence"}},required:["correct"]}}]);
   live.muted=true; // mic opens only during [ASK] moments
@@ -802,6 +813,7 @@ You receive bracketed system commands. The trainee never sees them; never mentio
 }
 function hostReset(){
  HOST.on=false;HOST.failed=0;HOST.q.length=0;HOST.talking=false;HOST.onScore=null;HOST.who=null;HOST.buf="";
+ HOST.pumping=false;HOST.connecting=null;
  clearTimeout(HOST.watch);live.destroy();
 }
 let subTimer=null;
@@ -861,6 +873,11 @@ class LiveVoice{
   this.muted=false}
  async initMic(){
   if(this.micStream)return true;
+  if(this._micP)return this._micP; // single-flight: concurrent callers share one request
+  this._micP=this._initMic();
+  try{return await this._micP}finally{this._micP=null}
+ }
+ async _initMic(){
   try{
    this.micStream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}});
    this.micCtx=new AudioContext({sampleRate:16000});
@@ -920,7 +937,7 @@ class LiveVoice{
     if(m.setupComplete!==undefined){if(!settled){settled=true;clearTimeout(to);resolve()}return}
     if(m.serverContent){
      const sc=m.serverContent;
-     if(sc.interrupted){this.stopPlayback();return}
+     if(sc.interrupted){this.stopPlayback();if(this.onText)this.onText("",true);return} // count as turn end so queues never freeze
      for(const p of (sc.modelTurn?.parts||[])){
       if(p.inlineData?.data)this.enqueueAudio(p.inlineData.data);
      }
@@ -1331,6 +1348,7 @@ function recStop(){try{recog&&recog.stop()}catch(e){};document.getElementById("t
 let pttOpen=false,pttTimer=null;
 async function pttDown(){
  if(pttOpen)return;
+ if(!HOST.on&&HOST.failed<9)HOST.failed=0; // user-initiated: always worth another try
  if(!VOICE_ON||!(await hostEnsure())){subtitle(T("saif"),T("ai_no"));return}
  pttOpen=true;clearTimeout(pttTimer);
  live.muted=false;
