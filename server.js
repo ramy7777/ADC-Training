@@ -18,7 +18,11 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Tells the client what is available — never the key itself.
 app.get("/api/config", (req, res) => {
-  res.json({ aiAvailable: !!KEY, liveModel: LIVE_MODEL });
+  res.json({
+    aiAvailable: !!KEY,
+    liveModel: LIVE_MODEL,
+    voice: process.env.GEMINI_VOICE || "Orus",
+  });
 });
 
 // REST proxy for the non-voice fallback (typed answers, ask-Saif).

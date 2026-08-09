@@ -165,12 +165,13 @@ const UI={
   desc:"You are a new ADC employee on your orientation morning. Saif, a senior officer, walks with you through six stations of the customs house and simply… talks with you. Answer him with your voice. What you say and do is your assessment — there is no quiz.",
   name:"Your name",lang:"Language",lvl:"Levels",open:"Enter",locked:"Locked",
   micNote:"🎙️ This experience is voice-first: allow microphone access and speak to Saif naturally. No mic? You can type instead — or the app falls back to guided mode.",
-  hint:"Click the world to look around (Esc releases) · WASD / arrows walk · Shift runs · ENTER glides to the active station · type to Saif any time in the box below",
+  hint:"Click the world to look around (Esc releases) · WASD / arrows walk · Shift runs · ENTER glides to the active station · speak to Saif any time (or type below) · click the orb to mute; in guided mode hold it to talk",
   score:"Score",attempt:"Attempt",correct:"+5 — well done",wrong:"+0 — noted",
   passed:"LEVEL PASSED",failed:"NOT PASSED — 96/120 needed",retry:"Try again — different situations",home:"Back to entrance",
   l2:"Level 2 content is project scope. The gate and the admin bypass are the point.",
   saif:"Saif — Senior Officer",you:"You",connecting:"Connecting to Saif…",micDenied:"Mic unavailable — guided mode with narration.",
-  liveFail:"Voice link unavailable — guided mode with narration.",voiceOn:"Saif hears you — just speak. Walk with WASD, click cards when he shows you something.",
+  liveFail:"Voice link unavailable — guided mode with narration.",voiceOn:"Open mic — just speak to Saif, or type below. Click the orb to mute.",
+  micMuted:"Mic muted — click the orb to unmute",micOpen:"Open mic — Saif hears you",noSR:"Speech recognition unavailable — please type",holdTalk:"Hold the orb to speak",
   typed:"Message sent",csv:"Export CSV",unlock:"Bypass: unlock Level 2",unlocked:"Level 2 unlocked",results:"Results",live:"Live",log:"Log",
   pin:"Admin PIN",aname:"Admin name",wrongPin:"Wrong PIN",noresults:"No attempts yet",
   classicPrompt:"Answer by typing (or click Show choices)",showOpts:"Show choices",judging:"Saif is considering…"},
@@ -178,12 +179,13 @@ const UI={
   desc:"أنت موظف جديد في يوم تعريفي. سيف، ضابط أول، يمشي معك عبر ست محطات في دار الجمارك ويتحدث معك ببساطة. أجب بصوتك. ما تقوله وتفعله هو تقييمك — لا يوجد اختبار تقليدي.",
   name:"اسمك",lang:"اللغة",lvl:"المستويات",open:"ادخل",locked:"مقفل",
   micNote:"🎙️ التجربة صوتية أولاً: اسمح بالميكروفون وتحدث مع سيف بشكل طبيعي. لا يوجد ميكروفون؟ يمكنك الكتابة — أو ينتقل التطبيق للوضع الموجّه.",
-  hint:"انقر العالم للنظر (Esc للخروج) · WASD أو الأسهم للمشي · Shift للركض · ENTER للانتقال إلى المحطة · اكتب لسيف في أي وقت في الصندوق أدناه",
+  hint:"انقر العالم للنظر (Esc للخروج) · WASD أو الأسهم للمشي · Shift للركض · ENTER للانتقال إلى المحطة · تحدث مع سيف في أي وقت (أو اكتب) · انقر الدائرة للكتم؛ وفي الوضع الموجّه اضغطها مطولاً للتحدث",
   score:"النتيجة",attempt:"المحاولة",correct:"+5 — أحسنت",wrong:"+0 — سنكمل",
   passed:"اجتزت المستوى",failed:"لم تجتز — المطلوب ٩٦/١٢٠",retry:"حاول مجدداً — مواقف مختلفة",home:"عودة إلى المدخل",
   l2:"محتوى المستوى ٢ ضمن نطاق المشروع. المهم هنا: القفل وصلاحية المشرف.",
   saif:"سيف — ضابط أول",you:"أنت",connecting:"جارٍ الاتصال بسيف…",micDenied:"الميكروفون غير متاح — الوضع الموجّه مع السرد.",
-  liveFail:"الاتصال الصوتي غير متاح — الوضع الموجّه مع السرد.",voiceOn:"سيف يسمعك — تحدث فقط. تحرك بـ WASD وانقر البطاقات عندما يعرض عليك شيئاً.",
+  liveFail:"الاتصال الصوتي غير متاح — الوضع الموجّه مع السرد.",voiceOn:"الميكروفون مفتوح — تحدث مع سيف مباشرة أو اكتب أدناه. انقر الدائرة للكتم.",
+  micMuted:"الميكروفون مكتوم — انقر الدائرة للتفعيل",micOpen:"الميكروفون مفتوح — سيف يسمعك",noSR:"التعرف على الصوت غير متاح — اكتب من فضلك",holdTalk:"اضغط مطولاً على الدائرة للتحدث",
   typed:"أُرسلت الرسالة",csv:"تصدير CSV",unlock:"فتح استثنائي: المستوى ٢",unlocked:"المستوى ٢ مفتوح",results:"النتائج",live:"مباشر",log:"السجل",
   pin:"رمز المشرف",aname:"اسم المشرف",wrongPin:"رمز خاطئ",noresults:"لا محاولات بعد",
   classicPrompt:"أجب كتابةً (أو اضغط أظهر الخيارات)",showOpts:"أظهر الخيارات",judging:"سيف يفكر…"}
@@ -567,7 +569,7 @@ function hud(){
 class LiveVoice{
  constructor(){this.ws=null;this.micCtx=null;this.micNode=null;this.micStream=null;
   this.playCtx=null;this.playCursor=0;this.sources=[];this.onTool=null;this.onText=null;this.onUserText=null;this.onClose=null;
-  this.analyser=null;this.level=0}
+  this.analyser=null;this.level=0;this.muted=false}
  async initMic(){
   if(this.micStream)return true;
   try{
@@ -578,7 +580,7 @@ class LiveVoice{
    this.micNode=this.micCtx.createScriptProcessor(4096,1,1);
    src.connect(this.micNode);this.micNode.connect(this.micCtx.destination);
    this.micNode.onaudioprocess=(e)=>{
-    if(!this.ws||this.ws.readyState!==1)return;
+    if(this.muted||!this.ws||this.ws.readyState!==1)return;
     const f=e.inputBuffer.getChannelData(0);
     const i16=new Int16Array(f.length);
     for(let i=0;i<f.length;i++){const s=Math.max(-1,Math.min(1,f[i]));i16[i]=s<0?s*0x8000:s*0x7FFF}
@@ -600,7 +602,7 @@ class LiveVoice{
    ws.onopen=()=>{
     ws.send(JSON.stringify({setup:{
      model:CFG.liveModel,
-     generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:"Charon"}}}},
+     generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:CFG.voice||"Orus"}}}},
      systemInstruction:{parts:[{text:systemPrompt}]},
      tools:[{functionDeclarations:tools}],
      outputAudioTranscription:{},inputAudioTranscription:{},
@@ -912,7 +914,7 @@ function classicVerbal(q,done){
  const input=document.getElementById("chattext");input.value="";input.focus();
  const optBtn=document.createElement("button");optBtn.className="btn small navy";optBtn.textContent=T("showOpts");
  document.getElementById("chatin").appendChild(optBtn);
- const cleanup=()=>{optBtn.remove();sendBtn.onclick=defaultSend;input.onkeydown=null};
+ const cleanup=()=>{optBtn.remove();sendBtn.onclick=defaultSend;input.onkeydown=null;pendingVerbalSubmit=null};
  const fallbackOpts=()=>{cleanup();
   const dis=realDis(q);const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
   const cards=items.map((o,ix)=>{const m=cardMesh(L(o),2.7,1.2);
@@ -920,8 +922,8 @@ function classicVerbal(q,done){
   stageBase(S.st);arcPlace(cards);setInteract(cards)};
  optBtn.onclick=fallbackOpts;
  const sendBtn=document.getElementById("chatsend");
- const submit=async()=>{
-  const t=input.value.trim();if(!t)return;input.value="";
+ const submitText=async(raw)=>{
+  const t=(raw||"").trim();if(!t)return;input.value="";
   subtitle(T("you"),t);vstat(T("judging"),0);
   try{
    const r=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
@@ -932,6 +934,8 @@ function classicVerbal(q,done){
    speakTTS(v.feedback,T("saif"));cleanup();vstat("");done(!!v.correct);
   }catch(e){log("judge error: "+e.message);fallbackOpts()}
  };
+ const submit=()=>submitText(input.value);
+ pendingVerbalSubmit=submitText; // orb push-to-talk routes here while this beat is open
  const defaultSend=sendBtn.onclick;
  sendBtn.onclick=submit;
  input.onkeydown=e=>{if(e.key==="Enter")submit()};
@@ -957,13 +961,57 @@ function endLevel(){
  document.getElementById("resultOv").style.display="flex";
 }
 
-// chat box (live mode: sends text into the live conversation)
+// chat box: live mode → into the live conversation; guided mode → ask the guide
 document.getElementById("chatsend").onclick=()=>{
  const i=document.getElementById("chattext");const t=i.value.trim();if(!t)return;i.value="";
  if(liveMode){live.sendText(t);subtitle(T("you"),t)}
+ else if(S&&S.active)generalAsk(t);
 };
 document.getElementById("chattext").addEventListener("keydown",e=>{
- if(e.key==="Enter"&&liveMode){e.preventDefault();document.getElementById("chatsend").onclick()}});
+ if(e.key==="Enter"){e.preventDefault();document.getElementById("chatsend").onclick()}});
+
+// ---------- orb: mic control (mute toggle in voice mode, push-to-talk in guided mode) ----------
+let pendingVerbalSubmit=null;
+let pttRecog=null,pttHeld=false;
+const orbEl=document.getElementById("orb");
+orbEl.addEventListener("click",()=>{
+ if(!S||!S.active||!liveMode)return;
+ live.muted=!live.muted;
+ orbEl.textContent=live.muted?"🔇":"🎙️";
+ orbEl.classList.toggle("off",live.muted);
+ vstat(live.muted?T("micMuted"):T("micOpen"));
+});
+orbEl.addEventListener("pointerdown",()=>{
+ if(!S||!S.active||liveMode)return;
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){vstat(T("noSR"));return}
+ try{
+  pttRecog=new SR();pttRecog.lang=LANG==="ar"?"ar-SA":"en-US";pttRecog.interimResults=false;
+  pttRecog.onresult=ev=>{const t=ev.results[0][0].transcript;
+   if(pendingVerbalSubmit)pendingVerbalSubmit(t);else generalAsk(t)};
+  pttRecog.onerror=()=>vstat(T("noSR"));
+  pttRecog.start();pttHeld=true;
+  orbEl.classList.remove("off");orbEl.textContent="🔴";vstat(T("listening"),0);
+ }catch(e){vstat(T("noSR"))}
+});
+function endPTT(){
+ if(!pttHeld)return;pttHeld=false;
+ if(pttRecog){try{pttRecog.stop()}catch{};pttRecog=null}
+ if(S&&S.active&&!liveMode){orbEl.textContent="🎙️";orbEl.classList.add("off");vstat(T("holdTalk"))}
+}
+orbEl.addEventListener("pointerup",endPTT);
+orbEl.addEventListener("pointerleave",endPTT);
+
+async function generalAsk(text){
+ subtitle(T("you"),text);
+ try{
+  const r=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+   contents:[{parts:[{text:`You are Saif (سيف), a warm senior Abu Dhabi Customs training officer guiding a new employee through the ADC Training Academy simulation. Current station: ${S&&S.active?L(CONTENT.skills[S.st].scene.name):"the entrance"}. Reply in ${LANG==="ar"?"Arabic":"English"}, in character, max 40 words. Trainee says: "${text}"`}]}],
+   generationConfig:{temperature:.4}})});
+  const d=await r.json();
+  speakTTS(d.candidates[0].content.parts[0].text.trim(),T("saif"));
+ }catch(e){vstat(T("liveFail"))}
+}
 
 // ---------- start overlay ----------
 function lvState(n){
