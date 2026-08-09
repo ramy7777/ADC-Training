@@ -454,6 +454,7 @@ function flyBack(obj,to){flights.push({obj,to:to.clone(),t:0,dur:.35})}
 
 function pointerNDC(e){mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1}
 canvas.addEventListener("pointerdown",e=>{
+ live.unlock(); // any gesture keeps the voice audio contexts running
  pointerNDC(e);
  ray.setFromCamera(mouse,camera);
  const dh=ray.intersectObjects(drags,false);
@@ -531,6 +532,7 @@ function hoverTick(){
 /* ---------- movement ---------- */
 const keys={};
 addEventListener("keydown",e=>{
+ live.unlock();
  if(e.target.tagName==="INPUT")return;
  if(e.code==="Space"){e.preventDefault();if(!e.repeat)pttDown();return}
  keys[e.key.toLowerCase()]=true;
@@ -650,6 +652,7 @@ class LiveVoice{
   try{
    this.micStream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}});
    this.micCtx=new AudioContext({sampleRate:16000});
+   if(this.micCtx.state==="suspended")try{await this.micCtx.resume()}catch(e){}
    const src=this.micCtx.createMediaStreamSource(this.micStream);
    const send=(f)=>{
     if(this.muted||!this.ws||this.ws.readyState!==1)return;
@@ -672,6 +675,15 @@ class LiveVoice{
    }
    return true;
   }catch(e){log("mic error: "+e.message);return false}
+ }
+ // Browsers create AudioContexts "suspended" unless born in a user gesture.
+ // Called from clicks/keypresses so mic capture and playback actually run.
+ async unlock(){
+  try{
+   if(!this.playCtx)this.playCtx=new AudioContext({sampleRate:24000});
+   if(this.playCtx.state==="suspended")await this.playCtx.resume();
+   if(this.micCtx&&this.micCtx.state==="suspended")await this.micCtx.resume();
+  }catch(e){}
  }
  connect(systemPrompt,tools){
   return new Promise((resolve,reject)=>{
@@ -720,6 +732,7 @@ class LiveVoice{
  sendText(t){if(this.ws&&this.ws.readyState===1)this.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:t}]}],turnComplete:true}}))}
  enqueueAudio(b64){
   if(!this.playCtx)this.playCtx=new AudioContext({sampleRate:24000});
+  if(this.playCtx.state==="suspended")this.playCtx.resume();
   const bin=atob(b64);const n=bin.length/2;
   const f=new Float32Array(n);
   for(let i=0;i<n;i++){let v=bin.charCodeAt(i*2)|(bin.charCodeAt(i*2+1)<<8);if(v>=0x8000)v-=0x10000;f[i]=v/0x8000}
@@ -797,30 +810,33 @@ function cardMesh(text,w,h){const m=textPanel(text,w,h,{size:34});m.userData.isC
 function tileMesh(text,n){const m=textPanel(text,2.2,.9,{size:30,badge:n});m.userData.isCard=true;return m}
 // A tilted console desk in front of the trainee: question header on top,
 // numbered option tiles docked in slots on the glass deck.
-function dockPlace(meshes,promptText){
+function dockPlace(meshes,promptText,headerY=3.35){
  const n=meshes.length;
  const cols=Math.min(3,n<=3?n:Math.ceil(n/2)), rows=Math.ceil(n/cols);
  const tilt=-0.52, deckPos=new THREE.Vector3(0,1.12,2.3);
  const dw=cols*2.42+.5, dh=rows*1.08+.35;
  const deckG=new THREE.Group();
+ // opaque deck: a transparent deck under transparent tiles made the renderer
+ // flip their draw order every frame (visible flicker)
  const deck=new THREE.Mesh(new THREE.BoxGeometry(dw,dh,.07),
-   new THREE.MeshStandardMaterial({color:0x0f3237,roughness:.4,metalness:.3,transparent:true,opacity:.94}));
+   new THREE.MeshStandardMaterial({color:0x0f3237,roughness:.4,metalness:.3}));
+ deck.renderOrder=1;
  deckG.add(deck);
  const rim=new THREE.Mesh(new THREE.BoxGeometry(dw+.14,dh+.14,.03),mat(TEAL,TEAL,.7));
- rim.position.z=-.035;deckG.add(rim);
+ rim.position.z=-.035;rim.renderOrder=0;deckG.add(rim);
  deckG.position.copy(deckPos);deckG.rotation.x=tilt;
  qGroup.add(deckG);
  box(qGroup,.14,1.06,.14,0x2a3f45,-dw/2+.4,.53,2.3);
  box(qGroup,.14,1.06,.14,0x2a3f45,dw/2-.4,.53,2.3);
  if(promptText){
    const head=textPanel(promptText,7.4,1.1,{size:33,bold:true,color:"#ffffff",bg:"rgba(15,50,55,0.94)",border:"rgba(53,167,154,0.7)"});
-   head.position.set(0,3.35,0.5);qGroup.add(head);
+   head.position.set(0,headerY,0.5);qGroup.add(head);
  }
  const e=new THREE.Euler(tilt,0,0);
  meshes.forEach((m,k)=>{
-   const v=new THREE.Vector3((k%cols-(cols-1)/2)*2.42,((rows-1)/2-Math.floor(k/cols))*1.08,.09);
+   const v=new THREE.Vector3((k%cols-(cols-1)/2)*2.42,((rows-1)/2-Math.floor(k/cols))*1.08,.14);
    v.applyEuler(e).add(deckPos);
-   m.position.copy(v);m.rotation.x=tilt;
+   m.position.copy(v);m.rotation.x=tilt;m.renderOrder=10;
    m.userData.home=m.position.clone();m.userData.dockTilt=tilt;
    qGroup.add(m);
  });
@@ -1016,9 +1032,9 @@ function playBeat(stIdx,q,onDone){
          const pz=zoneM[prev];pz.grpZ.userData.stack=pz.grpZ.userData.stack.filter(x=>x!==o);restack(pz);
          o.scale.setScalar(1);o.userData.baseScale=1}
      };
-     return m});
-   dockPlace(cardM,L(q.prompt));
-   // zone boards standing in a row
+    return m});
+  dockPlace(cardM,L(q.prompt),4.5);
+  // zone boards standing in a row
    const zw=2.9;
    const zoneM=zones.map((z,zi)=>{
      const grpZ=new THREE.Group();
@@ -1028,7 +1044,8 @@ function playBeat(stIdx,q,onDone){
      head.position.set(0,2.22,.07);grpZ.add(head);
      const slotsLbl=textPanel(T("dropZone"),zw-.5,.5,{size:24,color:"#9aa7ad",bg:"rgba(244,247,248,0.9)",border:"rgba(0,0,0,0)"});
      slotsLbl.position.set(0,1.0,.07);grpZ.add(slotsLbl);grpZ.userData.slotsLbl=slotsLbl;
-     grpZ.position.set(-((zones.length-1)/2)*(zw+.35)+zi*(zw+.35),0,-.9);
+     // raised above the console deck — at floor level they were hidden behind it
+    grpZ.position.set(-((zones.length-1)/2)*(zw+.35)+zi*(zw+.35),1.35,-1.6);
      g.add(grpZ);
      back.userData.zi=zi;grpZ.userData.stack=[];
      back.userData.setHot=h=>{back.material.emissive=new THREE.Color(h?TEAL:0x000000);back.material.emissiveIntensity=h?.35:0};
@@ -1115,12 +1132,14 @@ async function stageConv(stIdx,q,onDone){
  if(!hasAI()){stat.style.display="block";stat.textContent=T("key_no");setTimeout(fallback,50);return}
  const finish=(ok)=>{cleanup();score(q,ok);setTimeout(()=>onDone(),1100)};
 
- /* ---- preferred: Gemini Live native voice through the server relay ---- */
+ /* ---- Gemini Live native voice through the server relay (no TTS fallback:
+    if the live session cannot start we go straight to visual choices) ---- */
  if(AI_ON&&window.isSecureContext&&VOICE_ON){
    stat.style.display="block";stat.textContent="…";
    const okMic=await live.initMic();
    if(okMic){
      try{
+       await live.unlock();
        const exp=q.correct.map(c=>L(c)).join(" / ");
        const wrong=realDis(q).map(d=>L(d)).join(" / ");
        const sys=`You are Saif, a warm senior Abu Dhabi Customs officer inside a 3D training simulation, assessing a junior trainee. Session language: ${LANG==="ar"?"Arabic — speak only Arabic":"English"}. ${q.id==="S5-Q3"?"For this moment you roleplay a VISITOR at reception asking the trainee a question.":""}
@@ -1139,8 +1158,10 @@ Open with ONE short sentence asking the question naturally. Then listen. Accept 
          return {ok:true};
        };
        live.onClose=()=>{if(!judged){stat.textContent=T("ai_no");setTimeout(fallback,600)}};
-       await live.connect(sys,[{name:"score_answer",description:"Record the assessment of the trainee's verbal answer. Call exactly once.",
-         parameters:{type:"OBJECT",properties:{correct:{type:"BOOLEAN"},feedback:{type:"STRING",description:"one short in-character sentence"}},required:["correct"]}}]);
+       const tools=[{name:"score_answer",description:"Record the assessment of the trainee's verbal answer. Call exactly once.",
+         parameters:{type:"OBJECT",properties:{correct:{type:"BOOLEAN"},feedback:{type:"STRING",description:"one short in-character sentence"}},required:["correct"]}}];
+       try{await live.connect(sys,tools)}
+       catch(e1){log("live retry: "+e1.message);await live.connect(sys,tools)} // one retry before giving up
        live.sendText("(The trainee is standing in front of you, ready. Ask the question now.)");
        stat.textContent=T("listenLive");
        conv.style.display="flex";convOpen=true;liveActive=true;
@@ -1156,31 +1177,9 @@ Open with ONE short sentence asking the question naturally. Then listen. Accept 
    }
  }
 
- /* ---- fallback: browser speech-recognition + REST judging ---- */
- speak(brief(L(q.prompt)),who,L(q.prompt));
- conv.style.display="flex";convOpen=true;
- talk.style.display="";
- stat.style.display="block";stat.textContent=T("typeHint");
- sp.style.display="block";sp.textContent=T("holdSpace");
- const submit=async(text)=>{
-   if(!text||!text.trim())return;
-   subtitle(T("you"),text);
-   stat.textContent=T("judging");
-   conv.style.display="none";sp.style.display="none";
-   try{
-     const v=await judgeAnswer(q,text.trim());
-     stat.style.display="none";
-     speak(v.feedback,T("saif"));
-     finish(!!v.correct);
-   }catch(e){stat.textContent=T("ai_no");log("gemini error: "+e.message);setTimeout(fallback,900)}
- };
- curSubmit=submit;
- document.getElementById("convsend").onclick=()=>submit(document.getElementById("convin").value);
- document.getElementById("convin").onkeydown=e=>{if(e.key==="Enter")submit(e.target.value)};
- document.getElementById("convopts").onclick=fallback;
- talk.onpointerdown=recStart;
- talk.onpointerup=recStop;
- talk.onpointerleave=()=>{if(recActive)recStop()};
+ // no robotic-TTS path: if live voice is unavailable, show the choices instead
+ stat.style.display="block";stat.textContent=T("ai_no");
+ setTimeout(fallback,400);
 }
 
 /* ================= session flow ================= */
