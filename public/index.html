@@ -45,18 +45,23 @@ button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;font-si
 #beatdots i.ok{background:var(--green)}#beatdots i.no{background:var(--red)}#beatdots i.cur{background:var(--gold);box-shadow:0 0 8px var(--gold)}
 #topbtns{position:fixed;top:16px;right:16px;display:flex;gap:8px;z-index:41}
 #topbtns .btn{background:var(--glass);color:#eef3fb;border:1px solid #274a7a;font-weight:500;font-size:12.5px;padding:9px 15px;box-shadow:none;backdrop-filter:blur(8px)}
-#sub{position:fixed;bottom:132px;left:50%;transform:translateX(-50%);max-width:780px;width:92vw;text-align:center;z-index:20;display:none}
+#brand{position:fixed;top:14px;left:16px;z-index:20;display:flex;gap:10px;align-items:center;pointer-events:none;text-shadow:0 1px 8px #000}
+#brand img{width:38px;height:38px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6))}
+#brand .b1{font-size:12.5px;font-weight:700;letter-spacing:.07em;color:#fff}
+#brand .b1 span{color:var(--gold)}
+#brand .b2{font-size:10px;color:var(--muted);letter-spacing:.14em;margin-top:2px}
+#sub{position:fixed;bottom:142px;left:50%;transform:translateX(-50%);max-width:780px;width:92vw;text-align:center;z-index:20;display:none}
 #sub .who{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-shadow:0 1px 6px #000}
 #sub .txt{background:var(--glass);border:1px solid #274a7a;border-radius:14px;padding:13px 20px;font-size:16.5px;line-height:1.55;margin-top:5px;backdrop-filter:blur(8px);text-shadow:0 1px 2px #000}
-#usub{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);font-size:12.5px;color:#9fd8ff;z-index:20;display:none;background:rgba(8,20,38,.6);border-radius:9px;padding:4px 12px;max-width:70vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#usub{position:fixed;bottom:114px;left:50%;transform:translateX(-50%);font-size:12.5px;color:#9fd8ff;z-index:20;display:none;background:rgba(8,20,38,.6);border-radius:9px;padding:4px 12px;max-width:70vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#vstat{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);font-size:11.5px;color:var(--muted);z-index:20;background:rgba(8,20,38,.55);border-radius:8px;padding:3px 12px;max-width:80vw;text-align:center;display:none}
 #voicebar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:12px;z-index:21}
 #orb{width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#37e0a0,#0d7a52);box-shadow:0 0 22px rgba(47,208,139,.5);display:flex;align-items:center;justify-content:center;font-size:20px;transition:transform .1s,box-shadow .2s}
 #orb.ai{background:radial-gradient(circle at 35% 30%,#ffd97a,#b3801f);box-shadow:0 0 26px rgba(224,179,76,.6)}
 #orb.off{background:radial-gradient(circle at 35% 30%,#5a6b84,#232f42);box-shadow:none}
-#vtxt{font-size:11.5px;color:var(--muted);max-width:210px;line-height:1.5}
 #chatin{display:flex;gap:7px}
 #chatin input{width:240px;padding:10px 13px;border-radius:99px;border:1px solid #274a7a;background:var(--glass);color:#eef3fb;font-size:13px;font-family:inherit;outline:none}
-#ctrlhint{position:fixed;bottom:20px;left:18px;font-size:11px;color:var(--muted);z-index:19;background:var(--glass);padding:9px 13px;border-radius:11px;line-height:1.75;max-width:300px;border:1px solid #1c3a63}
+#ctrlhint{position:fixed;top:66px;left:16px;font-size:10.5px;color:var(--muted);z-index:19;background:var(--glass);padding:8px 12px;border-radius:11px;line-height:1.7;max-width:250px;border:1px solid #1c3a63}
 #cross{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:18;display:none;pointer-events:none}
 #cross i{display:block;width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.85);box-shadow:0 0 6px rgba(0,0,0,.8);transition:transform .12s}
 #cross.hot i{transform:scale(2);background:var(--gold)}
@@ -89,11 +94,12 @@ td{border:1px solid #274a7a;padding:5px 8px}
   <span class="pill" id="ha"></span>
 </div>
 <div id="topbtns"><button class="btn" id="btnAdmin">Admin</button></div>
+<div id="brand" style="display:none"><img id="brandImg" alt=""><div><div class="b1">ABU DHABI CUSTOMS <span>·</span> جمارك أبوظبي</div><div class="b2">TRAINING ACADEMY · أكاديمية التدريب</div></div></div>
 <div id="sub"><div class="who" id="subwho"></div><div class="txt" id="subtxt"></div></div>
 <div id="usub"></div>
+<div id="vstat"></div>
 <div id="voicebar">
   <div id="orb">🎙️</div>
-  <div id="vtxt"></div>
   <div id="chatin"><input id="chattext" type="text"><button class="btn small" id="chatsend">➤</button></div>
 </div>
 <div id="ctrlhint"></div>
@@ -102,6 +108,11 @@ td{border:1px solid #274a7a;padding:5px 8px}
 <div id="toast"></div>
 
 <div class="ov" id="startOv"><div class="panel">
+  <div style="display:flex;gap:14px;align-items:center;margin-bottom:14px">
+    <img id="emblemImg" alt="" style="width:62px;height:62px">
+    <div><div style="font-size:14px;font-weight:700;letter-spacing:.06em">ABU DHABI CUSTOMS · جمارك أبوظبي</div>
+    <div style="font-size:11px;color:var(--muted);letter-spacing:.14em;margin-top:3px">TRAINING ACADEMY · أكاديمية التدريب</div></div>
+  </div>
   <div class="eyebrow" id="soEyebrow"></div>
   <h2 id="soTitle"></h2>
   <p style="font-size:13.5px;color:var(--muted);line-height:1.65" id="soDesc"></p>
@@ -212,7 +223,8 @@ function widgetOf(q){
 const realDis=q=>q.distractors.filter(d=>!d.en.trim().startsWith("("));
 
 // ---------- three world ----------
-const ACCENTS=[0x35c4ff,0x9a7bff,0xff9d5c,0x35e0c4,0xe0b34c,0x5cff9d];
+// curated ADC brand family: gold, red, steel blue, teal, amber, oasis green
+const ACCENTS=[0xd8a63a,0xc0504a,0x4a90c0,0x35b39a,0xd8763a,0x7fae4a];
 const canvas=document.getElementById("c3d");
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -225,6 +237,27 @@ const camPos=new THREE.Vector3(0,1.6,14);
 scene.fog=new THREE.Fog(0x070f1c,30,110);
 scene.add(new THREE.HemisphereLight(0x9dbcf0,0x141f33,1.15));
 const dl=new THREE.DirectionalLight(0xffe2b0,.9);dl.position.set(8,18,6);scene.add(dl);
+
+// ---- ADC emblem (drawn, abstract — geometric octagram + falcon chevrons) ----
+function emblemCanvas(sz){
+ const cv=document.createElement("canvas");cv.width=cv.height=sz;const x=cv.getContext("2d");
+ const c=sz/2;
+ x.beginPath();x.arc(c,c,sz*.47,0,7);x.fillStyle="#0d2038";x.fill();
+ x.lineWidth=sz*.035;x.strokeStyle="#d8a63a";x.beginPath();x.arc(c,c,sz*.455,0,7);x.stroke();
+ x.lineWidth=sz*.012;x.strokeStyle="rgba(216,166,58,.55)";x.beginPath();x.arc(c,c,sz*.38,0,7);x.stroke();
+ // octagram (two rotated squares)
+ x.save();x.translate(c,c);x.strokeStyle="#d8a63a";x.lineWidth=sz*.02;
+ for(const rot of[0,Math.PI/4]){x.save();x.rotate(rot);x.strokeRect(-sz*.24,-sz*.24,sz*.48,sz*.48);x.restore()}
+ x.restore();
+ // falcon chevrons (three ascending wings)
+ x.fillStyle="#c0392b";
+ for(let k=0;k<3;k++){const w=sz*(.26-k*.07),y=c+sz*.1-k*sz*.11;
+  x.beginPath();x.moveTo(c-w,y);x.lineTo(c,y-sz*.09);x.lineTo(c+w,y);x.lineTo(c,y-sz*.045);x.closePath();x.fill()}
+ return cv;
+}
+const emblemURL=emblemCanvas(256).toDataURL();
+document.getElementById("brandImg").src=emblemURL;
+const emb2=document.getElementById("emblemImg");if(emb2)emb2.src=emblemURL;
 
 // sky dome (gradient)
 {const cv=document.createElement("canvas");cv.width=32;cv.height=256;const x=cv.getContext("2d");
@@ -257,6 +290,27 @@ let dust;{const g=new THREE.BufferGeometry();const n=350;const p=new Float32Arra
  const tex=new THREE.CanvasTexture(cv);tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(10,10);
  const floor=new THREE.Mesh(new THREE.CircleGeometry(80,72),new THREE.MeshStandardMaterial({map:tex,roughness:.6,metalness:.35}));
  floor.rotation.x=-Math.PI/2;scene.add(floor);}
+
+// skyline silhouette band on the horizon
+{const cv=document.createElement("canvas");cv.width=2048;cv.height=256;const x=cv.getContext("2d");
+ x.clearRect(0,0,2048,256);x.fillStyle="#0b1930";
+ let px=0;
+ while(px<2048){const w=30+Math.random()*70,h=40+Math.random()*130;
+  x.fillRect(px,256-h,w,h);
+  if(Math.random()<.25){x.beginPath();x.arc(px+w/2,256-h,w*.32,Math.PI,0);x.fill()} // domes
+  if(Math.random()<.2)x.fillRect(px+w/2-3,256-h-26,6,26); // spires
+  px+=w+8+Math.random()*26}
+ const tex=new THREE.CanvasTexture(cv);
+ const band=new THREE.Mesh(new THREE.CylinderGeometry(142,142,30,72,1,true),
+  new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.BackSide,fog:false,opacity:.85}));
+ band.position.y=13;scene.add(band);}
+// central floor medallion (ADC emblem)
+{const tex=new THREE.CanvasTexture(emblemCanvas(1024));
+ const med=new THREE.Mesh(new THREE.CircleGeometry(5.2,64),
+  new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:.6}));
+ med.rotation.x=-Math.PI/2;med.rotation.z=Math.PI;med.position.set(0,.02,0);scene.add(med);
+ const mring=new THREE.Mesh(new THREE.TorusGeometry(5.5,.05,8,72),mat(0xd8a63a,0xd8a63a,.8));
+ mring.rotation.x=Math.PI/2;mring.position.y=.05;scene.add(mring);}
 
 const R=26,WALK=R-7.2,stations=[];
 function stationAngle(i){return (-62+i*24.8)*Math.PI/180}
@@ -311,6 +365,7 @@ function wallTexture(accent,num){
  x.strokeStyle="rgba(120,170,230,.09)";
  for(let i=0;i<24;i++){x.beginPath();x.moveTo(i*44,0);x.lineTo(i*44,512);x.stroke()}
  x.fillStyle="rgba(255,255,255,.045)";x.font="700 420px Segoe UI";x.textAlign="right";x.fillText(String(num),1000,470);
+ x.fillStyle="rgba(216,166,58,.5)";x.font="700 34px Segoe UI";x.textAlign="left";x.letterSpacing="6px";x.fillText("ABU DHABI CUSTOMS · TRAINING ACADEMY",28,52);
  const ac="#"+accent.toString(16).padStart(6,"0");
  x.fillStyle=ac;x.globalAlpha=.14;x.fillRect(0,492,1024,20);x.globalAlpha=1;
  return new THREE.CanvasTexture(cv);
@@ -376,11 +431,23 @@ const saif=new THREE.Group();
  const glow=new THREE.PointLight(0x35c4ff,4,6);glow.position.y=1.6;saif.add(glow);saif.userData.glow=glow;
  saif.position.set(1.6,0,10);scene.add(saif)}
 let saifTarget=saif.position.clone(),saifSpeaking=false;
-// entrance arch
+// entrance gate: academy signage + UAE-color banners
 {const a=new THREE.Group();
- box(a,.5,4.4,.5,0x1b3c63,-2.6,2.2,0);box(a,.5,4.4,.5,0x1b3c63,2.6,2.2,0);
- box(a,5.8,.5,.6,0x1b3c63,0,4.6,0,0xe0b34c);
- const sign=new THREE.Group();sign.add(a);
+ box(a,.55,4.6,.55,0x1b3c63,-3.1,2.3,0);box(a,.55,4.6,.55,0x1b3c63,3.1,2.3,0);
+ box(a,6.9,.55,.65,0x1b3c63,0,4.85,0,0xd8a63a);
+ const sign=textPanel("ADC TRAINING ACADEMY · أكاديمية التدريب",6.4,.82,{size:44,bold:true,bg:"rgba(13,32,56,.95)",border:"#d8a63a",glow:false});
+ sign.position.set(0,4.05,-.35);sign.rotation.y=Math.PI;a.add(sign);
+ const sign2=sign.clone();sign2.rotation.y=0;sign2.position.z=.35;a.add(sign2);
+ // banners
+ const bcv=document.createElement("canvas");bcv.width=64;bcv.height=256;const bx=bcv.getContext("2d");
+ bx.fillStyle="#c0392b";bx.fillRect(0,0,64,86);
+ bx.fillStyle="#eef3fb";bx.fillRect(0,86,64,85);
+ bx.fillStyle="#1e7a4e";bx.fillRect(0,171,64,85);
+ const btex=new THREE.CanvasTexture(bcv);
+ for(const bxp of[-3.1,3.1]){
+  const banner=new THREE.Mesh(new THREE.PlaneGeometry(.75,2.6),
+   new THREE.MeshBasicMaterial({map:btex,side:THREE.DoubleSide}));
+  banner.position.set(bxp,3.1,.42);a.add(banner)}
  a.position.set(0,0,17);scene.add(a)}
 CONTENT.skills.forEach((sk,i)=>stations.push(buildStation(i,sk)));
 
@@ -436,7 +503,7 @@ function moveTick(dt){
    if(glide.t>=1)glide=null;return}
  const run=keys["shift"]?1.9:1;
  const sp=5.4*run*dt;
- const f=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),r=new THREE.Vector3(f.z,0,-f.x);
+ const f=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),r=new THREE.Vector3(-f.z,0,f.x);
  let moved=false;
  if(keys.w||keys.arrowup){camPos.addScaledVector(f,sp);moved=true}
  if(keys.s||keys.arrowdown){camPos.addScaledVector(f,-sp);moved=true}
@@ -458,6 +525,10 @@ function subtitle(who,text,sticky){
  if(!sticky)subTimer=setTimeout(()=>s.style.display="none",Math.max(3800,text.length*70));
 }
 function toast(t,ms=3200){const el=document.getElementById("toast");el.textContent=t;el.style.display="block";clearTimeout(el._t);el._t=setTimeout(()=>el.style.display="none",ms)}
+function vstat(t,ms=4000){const el=document.getElementById("vstat");
+ if(!t){el.style.display="none";return}
+ el.textContent=t;el.style.display="block";clearTimeout(el._t);
+ if(ms)el._t=setTimeout(()=>el.style.display="none",ms)}
 let AC=null;function beep(ok){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
  const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);
  o.frequency.value=ok?880:220;o.type="sine";g.gain.setValueAtTime(.1,AC.currentTime);
@@ -523,6 +594,7 @@ class LiveVoice{
    const proto=location.protocol==="https:"?"wss":"ws";
    const ws=new WebSocket(`${proto}://${location.host}/live`);
    this.ws=ws;this.intentional=false;
+   const sock=ws; // stale-socket guard: events from an old socket are ignored
    let settled=false;
    const to=setTimeout(()=>{if(!settled){settled=true;try{ws.close()}catch{};reject(new Error("timeout"))}},12000);
    ws.onopen=()=>{
@@ -535,6 +607,7 @@ class LiveVoice{
     }}));
    };
    ws.onmessage=async(ev)=>{
+    if(this.ws!==sock)return; // message from a replaced session — ignore (prevents overlapping voices)
     const m=JSON.parse(typeof ev.data==="string"?ev.data:await ev.data.text());
     if(m.setupComplete!==undefined){if(!settled){settled=true;clearTimeout(to);resolve()}return}
     if(m.serverContent){
@@ -555,8 +628,9 @@ class LiveVoice{
      }
     }
    };
-   ws.onerror=()=>{if(!settled){settled=true;clearTimeout(to);reject(new Error("ws error"))}};
-   ws.onclose=(e)=>{if(!settled){settled=true;clearTimeout(to);reject(new Error("closed "+e.code))}else if(!this.intentional&&this.onClose)this.onClose(e)};
+   ws.onerror=()=>{if(this.ws!==sock)return;if(!settled){settled=true;clearTimeout(to);reject(new Error("ws error"))}};
+   ws.onclose=(e)=>{if(!settled){settled=true;clearTimeout(to);reject(new Error("closed "+e.code))}
+    else if(this.ws===sock&&!this.intentional&&this.onClose)this.onClose(e)};
   });
  }
  sendText(t){if(this.ws&&this.ws.readyState===1)this.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:t}]}],turnComplete:true}}))}
@@ -653,7 +727,7 @@ async function handleLiveDrop(){
   log("reconnect failed: "+e.message);
   liveMode=false;
   document.getElementById("orb").classList.add("off");
-  document.getElementById("vtxt").textContent=T("liveFail");
+  vstat(T("liveFail"));
   toast(T("liveFail"));
   clearQ();
   classicBeat(S.st,0);
@@ -782,10 +856,11 @@ async function startSession(name){
    await connectStation(0);
    liveMode=true;
    document.getElementById("orb").classList.remove("off");
-   document.getElementById("vtxt").textContent=T("voiceOn");
+   vstat(T("voiceOn"),6000);
   }catch(e){log("live connect failed: "+e.message);toast(T("liveFail"))}
  }
- if(!liveMode){document.getElementById("orb").classList.add("off");document.getElementById("vtxt").textContent=T("liveFail")}
+ if(!liveMode){document.getElementById("orb").classList.add("off");vstat(T("liveFail"))}
+ document.getElementById("brand").style.display="flex";
  runStation(0,!liveMode);
 }
 async function connectStation(i,resume){
@@ -833,7 +908,7 @@ function classicBeat(i,b){
  }
 }
 function classicVerbal(q,done){
- const vb=document.getElementById("vtxt");vb.textContent=T("classicPrompt");
+ vstat(T("classicPrompt"),0);
  const input=document.getElementById("chattext");input.value="";input.focus();
  const optBtn=document.createElement("button");optBtn.className="btn small navy";optBtn.textContent=T("showOpts");
  document.getElementById("chatin").appendChild(optBtn);
@@ -847,14 +922,14 @@ function classicVerbal(q,done){
  const sendBtn=document.getElementById("chatsend");
  const submit=async()=>{
   const t=input.value.trim();if(!t)return;input.value="";
-  subtitle(T("you"),t);vb.textContent=T("judging");
+  subtitle(T("you"),t);vstat(T("judging"),0);
   try{
    const r=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
     contents:[{parts:[{text:`Judge a customs-training answer. Question: ${L(q.prompt)} Correct idea: ${q.correct.map(c=>L(c)).join(" / ")}. Wrong ideas: ${realDis(q).map(d=>L(d)).join(" / ")}. Trainee said: "${t}". Accept paraphrase / mostly-correct. Reply ONLY JSON {"correct":bool,"feedback":"one short sentence in ${LANG==="ar"?"Arabic":"English"}"}`}]}],
     generationConfig:{responseMimeType:"application/json",temperature:.2}})});
    const d=await r.json();
    const v=JSON.parse(d.candidates[0].content.parts[0].text);
-   speakTTS(v.feedback,T("saif"));cleanup();vb.textContent="";done(!!v.correct);
+   speakTTS(v.feedback,T("saif"));cleanup();vstat("");done(!!v.correct);
   }catch(e){log("judge error: "+e.message);fallbackOpts()}
  };
  const defaultSend=sendBtn.onclick;
