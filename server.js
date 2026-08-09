@@ -43,8 +43,13 @@ const server = http.createServer(app);
 
 // Transparent relay: browser <-> this server <-> Gemini Live API.
 const wss = new WebSocketServer({ server, path: "/live" });
+let liveSeq = 0;
 wss.on("connection", (client) => {
   if (!KEY) { client.close(1011, "AI not configured"); return; }
+  const id = ++liveSeq;
+  const t0 = Date.now();
+  const age = () => ((Date.now() - t0) / 1000).toFixed(1) + "s";
+  console.log(`[live#${id}] client connected`);
   const upstream = new WebSocket(`${GEMINI_WS}?key=${KEY}`);
   const pending = [];
   upstream.on("open", () => { for (const m of pending) upstream.send(m); pending.length = 0; });
@@ -57,10 +62,13 @@ wss.on("connection", (client) => {
     if (client.readyState === WebSocket.OPEN) client.send(data.toString());
   });
   const closeBoth = () => { try { client.close(); } catch {} try { upstream.close(); } catch {} };
-  client.on("close", closeBoth);
-  client.on("error", closeBoth);
-  upstream.on("close", (code, reason) => { try { client.close(1000, String(reason).slice(0, 100)); } catch {} });
-  upstream.on("error", closeBoth);
+  client.on("close", (code) => { console.log(`[live#${id}] client closed ${code} after ${age()}`); closeBoth(); });
+  client.on("error", (e) => { console.log(`[live#${id}] client error: ${e.message}`); closeBoth(); });
+  upstream.on("close", (code, reason) => {
+    console.log(`[live#${id}] gemini closed ${code} "${String(reason).slice(0, 200)}" after ${age()}`);
+    try { client.close(1000, String(reason).slice(0, 100)); } catch {}
+  });
+  upstream.on("error", (e) => { console.log(`[live#${id}] gemini error: ${e.message}`); closeBoth(); });
 });
 
 const port = process.env.PORT || 10000;

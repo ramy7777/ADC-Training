@@ -767,11 +767,15 @@ async function hostPump(){
  if(HOST.onScore&&HOST.q[0].kind!=="ASK")return;
  const it=HOST.q.shift();
  HOST.talking=true;
- clearTimeout(HOST.watch);
- HOST.watch=setTimeout(()=>{HOST.talking=false;hostPump()},9000); // failsafe if a turn never completes
+ hostArm();
  if(it.kind==="ASK")live.muted=false; // open the mic exactly when a question starts
  live.sendText(`[${it.kind}] ${it.text}`);
 }
+// failsafe fires only after 9s of real silence — long lines keep resetting it
+// via onActivity, so we never send a new turn into a still-running generation
+function hostArm(){clearTimeout(HOST.watch);HOST.watch=setTimeout(()=>{HOST.talking=false;hostPump()},9000)}
+// a new beat or station makes older, still-unspoken narration obsolete
+function hostFlush(){HOST.q=HOST.q.filter(it=>it.kind==="ASK")}
 async function hostEnsure(){
  if(HOST.on&&live.ws&&live.ws.readyState===1)return true;
  if(HOST.connecting)return HOST.connecting; // single-flight: parallel callers share one connect
@@ -801,6 +805,7 @@ You receive bracketed system commands. The trainee never sees them; never mentio
   };
   live.onUserText=(t)=>{const st=document.getElementById("convstat");
    if(!live.muted&&st.style.display!=="none")st.textContent="🎙 "+t};
+  live.onActivity=()=>{if(HOST.talking)hostArm()};
   live.onTool=async(n,a)=>{if(n==="score_answer"&&HOST.onScore){const f=HOST.onScore;HOST.onScore=null;f(a||{});hostPump()}return{ok:true}};
   live.onClose=()=>{HOST.on=false;HOST.talking=false;clearTimeout(HOST.watch);
    setTimeout(hostPump,800)}; // auto-reconnect on next queued line
@@ -940,6 +945,7 @@ class LiveVoice{
     if(m.setupComplete!==undefined){if(!settled){settled=true;clearTimeout(to);resolve()}return}
     if(m.serverContent){
      const sc=m.serverContent;
+     if(this.onActivity)this.onActivity(); // lets watchdogs measure real silence, not turn length
      if(sc.interrupted){this.stopPlayback();if(this.onText)this.onText("",true);return} // count as turn end so queues never freeze
      for(const p of (sc.modelTurn?.parts||[])){
       if(p.inlineData?.data)this.enqueueAudio(p.inlineData.data);
@@ -1105,6 +1111,7 @@ function makePad(g,label,wide){
 function playBeat(stIdx,q,onDone){
  const w=widgetOf(q);
  const dis=realDis(q);
+ hostFlush(); // drop narration for beats the trainee has already moved past
  if(w==="conv"){stageConv(stIdx,q,onDone);return}
  const INSTR={single:"instrSingle",multi:"instrMulti",sequence:"instrSeq",hotsingle:"instrHot",hotmulti:"instrHotM",assign:"instrAssign"};
  speak(L(q.prompt)+" — "+T(INSTR[w]||"instrSingle"),T("saif"),L(q.prompt));
@@ -1440,6 +1447,7 @@ function runStation(i){
  const a=stationAngle(i);
  saifTarget=new THREE.Vector3(Math.sin(a)*(R-5.4)+Math.cos(a)*1.8,0,-Math.cos(a)*(R-5.4)+Math.sin(a)*1.8);
  glideTo(i);
+ hostFlush();live.stopPlayback(); // fresh start at each station: skip stale narration audio
  speak(T("stationIntro")[i],T("saif"));
  setTimeout(()=>runBeat(i,0),FAST?350:2600);
 }
