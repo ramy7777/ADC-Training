@@ -25,6 +25,12 @@ app.get("/api/config", (req, res) => {
   });
 });
 
+// Client voice telemetry — shows up in Render logs so silences are diagnosable.
+app.post("/api/clog", (req, res) => {
+  console.log("[voice]", String((req.body && req.body.m) || "").slice(0, 300));
+  res.json({ ok: 1 });
+});
+
 // REST proxy for the non-voice fallback (typed answers, ask-Saif).
 app.post("/api/generate", async (req, res) => {
   if (!KEY) return res.status(503).json({ error: "AI not configured" });

@@ -944,7 +944,11 @@ function brief(text){
    ACTUAL voice (streamed transcription), so text and audio stay in lockstep.
    Without AI, narration falls back to silent scripted subtitles. */
 const HOST={on:false,failed:0,talking:false,onScore:null,who:null,buf:"",watch:null,
- lastUser:0,lastAct:0,cur:null,hold:0,deferred:null,seq:0,sentAt:0,gotText:false,react:null};
+ lastUser:0,lastAct:0,cur:null,hold:0,deferred:null,seq:0,sentAt:0,gotText:false,gotAct:false,react:null};
+// voice telemetry → server console, so silences are diagnosable from Render logs
+function clog(m){if(!AI_ON)return;
+ try{fetch("/api/clog",{method:"POST",headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({m}),keepalive:true}).catch(()=>{})}catch(e){}}
 function speak(text,who,fullSub,cb){say(text,"SAY",cb,who,fullSub)}
 function say(text,kind,cb,who,fullSub){
  kind=kind||"SAY";
@@ -978,17 +982,19 @@ async function hostSend(it){
  if(old&&old.cb)try{old.cb()}catch(e){} // the displaced line's moment has passed — let its flow continue
  live.stopPlayback(); // talk-over: cut the stale speech instantly
  HOST.cur=it;HOST.talking=true;HOST.buf="";HOST.who=it.who;
- HOST.gotText=false;HOST.sentAt=Date.now();
+ HOST.gotText=false;HOST.gotAct=false;HOST.sentAt=Date.now();
  hostArm();
  if(it.kind==="ASK"){live.muted=false;live.initMic()}
+ clog(`send [${it.kind}] ${it.text.slice(0,60)}`);
  live.sendText(`[${it.kind}] ${it.text}`);
  // if no voice materializes quickly, show the scripted line so nothing is lost
  setTimeout(()=>{if(HOST.cur===it&&!HOST.gotText)subtitle(it.who,it.sub)},4000);
 }
 // watchdog: a turn that goes silent without an end-signal releases the floor
-function hostArm(){clearTimeout(HOST.watch);HOST.watch=setTimeout(hostDone,10000)}
-function hostDone(){ // turn over (turnComplete, genuine interruption, or watchdog)
+function hostArm(){clearTimeout(HOST.watch);HOST.watch=setTimeout(()=>hostDone("watchdog"),10000)}
+function hostDone(why){ // turn over (turnComplete, genuine interruption, or watchdog)
  clearTimeout(HOST.watch);
+ if(why==="watchdog"||HOST.cur)clog("turn done: "+(why||"forced"));
  HOST.talking=false;HOST.buf="";
  const c=HOST.cur;HOST.cur=null;
  if(c&&c.cb)try{c.cb()}catch(e){}
@@ -1034,29 +1040,32 @@ Rules of awareness: stage directions are ground truth about where the trainee is
    if(t){HOST.gotText=true;HOST.buf+=t;
     subtitle(HOST.who||T("saif"),HOST.buf.replace(/\[(SAY|ASK|NOTE|NUDGE)\]\s*/g,""),true)}
    if(done){
-    // an end-signal right after we preempted belongs to the OLD turn — ignore it
-    if(Date.now()-HOST.sentAt<1200&&!HOST.gotText)return;
-    HOST.hold=0;hostDone()}
+    // an end-signal right after we preempted belongs to the OLD turn — but only
+    // if THIS turn hasn't produced anything yet (a fast short turn is genuine)
+    if(Date.now()-HOST.sentAt<1200&&!HOST.gotText&&!HOST.gotAct){clog("done-swallowed (old turn)");return}
+    HOST.hold=0;hostDone("turnComplete")}
   };
-  live.onInterrupt=()=>{ // genuine barge-in by the trainee ends the turn;
-   if(Date.now()-HOST.sentAt<1500)return; // ...our own preemption echo does not
-   hostDone()};
+  live.onInterrupt=()=>{
+   if(Date.now()-HOST.sentAt<1500){ // our own preemption echo, not a barge-in:
+    if(!HOST.gotAct)live.stopPlayback(); // only silence the OLD turn's leftovers
+    clog("interrupt-echo ignored");return}
+   live.stopPlayback();clog("barge-in");hostDone("interrupted")}; // genuine barge-in by the trainee
   live.onUserText=(t)=>{HOST.lastUser=Date.now();const st=document.getElementById("convstat");
    if(!live.muted&&st.style.display!=="none")st.textContent="🎙 "+t};
-  live.onActivity=()=>{HOST.lastAct=Date.now();if(HOST.talking)hostArm()}; // active turn keeps the watchdog fed
+  live.onActivity=()=>{HOST.lastAct=Date.now();HOST.gotAct=true;if(HOST.talking)hostArm()}; // model output keeps the watchdog fed
   live.onTool=async(n,a)=>{if(n==="score_answer"&&HOST.onScore){const f=HOST.onScore;HOST.onScore=null;f(a||{});hostNext()}return{ok:true}};
-  live.onClose=()=>{HOST.on=false;HOST.talking=false;clearTimeout(HOST.watch);
+  live.onClose=()=>{HOST.on=false;HOST.talking=false;clearTimeout(HOST.watch);clog("live session closed");
    setTimeout(()=>{if(S&&S.active)hostEnsure()},800)}; // warm reconnect: the next event speaks fast
   await live.connect(sys,[{name:"score_answer",description:"Record the assessment of the trainee's verbal answer during an [ASK] moment. Call exactly once per question.",
     parameters:{type:"OBJECT",properties:{correct:{type:"BOOLEAN"},feedback:{type:"STRING",description:"one short in-character sentence"}},required:["correct"]}}]);
   live.muted=true; // mic opens only during [ASK] moments
   HOST.on=true;HOST.failed=0;
   return true;
- }catch(e){HOST.failed++;log("host error: "+e.message);return false}
+ }catch(e){HOST.failed++;log("host error: "+e.message);clog("host connect FAILED #"+HOST.failed+": "+e.message);return false}
 }
 function hostReset(){
  HOST.on=false;HOST.failed=0;HOST.talking=false;HOST.onScore=null;HOST.who=null;HOST.buf="";HOST.lastUser=0;
- HOST.connecting=null;HOST.cur=null;HOST.hold=0;HOST.deferred=null;HOST.react=null;HOST.seq++;
+ HOST.connecting=null;HOST.cur=null;HOST.hold=0;HOST.deferred=null;HOST.react=null;HOST.gotAct=false;HOST.seq++;
  clearTimeout(HOST.watch);live.destroy();
 }
 let subTimer=null;
@@ -1192,12 +1201,15 @@ class LiveVoice{
      return}
     if(m.serverContent){
      const sc=m.serverContent;
-     if(this.onActivity)this.onActivity(); // lets watchdogs measure real silence, not turn length
-     if(sc.interrupted){this.stopPlayback();if(this.onInterrupt)this.onInterrupt();return}
+     // the interrupt handler decides what to stop — a blind stopPlayback here
+     // used to kill the NEW turn's audio when preemption raced the notice
+     if(sc.interrupted){if(this.onInterrupt)this.onInterrupt();else this.stopPlayback();return}
+     let act=false; // "activity" = MODEL output only; mic transcription must not feed turn watchdogs
      for(const p of (sc.modelTurn?.parts||[])){
-      if(p.inlineData?.data)this.enqueueAudio(p.inlineData.data);
+      if(p.inlineData?.data){this.enqueueAudio(p.inlineData.data);act=true}
      }
-     if(sc.outputTranscription?.text&&this.onText)this.onText(sc.outputTranscription.text,!!sc.turnComplete);
+     if(sc.outputTranscription?.text){act=true;if(this.onText)this.onText(sc.outputTranscription.text,!!sc.turnComplete)}
+     if(act&&this.onActivity)this.onActivity();
      if(sc.inputTranscription?.text&&this.onUserText)this.onUserText(sc.inputTranscription.text);
      if(sc.turnComplete&&this.onText)this.onText("",true);
     }
@@ -1242,7 +1254,8 @@ class LiveVoice{
   else if(this.playCursor>now+.01)lead=0;            // stream healthy: butt-join chunks
   else{this._under=Math.min((this._under||0)+1,4);   // drained mid-stream: escalate
    lead=.15+.12*this._under;
-   console.log("audio underrun #"+this._under+", cushion "+Math.round(lead*1000)+"ms")}
+   const msg="audio underrun #"+this._under+", cushion "+Math.round(lead*1000)+"ms";
+   console.log(msg);if(typeof clog==="function")clog(msg)}
   const t0=Math.max(now+lead,this.playCursor);
   src.start(t0);this.playCursor=t0+buf.duration;
   this.sources.push(src);src.onended=()=>{this.sources=this.sources.filter(s=>s!==src)};
@@ -1699,7 +1712,7 @@ async function stageConv(stIdx,q,onDone){
   document.getElementById("convopts").onclick=()=>{if(judged)return;stop();HOST.onScore=null;fallback()};
   // resilience: if the voice session dies or stalls, switch to clickable choices
   const bail=()=>{if(judged)return;judged=true;stop();HOST.onScore=null;
-    stat.textContent=T("ai_no");setTimeout(fallback,500)};
+    clog("ASK bailed to cards");stat.textContent=T("ai_no");setTimeout(fallback,500)};
   let nudged=false;
   guard=setInterval(()=>{
     if(!HOST.on||!live.ws||live.ws.readyState!==1){bail();return}
