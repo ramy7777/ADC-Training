@@ -236,6 +236,9 @@ const UI={
   holdSpace2:"🎙 Hold SPACE (or the mic button) to talk to Saif anytime",
   listenLive:"🎙 Saif is live — just speak",
   welcome:"Welcome, {name}! I am Saif, your guide today. We will visit six stations of our customs house; each holds four moments worth five marks. Follow me — I will explain every step.",
+  introScope:"Here is how it works: six stations, four challenges each, five marks per challenge — you need ninety-six of one hundred twenty to pass. Answer by clicking the floating cards, or hold SPACE — or squeeze the grip in VR — and simply talk to me.",
+  followMe:"Now follow me to the first station — walk with W A S D or your left thumbstick. The glowing beacon marks our destination.",
+  followNext:"Well done here! Follow me to the next station — look for the glowing beacon.",
   instrSingle:"Click the card you believe is correct — it flies to the answer pad.",
   instrMulti:"Click every card that applies, then press Confirm.",
   instrSeq:"Touch the tiles in the correct order.",
@@ -272,6 +275,9 @@ const UI={
   holdSpace2:"🎙 اضغط مطولاً على مفتاح المسافة (أو زر الميكروفون) للتحدث مع سيف في أي وقت",
   listenLive:"🎙 سيف معك مباشرة — تحدث الآن",
   welcome:"أهلاً بك يا {name}! أنا سيف، مرشدك اليوم. سنزور ست محطات في دار الجمارك، وفي كل محطة أربعة مواقف بخمس علامات لكل موقف. اتبعني — سأشرح لك كل خطوة.",
+  introScope:"إليك الطريقة: ست محطات، في كل منها أربعة تحديات، وخمس علامات لكل تحدٍّ — تحتاج ستاً وتسعين من مئة وعشرين للنجاح. أجب بالنقر على البطاقات، أو اضغط مطولاً على مفتاح المسافة — أو زر القبضة في النظارة — وتحدث معي مباشرة.",
+  followMe:"والآن اتبعني إلى المحطة الأولى — تحرك بمفاتيح W A S D أو عصا التحكم اليسرى. العمود المضيء يحدد وجهتنا.",
+  followNext:"أحسنت هنا! اتبعني إلى المحطة التالية — انظر إلى العمود المضيء.",
   instrSingle:"انقر البطاقة التي تراها صحيحة — ستنتقل إلى منصة الإجابة.",
   instrMulti:"انقر كل بطاقة تنطبق ثم اضغط تأكيد.",
   instrSeq:"المس اللوحات بالترتيب الصحيح.",
@@ -744,12 +750,17 @@ function ctrlRay(c){
  ray.ray.origin.setFromMatrixPosition(c.matrixWorld);
  ray.ray.direction.set(0,0,-1).applyMatrix4(_xrMat);
 }
+function buzz(c,inten,ms){ // haptic pulse, silently skipped on devices without actuators
+ try{const g=c&&c.userData.src&&c.userData.src.gamepad;
+  const a=g&&g.hapticActuators&&g.hapticActuators[0];
+  if(a&&a.pulse)a.pulse(inten,ms)}catch(e){}
+}
 function vrClick(c){
  const all=clicks.concat(drags);
  if(!all.length)return;
  ctrlRay(c);
  const hits=ray.intersectObjects(all,false);
- if(hits.length&&hits[0].object.userData.onClick){tick();hits[0].object.userData.onClick(hits[0].object)}
+ if(hits.length&&hits[0].object.userData.onClick){buzz(c,.8,55);tick();hits[0].object.userData.onClick(hits[0].object)}
 }
 const controllers=[0,1].map(i=>{
  const c=renderer.xr.getController(i);
@@ -787,20 +798,23 @@ function vrHoverTick(){
    const d=hits[0].distance;
    c.userData.line.scale.z=d;
    c.userData.dot.visible=true;c.userData.dot.position.set(0,0,-d);
+   if(c.userData.lastHover!==hits[0].object)buzz(c,.3,18); // tactile tick on a new target
+   c.userData.lastHover=hits[0].object;
    if(!top)top=hits[0].object;
-  }else{c.userData.line.scale.z=6;c.userData.dot.visible=false}
+  }else{c.userData.line.scale.z=6;c.userData.dot.visible=false;c.userData.lastHover=null}
  }
  if(hovered&&hovered!==top)hovered.scale.setScalar(hovered.userData.baseScale||1);
  hovered=top;
  if(top){top.userData.baseScale=top.userData.baseScale||top.scale.x;top.scale.setScalar(top.userData.baseScale*1.07)}
 }
-let snapCool=0;
+let snapCool=0,stepAcc=0;
 const _hq=new THREE.Quaternion(),_hf=new THREE.Vector3(),_hr=new THREE.Vector3();
 function vrMoveTick(dt){
  snapCool=Math.max(0,snapCool-dt);
  const sess=renderer.xr.getSession();if(!sess)return;
  for(const src of sess.inputSources){
   const gp=src.gamepad;if(!gp||!gp.axes)continue;
+  const ctl=controllers.find(c=>c.userData.src===src);
   // xr-standard puts the thumbstick at axes[2/3]; older profiles at [0/1]
   const sx=gp.axes.length>=4?gp.axes[2]:(gp.axes[0]||0);
   const sy=gp.axes.length>=4?gp.axes[3]:(gp.axes[1]||0);
@@ -811,10 +825,12 @@ function vrMoveTick(dt){
     _hr.set(-_hf.z,0,_hf.x);
     camPos.addScaledVector(_hf,-sy*4*dt);
     camPos.addScaledVector(_hr,sx*4*dt);
+    stepAcc+=Math.hypot(sx,sy)*4*dt; // footstep-style pulses while walking
+    if(stepAcc>.62){stepAcc=0;buzz(ctl,.25,28)}
    }
   }
   if(src.handedness==="right"&&Math.abs(sx)>.6&&snapCool<=0){ // comfort snap turn
-   yaw-=Math.sign(sx)*Math.PI/6;snapCool=.32;
+   yaw-=Math.sign(sx)*Math.PI/6;snapCool=.32;buzz(ctl,.5,70);
   }
  }
  const l=Math.hypot(camPos.x,camPos.z);if(l>66){camPos.x*=66/l;camPos.z*=66/l}
@@ -924,27 +940,31 @@ function brief(text){
 /* Saif's voice = one persistent Gemini Live session for the whole level.
    No robotic browser TTS anywhere: with AI available he speaks natively;
    without it, narration is silent subtitles. */
-const HOST={on:false,failed:0,q:[],talking:false,onScore:null,who:null,buf:"",watch:null,lastAct:0,gotAct:false,lastUser:0};
-function speak(text,who,fullSub){
+const HOST={on:false,failed:0,q:[],talking:false,onScore:null,who:null,buf:"",watch:null,lastAct:0,gotAct:false,lastUser:0,cur:null,hold:0};
+function speak(text,who,fullSub,cb){
  subtitle(who||T("saif"),fullSub||text);
- hostSay(text);
+ hostSay(text,"SAY",cb);
 }
-function hostSay(text,kind){
- if(!VOICE_ON||!AI_ON)return;
- HOST.q.push({text,kind:kind||"SAY"});
+function hostSay(text,kind,cb){
+ if(!VOICE_ON||!AI_ON){if(cb)setTimeout(cb,Math.max(2200,text.length*45));return} // silent mode: pace by reading time
+ HOST.q.push({text,kind:kind||"SAY",cb});
  hostPump();
 }
+// fires the "this line finished speaking" callback of the current queue item
+function hostFin(){const c=HOST.cur;HOST.cur=null;if(c&&c.cb)try{c.cb()}catch(e){}}
 async function hostPump(){
  if(HOST.pumping||HOST.talking||!HOST.q.length)return;
  if(HOST.onScore&&HOST.q[0].kind!=="ASK")return; // narration waits until the verbal question is judged
+ if(HOST.hold&&Date.now()-HOST.hold<15000)return; // the trainee is talking to Saif — don't talk over them
  HOST.pumping=true;
  const ok=await hostEnsure();
  HOST.pumping=false;
  if(!ok){if(HOST.failed>=2)HOST.q.length=0;else setTimeout(hostPump,1500);return}
  if(HOST.talking||!HOST.q.length)return; // state may have changed during the await
  if(HOST.onScore&&HOST.q[0].kind!=="ASK")return;
+ if(HOST.hold&&Date.now()-HOST.hold<15000)return;
  const it=HOST.q.shift();
- HOST.talking=true;
+ HOST.talking=true;HOST.cur=it;
  HOST.gotAct=false;HOST.lastAct=Date.now();
  hostArm();
  if(it.kind==="ASK")live.muted=false; // open the mic exactly when a question starts
@@ -959,8 +979,8 @@ function hostArm(){
   if(!HOST.talking){clearInterval(HOST.watch);return}
   if(live.speaking)return; // audio still audible — not done
   const idle=Date.now()-HOST.lastAct;
-  if(HOST.gotAct?idle>2500:idle>10000){ // quiet + drained → the turn is over
-   clearInterval(HOST.watch);HOST.talking=false;hostPump();
+  if(HOST.gotAct?idle>1800:idle>8000){ // quiet + drained → the turn is over
+   clearInterval(HOST.watch);HOST.talking=false;hostFin();hostPump();
   }
  },700);
 }
@@ -991,7 +1011,7 @@ You receive bracketed system commands. The trainee never sees them; never mentio
 - A plain message is the trainee talking to you. If they ask what to do now, explain the current step precisely using the latest [SAY]/[ASK] context. If they ask about ADC, its sections or services, teach them like a wise mentor — educative and entertaining, under 40 words.`;
   live.onText=(t,done)=>{
    if(t){HOST.buf+=t;subtitle(HOST.who||T("saif"),HOST.buf,true)}
-   if(done){HOST.buf="";HOST.talking=false;clearInterval(HOST.watch);hostPump()}
+   if(done){HOST.buf="";HOST.talking=false;clearInterval(HOST.watch);HOST.hold=0;hostFin();hostPump()}
   };
   live.onUserText=(t)=>{HOST.lastUser=Date.now();const st=document.getElementById("convstat");
    if(!live.muted&&st.style.display!=="none")st.textContent="🎙 "+t};
@@ -1008,7 +1028,7 @@ You receive bracketed system commands. The trainee never sees them; never mentio
 }
 function hostReset(){
  HOST.on=false;HOST.failed=0;HOST.q.length=0;HOST.talking=false;HOST.onScore=null;HOST.who=null;HOST.buf="";HOST.lastUser=0;
- HOST.pumping=false;HOST.connecting=null;
+ HOST.pumping=false;HOST.connecting=null;HOST.cur=null;HOST.hold=0;
  clearInterval(HOST.watch);live.destroy();
 }
 let subTimer=null;
@@ -1066,7 +1086,7 @@ async function askSaif(text){
 class LiveVoice{
  constructor(){this.ws=null;this.micCtx=null;this.micNode=null;this.micStream=null;
   this.playCtx=null;this.playCursor=0;this.sources=[];this.onTool=null;this.onText=null;this.onUserText=null;this.onClose=null;
-  this.muted=false}
+  this.muted=false;this.hot=false}
  async initMic(){
   if(this.micStream)return true;
   if(this._micP)return this._micP; // single-flight: concurrent callers share one request
@@ -1080,8 +1100,9 @@ class LiveVoice{
    if(this.micCtx.state==="suspended")try{await this.micCtx.resume()}catch(e){}
    const src=this.micCtx.createMediaStreamSource(this.micStream);
    const send=(f)=>{
-    // anti-echo: never stream the mic while Saif's own voice is playing
-    if(this.muted||this.sources.length>0||!this.ws||this.ws.readyState!==1)return;
+    // anti-echo: don't stream the mic while Saif's voice is playing — UNLESS the
+    // trainee is deliberately holding push-to-talk (hot), which must always get through
+    if(this.muted||(this.sources.length>0&&!this.hot)||!this.ws||this.ws.readyState!==1)return;
     const i16=new Int16Array(f.length);
     for(let i=0;i<f.length;i++){const v=Math.max(-1,Math.min(1,f[i]));i16[i]=v<0?v*0x8000:v*0x7FFF}
     let bin="";const u8=new Uint8Array(i16.buffer);
@@ -1126,8 +1147,8 @@ class LiveVoice{
      systemInstruction:{parts:[{text:systemPrompt}]},
      tools:[{functionDeclarations:tools}],
      outputAudioTranscription:{},inputAudioTranscription:{},
-     // speaker sound picked up by the open mic must NOT cut Saif off mid-sentence
-     realtimeInputConfig:{activityHandling:"NO_INTERRUPTION"},
+     // interruptions stay ON so the trainee's speech is handled immediately;
+     // echo is prevented client-side (mic gated while Saif's audio is playing)
     }}));
    };
    ws.onmessage=async(ev)=>{
@@ -1168,7 +1189,11 @@ class LiveVoice{
   const buf=this.playCtx.createBuffer(1,n,24000);
   buf.getChannelData(0).set(f);
   const src=this.playCtx.createBufferSource();src.buffer=buf;src.connect(this.playCtx.destination);
-  const t0=Math.max(this.playCtx.currentTime+.02,this.playCursor);
+  // jitter buffer: give a fresh turn a 250ms head start so slow-arriving chunks
+  // don't underrun (that underrun was the "breaking/choppy" voice); mid-stream
+  // underruns re-cushion with 60ms instead of clicking straight in
+  const lead=this.sources.length?.06:.25;
+  const t0=Math.max(this.playCtx.currentTime+lead,this.playCursor);
   src.start(t0);this.playCursor=t0+buf.duration;
   this.sources.push(src);src.onended=()=>{this.sources=this.sources.filter(s=>s!==src)};
  }
@@ -1552,8 +1577,9 @@ async function pttDown(){
  if(!HOST.on&&HOST.failed<9)HOST.failed=0; // user-initiated: always worth another try
  if(!VOICE_ON||!(await hostEnsure())){subtitle(T("saif"),T("ai_no"));return}
  pttOpen=true;clearTimeout(pttTimer);
- live.muted=false;
+ live.muted=false;live.hot=true;
  live.stopPlayback(); // barge-in: talking over Saif stops him
+ HOST.hold=Date.now(); // pause queued narration until Saif has answered the trainee
  document.getElementById("askmic").classList.add("rec");
  vrHud.setMic(true);
  const st=document.getElementById("convstat");st.style.display="block";st.textContent=T("listenLive");
@@ -1564,10 +1590,12 @@ function pttUp(){
  vrHud.setMic(false);
  // short tail so the end of the sentence is captured before muting
  pttTimer=setTimeout(()=>{
+  live.hot=false;
   if(!liveActive)live.muted=true; // stay open if a verbal question is running
   const st=document.getElementById("convstat");
   if(!convOpen)st.style.display="none";
  },900);
+ setTimeout(hostPump,15500); // if no reply ever arrives, narration resumes after the hold expires
 }
 
 async function stageConv(stIdx,q,onDone){
@@ -1640,25 +1668,44 @@ function startSession(name){
  toggleAsk(true); // chat bar with mic stays visible for the whole session
  const sh=document.getElementById("spacehint");sh.style.display="block";sh.textContent=T("holdSpace2");
  hostReset(); // fresh voice session with this trainee's name and language
+ // the journey begins ON the central medallion: Saif waits there, greets,
+ // explains the scope, then WALKS to station one — the trainee follows him
+ followSt=null;glide=null;
+ camPos.set(0,1.6,5);yaw=0;pitch=0;
+ saif.position.set(.6,0,1.4);saifTarget=new THREE.Vector3(.6,0,1.4);
+ stations.forEach(s=>s.group.userData.beam.visible=false);
+ let went=false;const go=()=>{if(went)return;went=true;escortTo(0)};
  speak(T("welcome").replace("{name}",name),T("saif"));
- runStation(0);
+ speak(T("introScope"),T("saif"),null,go); // Saif sets off once the briefing is spoken
+ setTimeout(go,30000); // failsafe: never strand the trainee at the medallion
+ if(FAST)go();
 }
-function runStation(i){
+/* Saif escorts, the trainee walks — no auto-moving the player. Arrival at the
+   beacon (tracked in the render loop) starts the station. */
+let followSt=null;
+function escortTo(i){
  S.st=i;
  stations.forEach((s,k)=>{s.group.userData.beam.visible=k===i});
  const a=stationAngle(i);
  saifTarget=new THREE.Vector3(Math.sin(a)*(R-5.4)+Math.cos(a)*1.8,0,-Math.cos(a)*(R-5.4)+Math.sin(a)*1.8);
- glideTo(i);
+ if(FAST){glideTo(i);beginStation(i);return}
+ hostFlush();
+ speak(T(i===0?"followMe":"followNext"),T("saif"));
+ followSt=i;
+}
+function beginStation(i){
+ followSt=null;
  hostFlush();live.stopPlayback(); // fresh start at each station: skip stale narration audio
  speak(T("stationIntro")[i],T("saif"));
- setTimeout(()=>runBeat(i,0),FAST?350:2600);
+ setTimeout(()=>runBeat(i,0),FAST?350:2200);
 }
 function runBeat(i,b){
- if(b>=4){ if(i+1<6)runStation(i+1); else endLevel(); return }
+ if(b>=4){ if(i+1<6)escortTo(i+1); else endLevel(); return }
  const {q}=S.plan[i][b];
  playBeat(i,q,()=>runBeat(i,b+1));
 }
 function endLevel(){
+ followSt=null;
  clearQ();
  const pass=S.score>=96;
  speak(T(pass?"resPass":"resFail").replace("{name}",S.trainee).replace("{score}",String(S.score)),T("saif"));
@@ -1739,7 +1786,7 @@ btnVoice.onclick=()=>{VOICE_ON=!VOICE_ON;localStorage.setItem("adc_voice",VOICE_
 paintVoice();
 async function doAsk(){const i=document.getElementById("askin");const t=i.value.trim();if(!t)return;
  i.value="";subtitle(T("you"),t);
- if(VOICE_ON&&HOST.on&&live.ws&&live.ws.readyState===1){live.sendText(t);return} // Saif answers in his own voice
+ if(VOICE_ON&&HOST.on&&live.ws&&live.ws.readyState===1){HOST.hold=Date.now();live.sendText(t);return} // Saif answers in his own voice; narration waits
  try{const r=await askSaif(t);subtitle(T("saif"),r.trim())}catch(e){subtitle(T("saif"),e.message==="nokey"?T("key_no"):T("ai_no"))}}
 document.getElementById("asksend").onclick=doAsk;
 document.getElementById("askin").addEventListener("keydown",e=>{if(e.key==="Enter")doAsk()});
@@ -1816,7 +1863,10 @@ function animate(){
   camera.rotation.set(0,0,0);camera.rotateY(yaw);camera.rotateX(pitch);
   hoverTick();
  }
- saif.position.lerp(new THREE.Vector3(saifTarget.x,0,saifTarget.z),Math.min(1,dt*2));
+ saif.position.lerp(new THREE.Vector3(saifTarget.x,0,saifTarget.z),Math.min(1,dt*1.2));
+ // follow-me: the trainee walked up to Saif's beacon → the station begins
+ if(followSt!=null&&S&&S.active&&!glide&&
+    Math.hypot(camPos.x-saifTarget.x,camPos.z-saifTarget.z)<4.2)beginStation(followSt);
  saif.children[1].position.y=2.08+Math.sin(t*2)*.04;
  saif.children[4].intensity=1.4+((saifSpeaking||live.speaking)?Math.sin(t*14)*1.1:0)+Math.sin(t*3)*.25;
  saif.lookAt(camPos.x,1.2,camPos.z);
