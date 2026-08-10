@@ -937,74 +937,71 @@ function brief(text){
  else t=t.split(/(?<=[.؟?!])\s+/)[0];
  return t.length>180?t.slice(0,177)+"…":t;
 }
-/* Saif's voice = one persistent Gemini Live session for the whole level.
-   No robotic browser TTS anywhere: with AI available he speaks natively;
-   without it, narration is silent subtitles. */
-const HOST={on:false,failed:0,q:[],talking:false,onScore:null,who:null,buf:"",watch:null,lastAct:0,gotAct:false,lastUser:0,cur:null,hold:0};
-function speak(text,who,fullSub,cb){
- subtitle(who||T("saif"),fullSub||text);
- hostSay(text,"SAY",cb);
+/* Saif's voice = ONE persistent Gemini Live session, driven like a REAL
+   conversation: there is NO queue. Every game event becomes the newest turn
+   and preempts whatever he was saying (genuine talk-over) — the latest event
+   always wins, so speech can never lag behind gameplay. Subtitles follow his
+   ACTUAL voice (streamed transcription), so text and audio stay in lockstep.
+   Without AI, narration falls back to silent scripted subtitles. */
+const HOST={on:false,failed:0,talking:false,onScore:null,who:null,buf:"",watch:null,
+ lastUser:0,lastAct:0,cur:null,hold:0,deferred:null,seq:0,sentAt:0,gotText:false,react:null};
+function speak(text,who,fullSub,cb){say(text,"SAY",cb,who,fullSub)}
+function say(text,kind,cb,who,fullSub){
+ kind=kind||"SAY";
+ if(!VOICE_ON||!AI_ON){ // silent mode: scripted subtitle, paced by reading time
+  subtitle(who||T("saif"),fullSub||text);
+  if(cb)setTimeout(cb,Math.max(2200,text.length*45));
+  return}
+ const it={text,kind,cb,who:who||T("saif"),sub:fullSub||text};
+ // a verbal Q&A (or the trainee speaking) owns the floor: narration parks in a
+ // single latest-wins slot — anything it displaces is stale and just vanishes
+ if(kind!=="ASK"&&(HOST.onScore||holdActive())){
+  if(HOST.deferred&&HOST.deferred.cb)try{HOST.deferred.cb()}catch(e){}
+  HOST.deferred=it;return}
+ hostSend(it);
 }
-function hostSay(text,kind,cb){
- if(!VOICE_ON||!AI_ON){if(cb)setTimeout(cb,Math.max(2200,text.length*45));return} // silent mode: pace by reading time
- HOST.q.push({text,kind:kind||"SAY",cb});
- hostPump();
+function holdActive(){return HOST.hold&&Date.now()-HOST.hold<12000}
+// score results ride along as a stage direction on the NEXT line instead of a
+// separate turn — a separate "well done" was always cut off by the next prompt
+function reactPrefix(){
+ const r=HOST.react;HOST.react=null;
+ return r?`(${S&&S.trainee?S.trainee:"The trainee"} just answered the previous challenge ${r.ok?"correctly":"incorrectly"} — score ${r.score}/120. React to that in a few words first, then continue.) `:"";
 }
-// fires the "this line finished speaking" callback of the current queue item
-function hostFin(){const c=HOST.cur;HOST.cur=null;if(c&&c.cb)try{c.cb()}catch(e){}}
-// a verbal question is armed: leftover narration ahead of it in the queue is
-// obsolete — drop it and jump straight to the ASK. (Blocking on it instead
-// deadlocked the whole queue: total silence until the session was reaped.)
-function hostPrio(){
- if(!HOST.onScore)return true;
- const ix=HOST.q.findIndex(x=>x.kind==="ASK");
- if(ix<0)return false;
- if(ix>0)HOST.q.splice(0,ix);
- return true;
-}
-async function hostPump(){
- if(HOST.pumping||HOST.talking||!HOST.q.length)return;
- if(!hostPrio())return;
- if(HOST.hold&&Date.now()-HOST.hold<15000)return; // the trainee is talking to Saif — don't talk over them
- HOST.pumping=true;
- const ok=await hostEnsure();
- HOST.pumping=false;
- if(!ok){if(HOST.failed>=2)HOST.q.length=0;else setTimeout(hostPump,1500);return}
- if(HOST.talking||!HOST.q.length)return; // state may have changed during the await
- if(!hostPrio())return;
- if(HOST.hold&&Date.now()-HOST.hold<15000)return;
- const it=HOST.q.shift();
- HOST.talking=true;HOST.cur=it;
- HOST.gotAct=false;HOST.lastAct=Date.now();
+async function hostSend(it){
+ const my=++HOST.seq;
+ if(!(await hostEnsure())){ // no session: the scripted line still reaches the trainee
+  subtitle(it.who,it.sub);
+  if(it.cb)setTimeout(it.cb,Math.max(2200,it.text.length*45));
+  return}
+ if(my!==HOST.seq)return; // a newer event arrived while we connected — it wins
+ const old=HOST.cur;HOST.cur=null;
+ if(old&&old.cb)try{old.cb()}catch(e){} // the displaced line's moment has passed — let its flow continue
+ live.stopPlayback(); // talk-over: cut the stale speech instantly
+ HOST.cur=it;HOST.talking=true;HOST.buf="";HOST.who=it.who;
+ HOST.gotText=false;HOST.sentAt=Date.now();
  hostArm();
- if(it.kind==="ASK"){live.muted=false;live.initMic()} // open (and lazily acquire) the mic when a question starts
+ if(it.kind==="ASK"){live.muted=false;live.initMic()}
  live.sendText(`[${it.kind}] ${it.text}`);
+ // if no voice materializes quickly, show the scripted line so nothing is lost
+ setTimeout(()=>{if(HOST.cur===it&&!HOST.gotText)subtitle(it.who,it.sub)},4000);
 }
-// End-of-speech detector: turnComplete is unreliable around tool calls, so we
-// also poll for the real thing — generation went quiet AND every scheduled
-// audio chunk finished playing. Never fires into a still-running generation.
-function hostArm(){
- clearInterval(HOST.watch);
- HOST.watch=setInterval(()=>{
-  if(!HOST.talking){clearInterval(HOST.watch);return}
-  if(live.speaking)return; // audio still audible — not done
-  const idle=Date.now()-HOST.lastAct;
-  // 2.6s: long enough that a natural mid-sentence pause is never mistaken for
-  // the end of the turn (that mistake preempted generations = clipped speech)
-  if(HOST.gotAct?idle>2600:idle>8000){
-   clearInterval(HOST.watch);HOST.talking=false;hostFin();hostPump();
-  }
- },700);
+// watchdog: a turn that goes silent without an end-signal releases the floor
+function hostArm(){clearTimeout(HOST.watch);HOST.watch=setTimeout(hostDone,10000)}
+function hostDone(){ // turn over (turnComplete, genuine interruption, or watchdog)
+ clearTimeout(HOST.watch);
+ HOST.talking=false;HOST.buf="";
+ const c=HOST.cur;HOST.cur=null;
+ if(c&&c.cb)try{c.cb()}catch(e){}
+ hostNext();
 }
-// a new beat or station makes older, still-unspoken narration obsolete
-function hostFlush(){HOST.q=HOST.q.filter(it=>it.kind==="ASK")}
-// hard-cut whatever Saif is saying RIGHT NOW (the next queued line preempts the
-// in-flight generation server-side, so stale talk stops immediately)
-function hostCut(){live.stopPlayback();HOST.talking=false;HOST.cur=null;clearInterval(HOST.watch)}
-// a verbal question the trainee already moved past must never play later
-function hostDropAsk(){
- HOST.q=HOST.q.filter(it=>it.kind!=="ASK");
- if(HOST.cur&&HOST.cur.kind==="ASK")hostCut();
+function hostNext(){ // floor is free: deliver the parked line, if still relevant
+ if(HOST.deferred&&!HOST.onScore&&!holdActive()){
+  const d=HOST.deferred;HOST.deferred=null;hostSend(d);
+ }
+}
+// a verbal question the trainee moved past must never play late
+function hostAbortAsk(){
+ if(HOST.cur&&HOST.cur.kind==="ASK"){live.stopPlayback();HOST.cur=null;HOST.talking=false;clearTimeout(HOST.watch)}
 }
 async function hostEnsure(){
  if(HOST.on&&live.ws&&live.ws.readyState===1)return true;
@@ -1032,16 +1029,24 @@ You receive bracketed system commands. The trainee never sees them; never mentio
 - A plain message is the trainee talking to you. If they ask what to do now, explain the current step precisely using the latest [SAY]/[ASK] context. If they ask about ADC, its sections or services, teach them like a wise mentor — educative and entertaining, under 40 words.
 Rules of awareness: stage directions are ground truth about where the trainee is and what just happened — always speak from the current moment. NEVER repeat a greeting, an explanation, or "follow me" once that moment has passed. Each line you speak must add something new.`;
   live.onText=(t,done)=>{
+   // subtitles mirror the VOICE (streamed transcription), so they stay in sync;
    // the model occasionally echoes its bracketed commands — never show them
-   if(t){HOST.buf+=t;subtitle(HOST.who||T("saif"),HOST.buf.replace(/\[(SAY|ASK|NOTE|NUDGE)\]\s*/g,""),true)}
-   if(done){HOST.buf="";HOST.talking=false;clearInterval(HOST.watch);HOST.hold=0;hostFin();hostPump()}
+   if(t){HOST.gotText=true;HOST.buf+=t;
+    subtitle(HOST.who||T("saif"),HOST.buf.replace(/\[(SAY|ASK|NOTE|NUDGE)\]\s*/g,""),true)}
+   if(done){
+    // an end-signal right after we preempted belongs to the OLD turn — ignore it
+    if(Date.now()-HOST.sentAt<1200&&!HOST.gotText)return;
+    HOST.hold=0;hostDone()}
   };
+  live.onInterrupt=()=>{ // genuine barge-in by the trainee ends the turn;
+   if(Date.now()-HOST.sentAt<1500)return; // ...our own preemption echo does not
+   hostDone()};
   live.onUserText=(t)=>{HOST.lastUser=Date.now();const st=document.getElementById("convstat");
    if(!live.muted&&st.style.display!=="none")st.textContent="🎙 "+t};
-  live.onActivity=()=>{HOST.lastAct=Date.now();HOST.gotAct=true};
-  live.onTool=async(n,a)=>{if(n==="score_answer"&&HOST.onScore){const f=HOST.onScore;HOST.onScore=null;f(a||{});hostPump()}return{ok:true}};
-  live.onClose=()=>{HOST.on=false;HOST.talking=false;clearInterval(HOST.watch);
-   setTimeout(hostPump,800)}; // auto-reconnect on next queued line
+  live.onActivity=()=>{HOST.lastAct=Date.now();if(HOST.talking)hostArm()}; // active turn keeps the watchdog fed
+  live.onTool=async(n,a)=>{if(n==="score_answer"&&HOST.onScore){const f=HOST.onScore;HOST.onScore=null;f(a||{});hostNext()}return{ok:true}};
+  live.onClose=()=>{HOST.on=false;HOST.talking=false;clearTimeout(HOST.watch);
+   setTimeout(()=>{if(S&&S.active)hostEnsure()},800)}; // warm reconnect: the next event speaks fast
   await live.connect(sys,[{name:"score_answer",description:"Record the assessment of the trainee's verbal answer during an [ASK] moment. Call exactly once per question.",
     parameters:{type:"OBJECT",properties:{correct:{type:"BOOLEAN"},feedback:{type:"STRING",description:"one short in-character sentence"}},required:["correct"]}}]);
   live.muted=true; // mic opens only during [ASK] moments
@@ -1050,9 +1055,9 @@ Rules of awareness: stage directions are ground truth about where the trainee is
  }catch(e){HOST.failed++;log("host error: "+e.message);return false}
 }
 function hostReset(){
- HOST.on=false;HOST.failed=0;HOST.q.length=0;HOST.talking=false;HOST.onScore=null;HOST.who=null;HOST.buf="";HOST.lastUser=0;
- HOST.pumping=false;HOST.connecting=null;HOST.cur=null;HOST.hold=0;
- clearInterval(HOST.watch);live.destroy();
+ HOST.on=false;HOST.failed=0;HOST.talking=false;HOST.onScore=null;HOST.who=null;HOST.buf="";HOST.lastUser=0;
+ HOST.connecting=null;HOST.cur=null;HOST.hold=0;HOST.deferred=null;HOST.react=null;HOST.seq++;
+ clearTimeout(HOST.watch);live.destroy();
 }
 let subTimer=null;
 function subtitle(who,text,sticky){
@@ -1108,7 +1113,7 @@ async function askSaif(text){
 /* ---------- Gemini Live native voice (via server /live relay) ---------- */
 class LiveVoice{
  constructor(){this.ws=null;this.micCtx=null;this.micNode=null;this.micStream=null;
-  this.playCtx=null;this.playCursor=0;this.sources=[];this.onTool=null;this.onText=null;this.onUserText=null;this.onClose=null;
+  this.playCtx=null;this.playCursor=0;this.sources=[];this.onTool=null;this.onText=null;this.onUserText=null;this.onClose=null;this.onInterrupt=null;
   this.muted=false;this.hot=false}
  async initMic(){
   if(this.micStream)return true;
@@ -1188,7 +1193,7 @@ class LiveVoice{
     if(m.serverContent){
      const sc=m.serverContent;
      if(this.onActivity)this.onActivity(); // lets watchdogs measure real silence, not turn length
-     if(sc.interrupted){this.stopPlayback();if(this.onText)this.onText("",true);return} // count as turn end so queues never freeze
+     if(sc.interrupted){this.stopPlayback();if(this.onInterrupt)this.onInterrupt();return}
      for(const p of (sc.modelTurn?.parts||[])){
       if(p.inlineData?.data)this.enqueueAudio(p.inlineData.data);
      }
@@ -1346,7 +1351,7 @@ function score(q,ok,fxAt,quiet){
  if(fxAt){const wp=fxAt.clone();qGroup&&qGroup.localToWorld(wp);burst(wp,ok)}
  subtitle(T("saif"),ok?T("correct"):T("wrong"));
  // quiet=true for verbal moments where Saif already reacted himself
- if(!quiet)hostSay(`The trainee answered ${ok?"correctly (+5 marks)":"incorrectly (no marks)"}; total now ${S.score}/120.`,"NOTE");
+ if(!quiet)HOST.react={ok,score:S.score}; // voiced as a quick aside on the next line
  log(`answer · ${q.id} · ${ok?"+5":"0"} · ${S.score}/120`);
 }
 /* the answer pad: a glowing pedestal that accepts dragged cards */
@@ -1370,13 +1375,10 @@ function makePad(g,label,wide){
 function playBeat(stIdx,q,onDone){
  const w=widgetOf(q);
  const dis=realDis(q);
- hostFlush(); // drop narration for beats the trainee has already moved past
- // if Saif is still voicing an older beat (fast player!), cut it — short score
- // reactions (NOTE) may finish, everything else is stale by definition
- if(HOST.cur&&HOST.cur.kind!=="NOTE"&&!HOST.onScore)hostCut();
  if(w==="conv"){stageConv(stIdx,q,onDone);return}
  const INSTR={single:"instrSingle",multi:"instrMulti",sequence:"instrSeq",hotsingle:"instrHot",hotmulti:"instrHotM",assign:"instrAssign"};
- speak(L(q.prompt)+" — "+T(INSTR[w]||"instrSingle"),T("saif"),L(q.prompt));
+ // sending this line preempts whatever Saif was still saying (talk-over)
+ speak(reactPrefix()+L(q.prompt)+" — "+T(INSTR[w]||"instrSingle"),T("saif"),L(q.prompt));
  const g=stageBase(stIdx);
  const finish=(ok,at)=>{score(q,ok,at);setTimeout(()=>onDone(),1100)};
 
@@ -1630,7 +1632,8 @@ async function pttDown(){
  pttOpen=true;clearTimeout(pttTimer);
  live.muted=false;live.hot=true;
  live.stopPlayback(); // barge-in: talking over Saif stops him
- HOST.hold=Date.now(); // pause queued narration until Saif has answered the trainee
+ HOST.hold=Date.now(); // the trainee owns the floor: new narration parks until Saif replies
+ if(HOST.cur&&HOST.cur.kind!=="ASK")hostDone(); // release the interrupted line so its flow continues
  document.getElementById("askmic").classList.add("rec");
  vrHud.setMic(true);
  const st=document.getElementById("convstat");st.style.display="block";st.textContent=T("listenLive");
@@ -1646,7 +1649,7 @@ function pttUp(){
   const st=document.getElementById("convstat");
   if(!convOpen)st.style.display="none";
  },900);
- setTimeout(hostPump,15500); // if no reply ever arrives, narration resumes after the hold expires
+ setTimeout(hostNext,12500); // if no reply ever arrives, parked narration resumes after the hold
 }
 
 async function stageConv(stIdx,q,onDone){
@@ -1662,7 +1665,7 @@ async function stageConv(stIdx,q,onDone){
  document.getElementById("convin").placeholder=T("typeHint");
  const cleanup=()=>{conv.style.display="none";stat.style.display="none";sp.style.display="none";convOpen=false;curSubmit=null;liveActive=false;live.muted=true;HOST.who=null};
  const fallback=()=>{cleanup();
-   hostDropAsk(); // switching to cards: the spoken question must never replay later
+   hostAbortAsk(); // switching to cards: the spoken question must never replay later
    subtitle(who,L(q.prompt),true);
    const dis=realDis(q);const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
    const cards=items.map((o,ix)=>{const m=tileMesh(L(o),ix+1);
@@ -1683,7 +1686,7 @@ async function stageConv(stIdx,q,onDone){
   const exp=q.correct.map(c=>L(c)).join(" / ");
   const wrong=realDis(q).map(d=>L(d)).join(" / ");
   HOST.lastUser=0;
-  hostSay(`${q.id==="S5-Q3"?"For this one, roleplay a VISITOR at the reception desk. ":""}Assessment question: "${L(q.prompt)}" | Correct idea: ${exp} | Wrong ideas (do not accept): ${wrong}`,"ASK");
+  say(`${q.id==="S5-Q3"?"For this one, roleplay a VISITOR at the reception desk. ":""}${reactPrefix()}Assessment question: "${L(q.prompt)}" | Correct idea: ${exp} | Wrong ideas (do not accept): ${wrong}`,"ASK");
   stat.style.display="block";stat.textContent=T("listenLive");
   conv.style.display="flex";convOpen=true;liveActive=true; // shows only the "Show choices" escape hatch
   document.getElementById("convopts").onclick=()=>{if(judged)return;stop();HOST.onScore=null;fallback()};
@@ -1729,8 +1732,9 @@ function startSession(name){
  saif.position.set(.6,0,1.4);saifTarget=new THREE.Vector3(.6,0,1.4);
  stations.forEach(s=>s.group.userData.beam.visible=false);
  let went=false;const go=()=>{if(went)return;went=true;escortTo(0)};
- speak(T("welcome").replace("{name}",name),T("saif"));
- speak(T("introScope"),T("saif"),null,go); // Saif sets off once the briefing is spoken
+ // ONE briefing turn (greeting + mission): in conversational mode a second line
+ // would instantly talk over the first
+ speak(T("welcome").replace("{name}",name)+" "+T("introScope"),T("saif"),null,go);
  setTimeout(go,30000); // failsafe: never strand the trainee at the medallion
  if(FAST)go();
 }
@@ -1743,15 +1747,13 @@ function escortTo(i){
  const a=stationAngle(i);
  saifTarget=new THREE.Vector3(Math.sin(a)*(R-5.4)+Math.cos(a)*1.8,0,-Math.cos(a)*(R-5.4)+Math.sin(a)*1.8);
  if(FAST){glideTo(i);beginStation(i);return}
- hostFlush();
  const nm=L(CONTENT.skills[i].scene.name);
- speak(`(You are setting off on foot toward the "${nm}" station and the trainee must walk after you — the glowing beacon marks it.) ${T(i===0?"followMe":"followNext")}`,
+ speak(`${reactPrefix()}(You are setting off on foot toward the "${nm}" station and the trainee must walk after you — the glowing beacon marks it.) ${T(i===0?"followMe":"followNext")}`,
    T("saif"),T(i===0?"followMe":"followNext"));
  followSt=i;
 }
 function beginStation(i){
- followSt=null;
- hostFlush();hostCut(); // the trainee is HERE — any lingering "follow me" talk stops now
+ followSt=null; // arrival: the intro line below talks over any lingering "follow me"
  const nm=L(CONTENT.skills[i].scene.name);
  // first beat starts only AFTER the intro was actually spoken — a fixed timer
  // used to let the beat's flush throw away the still-queued intro line
@@ -1766,7 +1768,7 @@ function runBeat(i,b){
  playBeat(i,q,()=>runBeat(i,b+1));
 }
 function endLevel(){
- followSt=null;
+ followSt=null;HOST.react=null; // the result line announces the score itself
  clearQ();
  const pass=S.score>=96;
  speak(T(pass?"resPass":"resFail").replace("{name}",S.trainee).replace("{score}",String(S.score)),T("saif"));
@@ -1843,11 +1845,15 @@ document.getElementById("btnAsk").onclick=()=>{toggleAsk(true);document.getEleme
 const btnVoice=document.getElementById("btnVoice");
 const paintVoice=()=>btnVoice.textContent=VOICE_ON?"🔊":"🔇";
 btnVoice.onclick=()=>{VOICE_ON=!VOICE_ON;localStorage.setItem("adc_voice",VOICE_ON?"on":"off");
- if(!VOICE_ON){HOST.q.length=0;live.stopPlayback()}paintVoice()};
+ if(!VOICE_ON){HOST.deferred=null;live.stopPlayback()}paintVoice()};
 paintVoice();
 async function doAsk(){const i=document.getElementById("askin");const t=i.value.trim();if(!t)return;
  i.value="";subtitle(T("you"),t);
- if(VOICE_ON&&HOST.on&&live.ws&&live.ws.readyState===1){HOST.hold=Date.now();live.sendText(t);return} // Saif answers in his own voice; narration waits
+ if(VOICE_ON&&HOST.on&&live.ws&&live.ws.readyState===1){ // Saif answers in his own voice; narration parks
+  HOST.hold=Date.now();
+  if(HOST.cur&&HOST.cur.kind!=="ASK")hostDone(); // typed question talks over the current line
+  live.stopPlayback();HOST.sentAt=Date.now();HOST.who=T("saif");HOST.buf="";HOST.gotText=false;
+  live.sendText(t);setTimeout(hostNext,12500);return}
  try{const r=await askSaif(t);subtitle(T("saif"),r.trim())}catch(e){subtitle(T("saif"),e.message==="nokey"?T("key_no"):T("ai_no"))}}
 document.getElementById("asksend").onclick=doAsk;
 document.getElementById("askin").addEventListener("keydown",e=>{if(e.key==="Enter")doAsk()});
