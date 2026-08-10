@@ -952,16 +952,26 @@ function hostSay(text,kind,cb){
 }
 // fires the "this line finished speaking" callback of the current queue item
 function hostFin(){const c=HOST.cur;HOST.cur=null;if(c&&c.cb)try{c.cb()}catch(e){}}
+// a verbal question is armed: leftover narration ahead of it in the queue is
+// obsolete — drop it and jump straight to the ASK. (Blocking on it instead
+// deadlocked the whole queue: total silence until the session was reaped.)
+function hostPrio(){
+ if(!HOST.onScore)return true;
+ const ix=HOST.q.findIndex(x=>x.kind==="ASK");
+ if(ix<0)return false;
+ if(ix>0)HOST.q.splice(0,ix);
+ return true;
+}
 async function hostPump(){
  if(HOST.pumping||HOST.talking||!HOST.q.length)return;
- if(HOST.onScore&&HOST.q[0].kind!=="ASK")return; // narration waits until the verbal question is judged
+ if(!hostPrio())return;
  if(HOST.hold&&Date.now()-HOST.hold<15000)return; // the trainee is talking to Saif — don't talk over them
  HOST.pumping=true;
  const ok=await hostEnsure();
  HOST.pumping=false;
  if(!ok){if(HOST.failed>=2)HOST.q.length=0;else setTimeout(hostPump,1500);return}
  if(HOST.talking||!HOST.q.length)return; // state may have changed during the await
- if(HOST.onScore&&HOST.q[0].kind!=="ASK")return;
+ if(!hostPrio())return;
  if(HOST.hold&&Date.now()-HOST.hold<15000)return;
  const it=HOST.q.shift();
  HOST.talking=true;HOST.cur=it;
@@ -991,6 +1001,11 @@ function hostFlush(){HOST.q=HOST.q.filter(it=>it.kind==="ASK")}
 // hard-cut whatever Saif is saying RIGHT NOW (the next queued line preempts the
 // in-flight generation server-side, so stale talk stops immediately)
 function hostCut(){live.stopPlayback();HOST.talking=false;HOST.cur=null;clearInterval(HOST.watch)}
+// a verbal question the trainee already moved past must never play later
+function hostDropAsk(){
+ HOST.q=HOST.q.filter(it=>it.kind!=="ASK");
+ if(HOST.cur&&HOST.cur.kind==="ASK")hostCut();
+}
 async function hostEnsure(){
  if(HOST.on&&live.ws&&live.ws.readyState===1)return true;
  if(HOST.connecting)return HOST.connecting; // single-flight: parallel callers share one connect
@@ -1017,7 +1032,8 @@ You receive bracketed system commands. The trainee never sees them; never mentio
 - A plain message is the trainee talking to you. If they ask what to do now, explain the current step precisely using the latest [SAY]/[ASK] context. If they ask about ADC, its sections or services, teach them like a wise mentor — educative and entertaining, under 40 words.
 Rules of awareness: stage directions are ground truth about where the trainee is and what just happened — always speak from the current moment. NEVER repeat a greeting, an explanation, or "follow me" once that moment has passed. Each line you speak must add something new.`;
   live.onText=(t,done)=>{
-   if(t){HOST.buf+=t;subtitle(HOST.who||T("saif"),HOST.buf,true)}
+   // the model occasionally echoes its bracketed commands — never show them
+   if(t){HOST.buf+=t;subtitle(HOST.who||T("saif"),HOST.buf.replace(/\[(SAY|ASK|NOTE|NUDGE)\]\s*/g,""),true)}
    if(done){HOST.buf="";HOST.talking=false;clearInterval(HOST.watch);HOST.hold=0;hostFin();hostPump()}
   };
   live.onUserText=(t)=>{HOST.lastUser=Date.now();const st=document.getElementById("convstat");
@@ -1162,7 +1178,13 @@ class LiveVoice{
    ws.onmessage=async(ev)=>{
     if(this.ws!==sock)return;
     const m=JSON.parse(typeof ev.data==="string"?ev.data:await ev.data.text());
-    if(m.setupComplete!==undefined){if(!settled){settled=true;clearTimeout(to);resolve()}return}
+    if(m.setupComplete!==undefined){
+     if(!settled){settled=true;clearTimeout(to);resolve()}
+     // heartbeat: 100ms of silence every 9s — sessions with no input at all
+     // were being killed by Gemini (~72s, close 1011 "Internal error")
+     clearInterval(this._ka);
+     this._ka=setInterval(()=>this.sendSilence(),9000);
+     return}
     if(m.serverContent){
      const sc=m.serverContent;
      if(this.onActivity)this.onActivity(); // lets watchdogs measure real silence, not turn length
@@ -1183,11 +1205,19 @@ class LiveVoice{
     }
    };
    ws.onerror=()=>{if(this.ws!==sock)return;if(!settled){settled=true;clearTimeout(to);reject(new Error("ws error"))}};
-   ws.onclose=(e)=>{if(!settled){settled=true;clearTimeout(to);reject(new Error("closed "+e.code))}
+   ws.onclose=(e)=>{if(this.ws===sock)clearInterval(this._ka);
+    if(!settled){settled=true;clearTimeout(to);reject(new Error("closed "+e.code))}
     else if(this.ws===sock&&!this.intentional){log(`live closed ${e.code} ${e.reason||""}`);if(this.onClose)this.onClose(e)}};
   });
  }
  sendText(t){if(this.ws&&this.ws.readyState===1)this.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:t}]}],turnComplete:true}}))}
+ sendSilence(){ // keeps the live session warm; pure zeros never trigger voice detection
+  if(!this.ws||this.ws.readyState!==1)return;
+  if(!this._sil){const u8=new Uint8Array(3200);let b="";
+   for(let i=0;i<u8.length;i+=8192)b+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));
+   this._sil=btoa(b)}
+  this.ws.send(JSON.stringify({realtimeInput:{audio:{data:this._sil,mimeType:"audio/pcm;rate=16000"}}}));
+ }
  enqueueAudio(b64){
   if(!this.playCtx)this.playCtx=new AudioContext({sampleRate:24000});
   if(this.playCtx.state==="suspended")this.playCtx.resume();
@@ -1207,7 +1237,7 @@ class LiveVoice{
  }
  stopPlayback(){for(const s of this.sources){try{s.stop()}catch(e){}}this.sources=[];this.playCursor=0}
  get speaking(){return this.sources.length>0}
- close(){this.intentional=true;this.stopPlayback();if(this.ws){try{this.ws.close()}catch(e){};this.ws=null}}
+ close(){this.intentional=true;clearInterval(this._ka);this.stopPlayback();if(this.ws){try{this.ws.close()}catch(e){};this.ws=null}}
  destroy(){this.close();if(this.micStream){this.micStream.getTracks().forEach(t=>t.stop());this.micStream=null}
   if(this.micCtx){try{this.micCtx.close()}catch(e){}this.micCtx=null;this.micNode=null}
   if(this.playCtx){try{this.playCtx.close()}catch(e){}this.playCtx=null;this.playCursor=0}}
@@ -1341,6 +1371,9 @@ function playBeat(stIdx,q,onDone){
  const w=widgetOf(q);
  const dis=realDis(q);
  hostFlush(); // drop narration for beats the trainee has already moved past
+ // if Saif is still voicing an older beat (fast player!), cut it — short score
+ // reactions (NOTE) may finish, everything else is stale by definition
+ if(HOST.cur&&HOST.cur.kind!=="NOTE"&&!HOST.onScore)hostCut();
  if(w==="conv"){stageConv(stIdx,q,onDone);return}
  const INSTR={single:"instrSingle",multi:"instrMulti",sequence:"instrSeq",hotsingle:"instrHot",hotmulti:"instrHotM",assign:"instrAssign"};
  speak(L(q.prompt)+" — "+T(INSTR[w]||"instrSingle"),T("saif"),L(q.prompt));
@@ -1629,6 +1662,7 @@ async function stageConv(stIdx,q,onDone){
  document.getElementById("convin").placeholder=T("typeHint");
  const cleanup=()=>{conv.style.display="none";stat.style.display="none";sp.style.display="none";convOpen=false;curSubmit=null;liveActive=false;live.muted=true;HOST.who=null};
  const fallback=()=>{cleanup();
+   hostDropAsk(); // switching to cards: the spoken question must never replay later
    subtitle(who,L(q.prompt),true);
    const dis=realDis(q);const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
    const cards=items.map((o,ix)=>{const m=tileMesh(L(o),ix+1);

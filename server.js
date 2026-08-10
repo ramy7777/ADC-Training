@@ -52,6 +52,12 @@ wss.on("connection", (client) => {
   console.log(`[live#${id}] client connected`);
   const upstream = new WebSocket(`${GEMINI_WS}?key=${KEY}`);
   const pending = [];
+  // keepalive: quiet stretches (fallback cards, trainee walking) left the socket
+  // silent, and idle connections were reaped after ~70s (client 1006 / gemini 1011)
+  const ka = setInterval(() => {
+    try { if (client.readyState === WebSocket.OPEN) client.ping(); } catch {}
+    try { if (upstream.readyState === WebSocket.OPEN) upstream.ping(); } catch {}
+  }, 20000);
   upstream.on("open", () => { for (const m of pending) upstream.send(m); pending.length = 0; });
   client.on("message", (data) => {
     const msg = data.toString();
@@ -61,11 +67,12 @@ wss.on("connection", (client) => {
   upstream.on("message", (data) => {
     if (client.readyState === WebSocket.OPEN) client.send(data.toString());
   });
-  const closeBoth = () => { try { client.close(); } catch {} try { upstream.close(); } catch {} };
+  const closeBoth = () => { clearInterval(ka); try { client.close(); } catch {} try { upstream.close(); } catch {} };
   client.on("close", (code) => { console.log(`[live#${id}] client closed ${code} after ${age()}`); closeBoth(); });
   client.on("error", (e) => { console.log(`[live#${id}] client error: ${e.message}`); closeBoth(); });
   upstream.on("close", (code, reason) => {
     console.log(`[live#${id}] gemini closed ${code} "${String(reason).slice(0, 200)}" after ${age()}`);
+    clearInterval(ka);
     try { client.close(1000, String(reason).slice(0, 100)); } catch {}
   });
   upstream.on("error", (e) => { console.log(`[live#${id}] gemini error: ${e.message}`); closeBoth(); });
