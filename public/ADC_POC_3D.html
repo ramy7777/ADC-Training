@@ -235,10 +235,10 @@ const UI={
   holdSpace:"Hold SPACE to talk",
   holdSpace2:"🎙 Hold SPACE (or the mic button) to talk to Saif anytime",
   listenLive:"🎙 Saif is live — just speak",
-  welcome:"Welcome, {name}! I am Saif, your guide today. We will visit six stations of our customs house; each holds four moments worth five marks. Follow me — I will explain every step.",
-  introScope:"Here is how it works: six stations, four challenges each, five marks per challenge — you need ninety-six of one hundred twenty to pass. Answer by clicking the floating cards, or hold SPACE — or squeeze the grip in VR — and simply talk to me.",
-  followMe:"Now follow me to the first station — walk with W A S D or your left thumbstick. The glowing beacon marks our destination.",
-  followNext:"Well done here! Follow me to the next station — look for the glowing beacon.",
+  welcome:"Welcome, {name}! I am Saif, your guide. You are standing in the grand hall of Abu Dhabi Customs — where we guard the emirate's borders and keep its trade flowing, day and night.",
+  introScope:"Your mission today: six stations, four challenges each, five marks per challenge — score ninety-six of one hundred twenty to pass. Answer by clicking the floating cards, or simply talk to me — hold SPACE, or squeeze the grip in VR.",
+  followMe:"That is the whole briefing! Now follow me to the first station — walk with W A S D or your left thumbstick, and head for the glowing beacon.",
+  followNext:"Splendid work! Follow me to the next station — look for the glowing beacon.",
   instrSingle:"Click the card you believe is correct — it flies to the answer pad.",
   instrMulti:"Click every card that applies, then press Confirm.",
   instrSeq:"Touch the tiles in the correct order.",
@@ -274,10 +274,10 @@ const UI={
   holdSpace:"اضغط مطولاً على مفتاح المسافة للتحدث",
   holdSpace2:"🎙 اضغط مطولاً على مفتاح المسافة (أو زر الميكروفون) للتحدث مع سيف في أي وقت",
   listenLive:"🎙 سيف معك مباشرة — تحدث الآن",
-  welcome:"أهلاً بك يا {name}! أنا سيف، مرشدك اليوم. سنزور ست محطات في دار الجمارك، وفي كل محطة أربعة مواقف بخمس علامات لكل موقف. اتبعني — سأشرح لك كل خطوة.",
-  introScope:"إليك الطريقة: ست محطات، في كل منها أربعة تحديات، وخمس علامات لكل تحدٍّ — تحتاج ستاً وتسعين من مئة وعشرين للنجاح. أجب بالنقر على البطاقات، أو اضغط مطولاً على مفتاح المسافة — أو زر القبضة في النظارة — وتحدث معي مباشرة.",
-  followMe:"والآن اتبعني إلى المحطة الأولى — تحرك بمفاتيح W A S D أو عصا التحكم اليسرى. العمود المضيء يحدد وجهتنا.",
-  followNext:"أحسنت هنا! اتبعني إلى المحطة التالية — انظر إلى العمود المضيء.",
+  welcome:"أهلاً بك يا {name}! أنا سيف، مرشدك اليوم. أنت الآن في القاعة الكبرى لجمارك أبوظبي — حيث نحرس حدود الإمارة ونُبقي تجارتها تتدفق ليلَ نهار.",
+  introScope:"مهمتك اليوم: ست محطات، في كل محطة أربعة تحديات، وخمس علامات لكل تحدٍّ — اجمع ستاً وتسعين من مئة وعشرين لتنجح. أجب بالنقر على البطاقات، أو تحدث معي مباشرة — اضغط مطولاً على مفتاح المسافة أو زر القبضة في النظارة.",
+  followMe:"هذا هو الملخص كاملاً! والآن اتبعني إلى المحطة الأولى — تحرك بمفاتيح W A S D أو العصا اليسرى، واقصد العمود المضيء.",
+  followNext:"عمل رائع! اتبعني إلى المحطة التالية — انظر إلى العمود المضيء.",
   instrSingle:"انقر البطاقة التي تراها صحيحة — ستنتقل إلى منصة الإجابة.",
   instrMulti:"انقر كل بطاقة تنطبق ثم اضغط تأكيد.",
   instrSeq:"المس اللوحات بالترتيب الصحيح.",
@@ -967,7 +967,7 @@ async function hostPump(){
  HOST.talking=true;HOST.cur=it;
  HOST.gotAct=false;HOST.lastAct=Date.now();
  hostArm();
- if(it.kind==="ASK")live.muted=false; // open the mic exactly when a question starts
+ if(it.kind==="ASK"){live.muted=false;live.initMic()} // open (and lazily acquire) the mic when a question starts
  live.sendText(`[${it.kind}] ${it.text}`);
 }
 // End-of-speech detector: turnComplete is unreliable around tool calls, so we
@@ -986,6 +986,9 @@ function hostArm(){
 }
 // a new beat or station makes older, still-unspoken narration obsolete
 function hostFlush(){HOST.q=HOST.q.filter(it=>it.kind==="ASK")}
+// hard-cut whatever Saif is saying RIGHT NOW (the next queued line preempts the
+// in-flight generation server-side, so stale talk stops immediately)
+function hostCut(){live.stopPlayback();HOST.talking=false;HOST.cur=null;clearInterval(HOST.watch)}
 async function hostEnsure(){
  if(HOST.on&&live.ws&&live.ws.readyState===1)return true;
  if(HOST.connecting)return HOST.connecting; // single-flight: parallel callers share one connect
@@ -995,7 +998,8 @@ async function hostEnsure(){
 async function _hostConnect(){
  HOST.on=false;
  if(HOST.failed>=2||!AI_ON||!window.isSecureContext)return false;
- if(!(await live.initMic())){HOST.failed=9;log("host: mic denied");return false}
+ // NOTE: the mic is requested lazily (PTT / verbal questions) — Saif must be
+ // able to greet and narrate even before the mic permission is answered
  try{
   await live.unlock();
   const name=S?S.trainee:"";
@@ -1005,10 +1009,11 @@ Speak ONLY ${LANG==="ar"?"Arabic":"English"}. Warm, encouraging, a touch of humo
 About Abu Dhabi Customs (ADC): it protects the emirate's borders and society, secures trade flows through its ports and land crossings like Al Ghuweifat, collects duties, fights smuggling, and enables businesses through smart digital services. The trainee walks through six gallery stations, each with four assessment moments worth 5 marks (pass: 96 of 120):
 ${know}
 You receive bracketed system commands. The trainee never sees them; never mention or read them aloud:
-- [SAY] <text>: deliver this message naturally in your own words, keeping the meaning. When introducing a station, add ONE vivid sentence about why that part of customs work matters. Do not ask questions, do not wait for a reply. Keep it under 35 words.
+- [SAY] <text>: deliver this message naturally in your own words, keeping ALL of its content and order. Text in (parentheses) is a silent STAGE DIRECTION — obey it, never speak it. Do not ask questions, do not wait for a reply.
 - [ASK] <context>: run a verbal assessment moment. Ask the given question in ONE short sentence, then listen. Accept paraphrases and substantially-correct answers. If the trainee is silent or off-topic, gently re-ask once. As soon as they answer, call score_answer with correct=true/false and one short feedback sentence, and speak that feedback.
 - [NOTE] <event>: a progress update. React with one very short encouraging phrase (2–6 words), nothing more.
-- A plain message is the trainee talking to you. If they ask what to do now, explain the current step precisely using the latest [SAY]/[ASK] context. If they ask about ADC, its sections or services, teach them like a wise mentor — educative and entertaining, under 40 words.`;
+- A plain message is the trainee talking to you. If they ask what to do now, explain the current step precisely using the latest [SAY]/[ASK] context. If they ask about ADC, its sections or services, teach them like a wise mentor — educative and entertaining, under 40 words.
+Rules of awareness: stage directions are ground truth about where the trainee is and what just happened — always speak from the current moment. NEVER repeat a greeting, an explanation, or "follow me" once that moment has passed. Each line you speak must add something new.`;
   live.onText=(t,done)=>{
    if(t){HOST.buf+=t;subtitle(HOST.who||T("saif"),HOST.buf,true)}
    if(done){HOST.buf="";HOST.talking=false;clearInterval(HOST.watch);HOST.hold=0;hostFin();hostPump()}
@@ -1576,6 +1581,7 @@ async function pttDown(){
  if(pttOpen)return;
  if(!HOST.on&&HOST.failed<9)HOST.failed=0; // user-initiated: always worth another try
  if(!VOICE_ON||!(await hostEnsure())){subtitle(T("saif"),T("ai_no"));return}
+ if(!(await live.initMic())){subtitle(T("saif"),T("mic_no"));return}
  pttOpen=true;clearTimeout(pttTimer);
  live.muted=false;live.hot=true;
  live.stopPlayback(); // barge-in: talking over Saif stops him
@@ -1668,6 +1674,8 @@ function startSession(name){
  toggleAsk(true); // chat bar with mic stays visible for the whole session
  const sh=document.getElementById("spacehint");sh.style.display="block";sh.textContent=T("holdSpace2");
  hostReset(); // fresh voice session with this trainee's name and language
+ live.unlock(); // the Start click is our user gesture — wake the audio pipeline
+ live.initMic(); // ask for the mic NOW but don't block the greeting on the permission prompt
  // the journey begins ON the central medallion: Saif waits there, greets,
  // explains the scope, then WALKS to station one — the trainee follows him
  followSt=null;glide=null;
@@ -1690,13 +1698,17 @@ function escortTo(i){
  saifTarget=new THREE.Vector3(Math.sin(a)*(R-5.4)+Math.cos(a)*1.8,0,-Math.cos(a)*(R-5.4)+Math.sin(a)*1.8);
  if(FAST){glideTo(i);beginStation(i);return}
  hostFlush();
- speak(T(i===0?"followMe":"followNext"),T("saif"));
+ const nm=L(CONTENT.skills[i].scene.name);
+ speak(`(You are setting off on foot toward the "${nm}" station and the trainee must walk after you — the glowing beacon marks it.) ${T(i===0?"followMe":"followNext")}`,
+   T("saif"),T(i===0?"followMe":"followNext"));
  followSt=i;
 }
 function beginStation(i){
  followSt=null;
- hostFlush();live.stopPlayback(); // fresh start at each station: skip stale narration audio
- speak(T("stationIntro")[i],T("saif"));
+ hostFlush();hostCut(); // the trainee is HERE — any lingering "follow me" talk stops now
+ const nm=L(CONTENT.skills[i].scene.name);
+ speak(`(${S.trainee} has just walked up and arrived with you at "${nm}". Acknowledge the arrival in a word or two, then introduce the station — no more follow-me talk.) ${T("stationIntro")[i]}`,
+   T("saif"),T("stationIntro")[i]);
  setTimeout(()=>runBeat(i,0),FAST?350:2200);
 }
 function runBeat(i,b){
