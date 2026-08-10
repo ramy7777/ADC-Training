@@ -1000,7 +1000,14 @@ function hostArm(){
   if(!HOST.talking){clearInterval(HOST.watch);return}
   if(live.speaking)return; // audio still audible — not done
   const idle=Date.now()-Math.max(HOST.sentAt,HOST.lastAct);
-  if(HOST.gotAct?idle>2600:idle>8000)hostDone("idle");
+  if(HOST.gotAct?idle>2600:idle>5000){
+   // Gemini occasionally returns an EMPTY turn (no audio, no text — seen in
+   // telemetry as 8s of dead air). One automatic resend covers it.
+   if(!HOST.gotAct&&HOST.cur&&!HOST.cur.retried){
+    const it=HOST.cur;it.retried=true;HOST.cur=null;
+    clog("no output — retrying turn");hostSend(it);return}
+   hostDone("idle");
+  }
  },700);
 }
 function hostDone(why){ // turn over (audio drained, genuine interruption, or turnComplete)
