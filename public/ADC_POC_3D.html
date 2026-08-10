@@ -979,7 +979,9 @@ function hostArm(){
   if(!HOST.talking){clearInterval(HOST.watch);return}
   if(live.speaking)return; // audio still audible — not done
   const idle=Date.now()-HOST.lastAct;
-  if(HOST.gotAct?idle>1800:idle>8000){ // quiet + drained → the turn is over
+  // 2.6s: long enough that a natural mid-sentence pause is never mistaken for
+  // the end of the turn (that mistake preempted generations = clipped speech)
+  if(HOST.gotAct?idle>2600:idle>8000){
    clearInterval(HOST.watch);HOST.talking=false;hostFin();hostPump();
   }
  },700);
@@ -1105,9 +1107,10 @@ class LiveVoice{
    if(this.micCtx.state==="suspended")try{await this.micCtx.resume()}catch(e){}
    const src=this.micCtx.createMediaStreamSource(this.micStream);
    const send=(f)=>{
-    // anti-echo: don't stream the mic while Saif's voice is playing — UNLESS the
-    // trainee is deliberately holding push-to-talk (hot), which must always get through
-    if(this.muted||(this.sources.length>0&&!this.hot)||!this.ws||this.ws.readyState!==1)return;
+    // anti-echo: don't stream the mic while Saif is speaking OR still generating —
+    // audio gaps between chunks used to leak room noise upstream, and the server's
+    // VAD would cut him off mid-sentence. Deliberate push-to-talk (hot) always streams.
+    if(this.muted||((this.sources.length>0||HOST.talking)&&!this.hot)||!this.ws||this.ws.readyState!==1)return;
     const i16=new Int16Array(f.length);
     for(let i=0;i<f.length;i++){const v=Math.max(-1,Math.min(1,f[i]));i16[i]=v<0?v*0x8000:v*0x7FFF}
     let bin="";const u8=new Uint8Array(i16.buffer);
@@ -1231,10 +1234,11 @@ function burst(worldPos,ok){
  for(let i=0;i<n;i++){pos[i*3]=worldPos.x;pos[i*3+1]=worldPos.y;pos[i*3+2]=worldPos.z;
   vel.push(new THREE.Vector3((Math.random()-.5)*3,(Math.random()*.9+.4)*3,(Math.random()-.5)*3))}
  const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.BufferAttribute(pos,3));
- const m=new THREE.PointsMaterial({color:ok?0x1fa877:0xd84a38,size:.09,transparent:true,opacity:.95});
- const pts=new THREE.Points(g,m);scene.add(pts);
+ const m=new THREE.PointsMaterial({color:ok?0x1fa877:0xd84a38,size:.09,transparent:true,opacity:.95,depthTest:false});
+ const pts=new THREE.Points(g,m);pts.renderOrder=24;scene.add(pts);
  bursts.push({pts,vel,t:0});
  if(ok){const chip=textPanel("+5",1,.55,{size:52,bold:true,color:"#ffffff",bg:"rgba(31,168,119,0.95)",border:"rgba(0,0,0,0)"});
+  chip.material.depthTest=false;chip.renderOrder=25; // score fx float ABOVE the cards
   chip.position.copy(worldPos).add(new THREE.Vector3(0,.4,0));scene.add(chip);
   bursts.push({chip,t:0})}
 }
@@ -1264,9 +1268,12 @@ function stageBase(i){
  scene.add(qGroup);
  return qGroup;
 }
-function cardMesh(text,w,h){const m=textPanel(text,w,h,{size:34});m.userData.isCard=true;return m}
+// question UI renders "x-ray" (no depth test, high render order): station props
+// standing between the camera and the console can never cover cards or text
+function cardMesh(text,w,h){const m=textPanel(text,w,h,{size:34});
+ m.userData.isCard=true;m.material.depthWrite=false;m.material.depthTest=false;m.renderOrder=10;return m}
 function tileMesh(text,n){const m=textPanel(text,2.2,.9,{size:30,badge:n});
- m.userData.isCard=true;m.userData.label=text;m.material.depthWrite=false;return m}
+ m.userData.isCard=true;m.userData.label=text;m.material.depthWrite=false;m.material.depthTest=false;m.renderOrder=10;return m}
 // A tilted console desk in front of the trainee: question header on top,
 // numbered option tiles docked in slots on the glass deck.
 function dockPlace(meshes,promptText,headerY=3.35){
@@ -1289,6 +1296,7 @@ function dockPlace(meshes,promptText,headerY=3.35){
  box(qGroup,.14,1.06,.14,0x2a3f45,dw/2-.4,.53,2.3);
  if(promptText){
    const head=textPanel(promptText,7.4,1.1,{size:33,bold:true,color:"#ffffff",bg:"rgba(15,50,55,0.94)",border:"rgba(53,167,154,0.7)"});
+   head.material.depthTest=false;head.renderOrder=12; // question text always readable over props
    head.position.set(0,headerY,0.5);qGroup.add(head);
  }
  const e=new THREE.Euler(tilt,0,0);
@@ -1347,17 +1355,19 @@ function playBeat(stIdx,q,onDone){
    const onPad=new Set();
    const cards=items.map((o,ix)=>{const m=tileMesh(L(o),ix+1);m.userData.ix=ix;return m});
    dockPlace(cards,L(q.prompt));
-   const relayout=()=>{ // arrange tiles resting upright on the pad
+   const relayout=()=>{ // tiles shrink on the pad and fan out so they never overlap
      const on=[...onPad];
      on.forEach((ix,k)=>{const m=cards.find(c=>c.userData.ix===ix);
-       const a=(k-(on.length-1)/2)*.8;
+       const a=(k-(on.length-1)/2)*1.34;
        m.rotation.x=0;
+       m.scale.setScalar(.55);m.userData.baseScale=.55;
        flyBack(m,new THREE.Vector3(pad.grp.position.x+a,1.0,pad.grp.position.z));
        m.userData.onPad=true});
    };
    let confirmBtn=null;
    if(w==="multi"){
      confirmBtn=textPanel(T("confirm"),1.9,.72,{size:40,bold:true,color:"#ffffff",bg:"rgba(0,115,106,0.96)",border:"#005a53"});
+     confirmBtn.material.depthTest=false;confirmBtn.renderOrder=12;
      confirmBtn.position.set(-4.9,2.2,1.2);confirmBtn.visible=false;g.add(confirmBtn);
      confirmBtn.userData.onClick=()=>{
        const chosen=[...onPad].map(i=>items[i].en).sort();
@@ -1380,6 +1390,7 @@ function playBeat(stIdx,q,onDone){
    };
    // dragging a tile off the pad returns it to its console slot (multi only)
    const offDrop=o=>{if(o.userData.onPad){onPad.delete(o.userData.ix);o.userData.onPad=false;
+     o.scale.setScalar(1);o.userData.baseScale=1; // full size back in its console slot
      o.rotation.x=o.userData.dockTilt;flyBack(o,o.userData.home);relayout();
      confirmBtn&&(confirmBtn.visible=onPad.size>0);return true}return false};
    const ground=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.MeshBasicMaterial({visible:false}));
@@ -1529,11 +1540,12 @@ function playBeat(stIdx,q,onDone){
      };
      return {grpZ,back};
    });
-  function restack(z){
-    z.grpZ.userData.stack.forEach((m,k)=>{
-      m.scale.setScalar(.72);m.userData.baseScale=.72;m.rotation.x=0;
-      flyBack(m,z.grpZ.position.clone().add(new THREE.Vector3(0,1.72-k*.55,.14)));
-    });
+ function restack(z){
+   z.grpZ.userData.stack.forEach((m,k)=>{
+     // .68 scale × .9 tile height ≈ .61 — the .64 step keeps stacked cards clear of each other
+     m.scale.setScalar(.68);m.userData.baseScale=.68;m.rotation.x=0;
+     flyBack(m,z.grpZ.position.clone().add(new THREE.Vector3(0,1.78-k*.64,.14)));
+   });
     if(!z.grpZ.userData.stack.length&&z.grpZ.userData.slotsLbl)z.grpZ.userData.slotsLbl.visible=true;
   }
   // simpler path: click a tile to select it, then click a zone board to place it
@@ -1707,9 +1719,12 @@ function beginStation(i){
  followSt=null;
  hostFlush();hostCut(); // the trainee is HERE — any lingering "follow me" talk stops now
  const nm=L(CONTENT.skills[i].scene.name);
+ // first beat starts only AFTER the intro was actually spoken — a fixed timer
+ // used to let the beat's flush throw away the still-queued intro line
+ let started=false;const kick=()=>{if(started)return;started=true;runBeat(i,0)};
  speak(`(${S.trainee} has just walked up and arrived with you at "${nm}". Acknowledge the arrival in a word or two, then introduce the station — no more follow-me talk.) ${T("stationIntro")[i]}`,
-   T("saif"),T("stationIntro")[i]);
- setTimeout(()=>runBeat(i,0),FAST?350:2200);
+   T("saif"),T("stationIntro")[i],kick);
+ setTimeout(kick,FAST?350:15000); // failsafe: a dead voice session never blocks the assessment
 }
 function runBeat(i,b){
  if(b>=4){ if(i+1<6)escortTo(i+1); else endLevel(); return }
