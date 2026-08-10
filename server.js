@@ -14,7 +14,10 @@ const GEMINI_WS = "wss://generativelanguage.googleapis.com/ws/google.ai.generati
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
-app.use(express.static(path.join(__dirname, "public")));
+// HTML must revalidate on every load — stale cached pages kept resurrecting old bugs
+app.use(express.static(path.join(__dirname, "public"), {
+  setHeaders: (res, p) => { if (p.endsWith(".html")) res.setHeader("Cache-Control", "no-cache"); },
+}));
 
 // Tells the client what is available — never the key itself.
 app.get("/api/config", (req, res) => {
