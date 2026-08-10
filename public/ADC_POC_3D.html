@@ -85,6 +85,13 @@ button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;font-siz
 #askmic.rec{background:var(--red);animation:pulse 1s infinite}
 #convin,#convsend,#talk{display:none!important} /* typed/PTT answers now go through the always-on chat bar */
 #ctrlhint{position:fixed;bottom:16px;inset-inline-start:16px;font-size:11px;color:var(--muted);z-index:19;background:rgba(255,255,255,.9);border:1px solid var(--line);padding:8px 12px;border-radius:9px;line-height:1.7;max-width:330px}
+/* ---------- Enter VR (shown only on WebXR-capable browsers) ---------- */
+#btnVR{position:fixed;bottom:18px;inset-inline-end:18px;z-index:32;display:none;align-items:center;gap:10px;
+ padding:13px 24px;border-radius:99px;font-weight:800;font-size:13.5px;letter-spacing:.08em;color:#08211f;
+ background:linear-gradient(135deg,#eed9a3,#c8a45a 60%,#b18f45);border:1.5px solid rgba(255,255,255,.6);
+ box-shadow:0 10px 30px rgba(0,25,30,.4),0 0 22px rgba(215,181,109,.45);transition:transform .15s,box-shadow .15s}
+#btnVR:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(0,25,30,.5),0 0 32px rgba(215,181,109,.75)}
+#btnVR svg{width:22px;height:22px;flex:none}
 #flash{position:fixed;inset:0;pointer-events:none;z-index:17;opacity:0;transition:opacity .5s}
 #errbar{position:fixed;top:0;left:0;right:0;background:#8c2318;color:#fff;font-size:12px;padding:6px 12px;z-index:99;display:none;white-space:pre-wrap}
 /* ---------- drawer ---------- */
@@ -115,6 +122,10 @@ td{border:1px solid var(--line);padding:5px 8px}
   <div id="prog"><div id="progfill"></div></div>
 </div>
 <div id="topbtns"><button class="btn" id="btnVoice">🔊</button><button class="btn" id="btnAsk">💬</button><button class="btn" id="btnAdmin">Admin</button></div>
+<button id="btnVR" title="Immersive VR">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 8.5C3 7.12 4.12 6 5.5 6h13C19.88 6 21 7.12 21 8.5v5c0 1.38-1.12 2.5-2.5 2.5h-2.17c-.63 0-1.22-.29-1.6-.79l-1.14-1.48a2 2 0 0 0-3.18 0l-1.14 1.48c-.38.5-.97.79-1.6.79H5.5A2.5 2.5 0 0 1 3 13.5v-5Zm5.2 3.7a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4Zm7.6 0a1.7 1.7 0 1 0 0-3.4 1.7 1.7 0 0 0 0 3.4Z"/></svg>
+  <span id="btnVRtxt">ENTER VR</span>
+</button>
 
 <div id="sub"><div class="card">
   <img id="subav" src="img/saif-portrait.jpg" alt="" onerror="this.style.display='none';document.getElementById('subav2').style.display='flex'">
@@ -334,6 +345,12 @@ scene.fog=new THREE.Fog(0x123a40,46,130);
 const camera=new THREE.PerspectiveCamera(66,1,0.1,260);
 let yaw=0,pitch=0;
 const camPos=new THREE.Vector3(0,1.6,14);
+// WebXR: the camera rides a rig. On desktop the rig stays at the origin and the
+// camera is posed directly; in VR the headset poses the camera and locomotion
+// moves the rig. Same world, both modes.
+renderer.xr.enabled=true;
+renderer.xr.setReferenceSpaceType("local-floor");
+const rig=new THREE.Group();rig.add(camera);scene.add(rig);
 // image-based lighting: rich reflections on marble/gold without extra lights
 {const pmrem=new THREE.PMREMGenerator(renderer);
  scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;pmrem.dispose()}
@@ -679,16 +696,176 @@ const hoverGlow=(()=> {
  const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),
   new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthWrite:false,depthTest:false}));
  m.renderOrder=9;m.visible=false;scene.add(m);return m})();
+const _gcw=new THREE.Vector3(),_gcq=new THREE.Quaternion();
 function glowTick(){
  if(hovered&&hovered.userData.isCard){
   const wp=new THREE.Vector3();hovered.getWorldPosition(wp);
-  const away=wp.clone().sub(camera.position).normalize();
+  camera.getWorldPosition(_gcw);camera.getWorldQuaternion(_gcq); // world space: camera sits inside the XR rig
+  const away=wp.clone().sub(_gcw).normalize();
   hoverGlow.position.copy(wp).addScaledVector(away,.25);
-  hoverGlow.quaternion.copy(camera.quaternion);
+  hoverGlow.quaternion.copy(_gcq);
   hoverGlow.scale.set(3.4,1.9,1);
   hoverGlow.visible=true;
  }else hoverGlow.visible=false;
 }
+
+/* ================= WebXR: Quest 3 / VIVE Focus — same world, immersive =================
+   Desktop stays untouched; in VR the controllers become gold-tipped laser pointers:
+   trigger = select/answer, grip (squeeze) = push-to-talk to Saif,
+   left stick = walk (head-relative), right stick = 30° snap turn. */
+const btnVR=document.getElementById("btnVR");
+if(navigator.xr&&navigator.xr.isSessionSupported){
+ navigator.xr.isSessionSupported("immersive-vr").then(ok=>{if(ok)btnVR.style.display="flex"}).catch(()=>{});
+}
+btnVR.onclick=async()=>{
+ if(renderer.xr.isPresenting){try{await renderer.xr.getSession().end()}catch(e){};return}
+ try{
+  await live.unlock(); // audio contexts must wake inside this user gesture
+  const s=await navigator.xr.requestSession("immersive-vr",
+    {optionalFeatures:["local-floor","bounded-floor","hand-tracking"]});
+  await renderer.xr.setSession(s);
+ }catch(e){log("vr: "+e.message)}
+};
+renderer.xr.addEventListener("sessionstart",()=>{
+ document.getElementById("btnVRtxt").textContent="EXIT VR";
+ if(renderer.xr.setFoveation)renderer.xr.setFoveation(1); // standalone GPUs appreciate it
+ vrHud.mesh.visible=true;
+});
+renderer.xr.addEventListener("sessionend",()=>{
+ document.getElementById("btnVRtxt").textContent="ENTER VR";
+ rig.position.set(0,0,0);rig.rotation.set(0,0,0);
+ vrHud.mesh.visible=false;
+ resize();
+});
+
+const _xrMat=new THREE.Matrix4();
+function ctrlRay(c){
+ _xrMat.identity().extractRotation(c.matrixWorld);
+ ray.ray.origin.setFromMatrixPosition(c.matrixWorld);
+ ray.ray.direction.set(0,0,-1).applyMatrix4(_xrMat);
+}
+function vrClick(c){
+ const all=clicks.concat(drags);
+ if(!all.length)return;
+ ctrlRay(c);
+ const hits=ray.intersectObjects(all,false);
+ if(hits.length&&hits[0].object.userData.onClick){tick();hits[0].object.userData.onClick(hits[0].object)}
+}
+const controllers=[0,1].map(i=>{
+ const c=renderer.xr.getController(i);
+ rig.add(c); // controllers must move with the rig, or lasers detach when walking
+ const line=new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-1)]),
+  new THREE.LineBasicMaterial({color:0x8fe0d6,transparent:true,opacity:.8}));
+ line.scale.z=6;line.visible=false;c.add(line);
+ const handle=new THREE.Mesh(new THREE.CylinderGeometry(.013,.019,.11,10),
+  new THREE.MeshStandardMaterial({color:INK,roughness:.5,metalness:.3}));
+ handle.rotation.x=Math.PI/2.4;handle.position.set(0,-.012,.028);c.add(handle);
+ const tip=new THREE.Mesh(new THREE.SphereGeometry(.016,10,8),goldMat);c.add(tip);
+ const dot=new THREE.Mesh(new THREE.SphereGeometry(.035,12,10),
+  new THREE.MeshBasicMaterial({color:GOLD}));
+ dot.visible=false;c.add(dot);
+ c.userData.line=line;c.userData.dot=dot;
+ c.addEventListener("connected",e=>{
+  c.userData.src=e.data;
+  line.visible=!!(e.data&&e.data.targetRayMode==="tracked-pointer");
+ });
+ c.addEventListener("disconnected",()=>{c.userData.src=null;line.visible=false;dot.visible=false});
+ c.addEventListener("selectstart",()=>{live.unlock();vrClick(c)});
+ c.addEventListener("squeezestart",()=>{live.unlock();pttDown()});
+ c.addEventListener("squeezeend",()=>pttUp());
+ return c;
+});
+function vrHoverTick(){
+ const all=clicks.concat(drags);
+ let top=null;
+ for(const c of controllers){
+  if(!c.userData.src){continue}
+  ctrlRay(c);
+  const hits=all.length?ray.intersectObjects(all,false):[];
+  if(hits.length){
+   const d=hits[0].distance;
+   c.userData.line.scale.z=d;
+   c.userData.dot.visible=true;c.userData.dot.position.set(0,0,-d);
+   if(!top)top=hits[0].object;
+  }else{c.userData.line.scale.z=6;c.userData.dot.visible=false}
+ }
+ if(hovered&&hovered!==top)hovered.scale.setScalar(hovered.userData.baseScale||1);
+ hovered=top;
+ if(top){top.userData.baseScale=top.userData.baseScale||top.scale.x;top.scale.setScalar(top.userData.baseScale*1.07)}
+}
+let snapCool=0;
+const _hq=new THREE.Quaternion(),_hf=new THREE.Vector3(),_hr=new THREE.Vector3();
+function vrMoveTick(dt){
+ snapCool=Math.max(0,snapCool-dt);
+ const sess=renderer.xr.getSession();if(!sess)return;
+ for(const src of sess.inputSources){
+  const gp=src.gamepad;if(!gp||!gp.axes)continue;
+  // xr-standard puts the thumbstick at axes[2/3]; older profiles at [0/1]
+  const sx=gp.axes.length>=4?gp.axes[2]:(gp.axes[0]||0);
+  const sy=gp.axes.length>=4?gp.axes[3]:(gp.axes[1]||0);
+  if(src.handedness!=="right"){ // left stick (or unknown hand): walk where you look
+   if(Math.abs(sx)>.15||Math.abs(sy)>.15){
+    camera.getWorldQuaternion(_hq);
+    _hf.set(0,0,-1).applyQuaternion(_hq);_hf.y=0;_hf.normalize();
+    _hr.set(-_hf.z,0,_hf.x);
+    camPos.addScaledVector(_hf,-sy*4*dt);
+    camPos.addScaledVector(_hr,sx*4*dt);
+   }
+  }
+  if(src.handedness==="right"&&Math.abs(sx)>.6&&snapCool<=0){ // comfort snap turn
+   yaw-=Math.sign(sx)*Math.PI/6;snapCool=.32;
+  }
+ }
+ const l=Math.hypot(camPos.x,camPos.z);if(l>66){camPos.x*=66/l;camPos.z*=66/l}
+ camPos.y=1.6;
+}
+/* In-headset subtitle & status panel (DOM overlays don't exist inside VR) */
+const vrHud=(()=>{
+ const cv=document.createElement("canvas");cv.width=1024;cv.height=300;
+ const ctx=cv.getContext("2d");
+ const tex=new THREE.CanvasTexture(cv);
+ const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1.06,.31),
+  new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:false}));
+ mesh.renderOrder=40;mesh.position.set(0,-.52,-1.35);mesh.visible=false;camera.add(mesh);
+ let who="",text="",mic=false;
+ const rr=(x,y,w,h,r)=>{ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()};
+ function draw(){
+  ctx.clearRect(0,0,1024,300);
+  if(text||mic){
+   ctx.fillStyle="rgba(13,36,41,.88)";rr(12,12,1000,276,26);ctx.fill();
+   ctx.strokeStyle="rgba(215,181,109,.9)";ctx.lineWidth=3;rr(12,12,1000,276,26);ctx.stroke();
+   const rtl=LANG==="ar";
+   ctx.direction=rtl?"rtl":"ltr";
+   ctx.textAlign=rtl?"right":"left";
+   const xs=rtl?984:40;
+   ctx.fillStyle="#d7b56d";ctx.font="700 30px 'Segoe UI',Tahoma,sans-serif";
+   ctx.fillText((mic?"🎙 ":"")+(who||"").toUpperCase(),xs,60);
+   if(S&&S.active){
+    ctx.textAlign=rtl?"left":"right";
+    ctx.fillStyle="#8fe0d6";ctx.font="600 26px 'Segoe UI',Tahoma,sans-serif";
+    ctx.fillText(`${Math.min(S.done+1,24)}/24 · ${S.score}/120`,rtl?40:984,60);
+    ctx.textAlign=rtl?"right":"left";
+   }
+   ctx.fillStyle="#f4f7f8";ctx.font="400 34px 'Segoe UI',Tahoma,sans-serif";
+   // word-wrap up to 4 lines
+   const words=(text||"").split(/\s+/);let line="",yy=112,n=0;
+   for(const w of words){
+    const t2=line?line+" "+w:w;
+    if(ctx.measureText(t2).width>930&&line){
+     ctx.fillText(line,xs,yy);yy+=46;line=w;
+     if(++n===3){line+="…";break}
+    }else line=t2;
+   }
+   if(line)ctx.fillText(line,xs,yy);
+  }
+  tex.needsUpdate=true;
+ }
+ return {mesh,
+  say(w,t){who=w||"";text=t||"";draw()},
+  setMic(m){mic=m;draw()}};
+})();
 
 /* ---------- movement ---------- */
 const keys={};
@@ -707,6 +884,7 @@ function glideTo(i){const st=stations[i];const a=stationAngle(i);
  const target=new THREE.Vector3(Math.sin(a)*(R-8.8),1.6,-Math.cos(a)*(R-8.8));
  const yawTo=Math.atan2(-(st.pos.x-target.x),-(st.pos.z-target.z));
  if(FAST){camPos.copy(target);yaw=yawTo;pitch=0;glide=null;return}
+ if(renderer.xr.isPresenting)yaw=yawTo; // VR comfort: snap to face the station, never rotate under the user
  glide={from:camPos.clone(),to:target,t:0,yawTo}}
 function moveTick(dt){
  if(glide){glide.t=Math.min(1,glide.t+dt*(FAST?6:.9));const k=glide.t*glide.t*(3-2*glide.t);
@@ -844,8 +1022,9 @@ function subtitle(who,text,sticky){
  fb.style.display=isSaif?"none":"flex";
  fb.textContent=(who||"?").trim().charAt(0).toUpperCase();
  s.style.display="block";
+ vrHud.say(who,text); // mirror onto the in-headset panel
  clearTimeout(subTimer);
- if(!sticky)subTimer=setTimeout(()=>s.style.display="none",Math.max(3500,text.length*70));
+ if(!sticky)subTimer=setTimeout(()=>{s.style.display="none";vrHud.say("","")},Math.max(3500,text.length*70));
 }
 
 /* ---------- gemini ---------- */
@@ -1376,11 +1555,13 @@ async function pttDown(){
  live.muted=false;
  live.stopPlayback(); // barge-in: talking over Saif stops him
  document.getElementById("askmic").classList.add("rec");
+ vrHud.setMic(true);
  const st=document.getElementById("convstat");st.style.display="block";st.textContent=T("listenLive");
 }
 function pttUp(){
  if(!pttOpen)return;pttOpen=false;
  document.getElementById("askmic").classList.remove("rec");
+ vrHud.setMic(false);
  // short tail so the end of the sentence is captured before muting
  pttTimer=setTimeout(()=>{
   if(!liveActive)live.muted=true; // stay open if a verbal question is running
@@ -1603,7 +1784,7 @@ function paintAdmin(){
 }
 
 /* ---------- render loop ---------- */
-function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
+function resize(){if(renderer.xr.isPresenting)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
 addEventListener("resize",resize);resize();
 // adaptive resolution: drop render scale when frames run slow, restore when fast
 const DPR_STEPS=[.8,1,1.25,1.5];
@@ -1618,14 +1799,23 @@ function dprTick(dt){
 }
 const clock=new THREE.Clock();
 function animate(){
- requestAnimationFrame(animate);
  const dt=Math.min(clock.getDelta(),.05);
  const t=clock.elapsedTime;
- dprTick(dt);
+ const xr=renderer.xr.isPresenting;
+ if(!xr)dprTick(dt); // XR manages its own framebuffer scale
  if(window.__dust)window.__dust.rotation.y=t*.011;
- moveTick(dt);hoverTick();fxTick(dt);
- camera.position.copy(camPos);
- camera.rotation.set(0,0,0);camera.rotateY(yaw);camera.rotateX(pitch);
+ moveTick(dt);fxTick(dt);
+ if(xr){
+  vrMoveTick(dt);
+  rig.position.set(camPos.x,0,camPos.z); // local-floor: the headset supplies eye height
+  rig.rotation.set(0,yaw,0);
+  vrHoverTick();
+ }else{
+  rig.position.set(0,0,0);rig.rotation.set(0,0,0);
+  camera.position.copy(camPos);
+  camera.rotation.set(0,0,0);camera.rotateY(yaw);camera.rotateX(pitch);
+  hoverTick();
+ }
  saif.position.lerp(new THREE.Vector3(saifTarget.x,0,saifTarget.z),Math.min(1,dt*2));
  saif.children[1].position.y=2.08+Math.sin(t*2)*.04;
  saif.children[4].intensity=1.4+((saifSpeaking||live.speaking)?Math.sin(t*14)*1.1:0)+Math.sin(t*3)*.25;
@@ -1647,7 +1837,7 @@ function animate(){
  glowTick();
  renderer.render(scene,camera);
 }
-animate();
+renderer.setAnimationLoop(animate); // required for WebXR (rAF stops inside a session)
 window.__adc={get S(){return S},get qGroup(){return qGroup},get cam(){return camPos},get glide(){return glide},get t(){return clock.elapsedTime},stations};
 showStart();
 </script>
