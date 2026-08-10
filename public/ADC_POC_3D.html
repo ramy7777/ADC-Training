@@ -1232,11 +1232,18 @@ class LiveVoice{
   const buf=this.playCtx.createBuffer(1,n,24000);
   buf.getChannelData(0).set(f);
   const src=this.playCtx.createBufferSource();src.buffer=buf;src.connect(this.playCtx.destination);
-  // jitter buffer: give a fresh turn a 250ms head start so slow-arriving chunks
-  // don't underrun (that underrun was the "breaking/choppy" voice); mid-stream
-  // underruns re-cushion with 60ms instead of clicking straight in
-  const lead=this.sources.length?.06:.25;
-  const t0=Math.max(this.playCtx.currentTime+lead,this.playCursor);
+  // ADAPTIVE jitter buffer. Chunks arrive in bursts (free-tier relay + network),
+  // and a fixed 60ms cushion underran on every hiccup — THAT was the stutter.
+  // Healthy stream: append seamlessly. Underrun: re-cushion, and grow the
+  // cushion each time it happens so repeated hiccups can't machine-gun the voice.
+  const now=this.playCtx.currentTime;
+  let lead;
+  if(!this.playCursor){this._under=0;lead=.25}       // fresh turn: fixed head start
+  else if(this.playCursor>now+.01)lead=0;            // stream healthy: butt-join chunks
+  else{this._under=Math.min((this._under||0)+1,4);   // drained mid-stream: escalate
+   lead=.15+.12*this._under;
+   console.log("audio underrun #"+this._under+", cushion "+Math.round(lead*1000)+"ms")}
+  const t0=Math.max(now+lead,this.playCursor);
   src.start(t0);this.playCursor=t0+buf.duration;
   this.sources.push(src);src.onended=()=>{this.sources=this.sources.filter(s=>s!==src)};
  }
