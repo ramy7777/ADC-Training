@@ -978,6 +978,7 @@ async function hostSend(it){
   if(it.cb)setTimeout(it.cb,Math.max(2200,it.text.length*45));
   return}
  if(my!==HOST.seq)return; // a newer event arrived while we connected — it wins
+ HOST.deferred=null; // this line supersedes anything parked — stale narration must never replay
  const old=HOST.cur;HOST.cur=null;
  if(old&&old.cb)try{old.cb()}catch(e){} // the displaced line's moment has passed — let its flow continue
  live.stopPlayback(); // talk-over: cut the stale speech instantly
@@ -990,10 +991,20 @@ async function hostSend(it){
  // if no voice materializes quickly, show the scripted line so nothing is lost
  setTimeout(()=>{if(HOST.cur===it&&!HOST.gotText)subtitle(it.who,it.sub)},4000);
 }
-// watchdog: a turn that goes silent without an end-signal releases the floor
-function hostArm(){clearTimeout(HOST.watch);HOST.watch=setTimeout(()=>hostDone("watchdog"),10000)}
-function hostDone(why){ // turn over (turnComplete, genuine interruption, or watchdog)
- clearTimeout(HOST.watch);
+// End-of-turn detector. Gemini's turnComplete signal is UNRELIABLE (telemetry
+// showed greetings never receiving one → 10s dead-air stalls), so the ground
+// truth is the audio itself: the turn is over 2.6s after playback drains.
+function hostArm(){
+ clearInterval(HOST.watch);
+ HOST.watch=setInterval(()=>{
+  if(!HOST.talking){clearInterval(HOST.watch);return}
+  if(live.speaking)return; // audio still audible — not done
+  const idle=Date.now()-Math.max(HOST.sentAt,HOST.lastAct);
+  if(HOST.gotAct?idle>2600:idle>8000)hostDone("idle");
+ },700);
+}
+function hostDone(why){ // turn over (audio drained, genuine interruption, or turnComplete)
+ clearInterval(HOST.watch);
  if(why==="watchdog"||HOST.cur)clog("turn done: "+(why||"forced"));
  HOST.talking=false;HOST.buf="";
  const c=HOST.cur;HOST.cur=null;
@@ -1007,7 +1018,7 @@ function hostNext(){ // floor is free: deliver the parked line, if still relevan
 }
 // a verbal question the trainee moved past must never play late
 function hostAbortAsk(){
- if(HOST.cur&&HOST.cur.kind==="ASK"){live.stopPlayback();HOST.cur=null;HOST.talking=false;clearTimeout(HOST.watch)}
+ if(HOST.cur&&HOST.cur.kind==="ASK"){live.stopPlayback();live.drop=true;HOST.cur=null;HOST.talking=false;clearInterval(HOST.watch)}
 }
 async function hostEnsure(){
  if(HOST.on&&live.ws&&live.ws.readyState===1)return true;
@@ -1040,9 +1051,9 @@ Rules of awareness: stage directions are ground truth about where the trainee is
    if(t){HOST.gotText=true;HOST.buf+=t;
     subtitle(HOST.who||T("saif"),HOST.buf.replace(/\[(SAY|ASK|NOTE|NUDGE)\]\s*/g,""),true)}
    if(done){
-    // an end-signal right after we preempted belongs to the OLD turn — but only
-    // if THIS turn hasn't produced anything yet (a fast short turn is genuine)
-    if(Date.now()-HOST.sentAt<1200&&!HOST.gotText&&!HOST.gotAct){clog("done-swallowed (old turn)");return}
+    // an end-signal within 1.2s of a send is the OLD turn's tail (even its final
+    // transcription rides along) — ignore it; the drain detector ends real turns
+    if(Date.now()-HOST.sentAt<1200){clog("done-swallowed (old turn)");return}
     HOST.hold=0;hostDone("turnComplete")}
   };
   live.onInterrupt=()=>{
@@ -1052,9 +1063,9 @@ Rules of awareness: stage directions are ground truth about where the trainee is
    live.stopPlayback();clog("barge-in");hostDone("interrupted")}; // genuine barge-in by the trainee
   live.onUserText=(t)=>{HOST.lastUser=Date.now();const st=document.getElementById("convstat");
    if(!live.muted&&st.style.display!=="none")st.textContent="🎙 "+t};
-  live.onActivity=()=>{HOST.lastAct=Date.now();HOST.gotAct=true;if(HOST.talking)hostArm()}; // model output keeps the watchdog fed
+  live.onActivity=()=>{HOST.lastAct=Date.now();HOST.gotAct=true}; // model output feeds the drain detector
   live.onTool=async(n,a)=>{if(n==="score_answer"&&HOST.onScore){const f=HOST.onScore;HOST.onScore=null;f(a||{});hostNext()}return{ok:true}};
-  live.onClose=()=>{HOST.on=false;HOST.talking=false;clearTimeout(HOST.watch);clog("live session closed");
+  live.onClose=()=>{HOST.on=false;HOST.talking=false;clearInterval(HOST.watch);clog("live session closed");
    setTimeout(()=>{if(S&&S.active)hostEnsure()},800)}; // warm reconnect: the next event speaks fast
   await live.connect(sys,[{name:"score_answer",description:"Record the assessment of the trainee's verbal answer during an [ASK] moment. Call exactly once per question.",
     parameters:{type:"OBJECT",properties:{correct:{type:"BOOLEAN"},feedback:{type:"STRING",description:"one short in-character sentence"}},required:["correct"]}}]);
@@ -1066,7 +1077,7 @@ Rules of awareness: stage directions are ground truth about where the trainee is
 function hostReset(){
  HOST.on=false;HOST.failed=0;HOST.talking=false;HOST.onScore=null;HOST.who=null;HOST.buf="";HOST.lastUser=0;
  HOST.connecting=null;HOST.cur=null;HOST.hold=0;HOST.deferred=null;HOST.react=null;HOST.gotAct=false;HOST.seq++;
- clearTimeout(HOST.watch);live.destroy();
+ clearInterval(HOST.watch);live.destroy();
 }
 let subTimer=null;
 function subtitle(who,text,sticky){
@@ -1123,7 +1134,7 @@ async function askSaif(text){
 class LiveVoice{
  constructor(){this.ws=null;this.micCtx=null;this.micNode=null;this.micStream=null;
   this.playCtx=null;this.playCursor=0;this.sources=[];this.onTool=null;this.onText=null;this.onUserText=null;this.onClose=null;this.onInterrupt=null;
-  this.muted=false;this.hot=false}
+  this.muted=false;this.hot=false;this.drop=false}
  async initMic(){
   if(this.micStream)return true;
   if(this._micP)return this._micP; // single-flight: concurrent callers share one request
@@ -1203,7 +1214,8 @@ class LiveVoice{
      const sc=m.serverContent;
      // the interrupt handler decides what to stop — a blind stopPlayback here
      // used to kill the NEW turn's audio when preemption raced the notice
-     if(sc.interrupted){if(this.onInterrupt)this.onInterrupt();else this.stopPlayback();return}
+     if(sc.interrupted){this.drop=false;if(this.onInterrupt)this.onInterrupt();else this.stopPlayback();return}
+     if(sc.turnComplete)this.drop=false; // old turn fully over — anything after is new
      let act=false; // "activity" = MODEL output only; mic transcription must not feed turn watchdogs
      for(const p of (sc.modelTurn?.parts||[])){
       if(p.inlineData?.data){this.enqueueAudio(p.inlineData.data);act=true}
@@ -1227,7 +1239,8 @@ class LiveVoice{
     else if(this.ws===sock&&!this.intentional){log(`live closed ${e.code} ${e.reason||""}`);if(this.onClose)this.onClose(e)}};
   });
  }
- sendText(t){if(this.ws&&this.ws.readyState===1)this.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:t}]}],turnComplete:true}}))}
+ sendText(t){this.drop=false; // a new turn's audio must play
+  if(this.ws&&this.ws.readyState===1)this.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:t}]}],turnComplete:true}}))}
  sendSilence(){ // keeps the live session warm; pure zeros never trigger voice detection
   if(!this.ws||this.ws.readyState!==1)return;
   if(!this._sil){const u8=new Uint8Array(3200);let b="";
@@ -1236,6 +1249,9 @@ class LiveVoice{
   this.ws.send(JSON.stringify({realtimeInput:{audio:{data:this._sil,mimeType:"audio/pcm;rate=16000"}}}));
  }
  enqueueAudio(b64){
+  // a cancelled turn keeps streaming its remaining chunks from the server —
+  // playing those orphans (with the buffer freshly reset) WAS the stutter
+  if(this.drop)return;
   if(!this.playCtx)this.playCtx=new AudioContext({sampleRate:24000});
   if(this.playCtx.state==="suspended")this.playCtx.resume();
   const bin=atob(b64);const n=bin.length/2;
@@ -1651,7 +1667,9 @@ async function pttDown(){
  if(!(await live.initMic())){subtitle(T("saif"),T("mic_no"));return}
  pttOpen=true;clearTimeout(pttTimer);
  live.muted=false;live.hot=true;
- live.stopPlayback(); // barge-in: talking over Saif stops him
+ if(live.speaking||HOST.talking){ // barge-in: talking over Saif stops him...
+  live.stopPlayback();
+  live.drop=true} // ...and the rest of his cancelled line is discarded, not dribbled out
  HOST.hold=Date.now(); // the trainee owns the floor: new narration parks until Saif replies
  if(HOST.cur&&HOST.cur.kind!=="ASK")hostDone(); // release the interrupted line so its flow continues
  document.getElementById("askmic").classList.add("rec");
