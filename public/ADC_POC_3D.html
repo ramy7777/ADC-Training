@@ -64,14 +64,16 @@ button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;font-siz
 #topbtns .btn{background:rgba(255,255,255,.94);color:var(--ink);border:1px solid var(--line);font-weight:600;font-size:12.5px;padding:9px 14px;box-shadow:0 4px 14px rgba(0,25,30,.12)}
 #topbtns .btn:hover{background:#fff;border-color:var(--teal);color:var(--teal)}
 /* ---------- subtitles ---------- */
-#sub{position:fixed;bottom:112px;left:50%;transform:translateX(-50%);max-width:780px;width:94vw;z-index:20;display:none}
+#sub{position:fixed;bottom:112px;left:50%;transform:translateX(-50%);max-width:780px;width:94vw;z-index:20;display:none;transition:bottom .2s}
+#sub.lift{bottom:150px} /* clears the "Show choices" pill during verbal moments */
 #sub .card{display:flex;gap:14px;align-items:flex-start;background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:14px;padding:12px 18px;box-shadow:0 14px 40px rgba(0,25,30,.25)}
 #sub img{width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:top;border:2px solid var(--teal);flex:none}
 #sub .fallbackav{width:52px;height:52px;border-radius:50%;background:var(--sand);color:#fff;display:none;align-items:center;justify-content:center;font-weight:800;font-size:20px;flex:none}
 #sub .who{color:var(--teal);font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 #sub .txt{font-size:16px;line-height:1.5;color:var(--ink);margin-top:2px}
 /* ---------- conversation ---------- */
-#convstat{position:fixed;bottom:132px;left:50%;transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(31,42,46,.85);padding:5px 14px;border-radius:99px;z-index:21;display:none}
+/* mic/listening status lives under the HUD — at the bottom it used to sit on top of the subtitle card */
+#convstat{position:fixed;top:88px;left:50%;transform:translateX(-50%);font-size:12px;color:#fff;background:rgba(31,42,46,.85);padding:5px 14px;border-radius:99px;z-index:21;display:none;max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* sits ABOVE the always-on chat bar so the "Show choices" escape is never hidden */
 #conv{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);display:none;gap:9px;z-index:23;align-items:center;flex-wrap:wrap;justify-content:center;max-width:94vw;background:rgba(255,255,255,.97);border:1px solid var(--line);padding:8px 11px;border-radius:99px;box-shadow:0 14px 40px rgba(0,25,30,.25)}
 #conv input{width:300px;padding:10px 12px;border-radius:99px;border:1.5px solid var(--line);background:#fff;color:var(--ink);font-size:13.5px;font-family:inherit}
@@ -265,7 +267,7 @@ const UI={
   name:"اسمك",lang:"اللغة",lvl:"المستويات",open:"ادخل",locked:"مقفل",
   hint:"اسحب الفأرة للنظر · WASD أو الأسهم للمشي · ENTER للانتقال إلى المحطة · اسحب البطاقات المضيئة إلى منصة الإجابة · اضغط مطولاً على المسافة أو 🎤 للتحدث · 💬 اسأل سيف · رمز المشرف 2026",
   q:"المشهد",score:"النتيجة",attempt:"المحاولة",correct:"+5 — أحسنت",wrong:"+0 — سنكمل",
-  passed:"اجتزت المستوى",failed:"لم تجتز — المطلوب ٩٦/١٢٠",retry:"حاول مجدداً — مواقف مختلفة",home:"عودة إلى المدخل",
+  passed:"اجتزت المستوى",failed:"لم تجتز — المطلوب 96/120",retry:"حاول مجدداً — مواقف مختلفة",home:"عودة إلى المدخل",
   l2:"محتوى المستوى ٢ ضمن نطاق المشروع. المهم هنا: القفل وصلاحية المشرف.",
   typeHint:"أو اكتب إجابتك…",showOpts:"أظهر الخيارات",judging:"سيف يفكر في إجابتك…",
   listening:"يستمع… اترك الزر للإرسال",mic_no:"الميكروفون غير متاح — اكتب",ai_no:"الذكاء الاصطناعي غير متاح — إليك الخيارات",
@@ -284,8 +286,8 @@ const UI={
   instrHot:"المس النقطة الصحيحة على اللوحة.",
   instrHotM:"المس كل النقاط الصحيحة على اللوحة.",
   instrAssign:"انقر البطاقة ثم انقر اللوحة المناسبة لها.",
-  resPass:"مبروك يا {name} — اجتزت المستوى بنتيجة {score} من ١٢٠!",
-  resFail:"حصلت على {score} من ١٢٠ يا {name}. المطلوب ٩٦ — لنحاول مجدداً بمواقف جديدة.",
+  resPass:"مبروك يا {name} — اجتزت المستوى بنتيجة {score} من 120!",
+  resFail:"حصلت على {score} من 120 يا {name}. المطلوب 96 — لنحاول مجدداً بمواقف جديدة.",
   askPh:"اسأل سيف أي شيء…",saif:"سيف — ضابط أول",visitor:"زائر",you:"أنت",
   padPlace:"منصة الإجابة — انقر إجابتك أو اسحبها",padCollect:"صينية التجميع — انقر كل ما ينطبق",
   confirm:"تأكيد ✓",reset:"إعادة",dropZone:"أفلت هنا",notUsed:"غير مستخدم",
@@ -620,12 +622,13 @@ function flyBack(obj,to){flights.push({obj,to:to.clone(),t:0,dur:.35})}
 function pointerNDC(e){mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1}
 canvas.addEventListener("pointerdown",e=>{
  live.unlock(); // any gesture keeps the voice audio contexts running
+ if(drag)return; // a second finger must not hijack an active drag
  pointerNDC(e);
  ray.setFromCamera(mouse,camera);
  const dh=ray.intersectObjects(drags,false);
  if(dh.length){
    const o=dh[0].object;
-   drag={obj:o,plane:new THREE.Plane(),home:o.userData.home||o.position.clone(),
+   drag={obj:o,pid:e.pointerId,plane:new THREE.Plane(),home:o.userData.home||o.position.clone(),
      grabPos:o.position.clone(),grabRot:o.rotation.x,moved:0};
    o.userData.home=drag.home;
    // plane must be built in WORLD space (o.position is local to qGroup)
@@ -633,12 +636,15 @@ canvas.addEventListener("pointerdown",e=>{
    const n=new THREE.Vector3();camera.getWorldDirection(n);
    drag.plane.setFromNormalAndCoplanarPoint(n,wp);
    o.scale.setScalar((o.userData.baseScale||1)*1.12);
+   if(o.userData.isCard){o.userData.restOrder=o.renderOrder;o.renderOrder=13} // carried card rides above everything
    canvas.setPointerCapture(e.pointerId);
+   looking=false; // a look started by another finger must not survive into the drag
    return;
  }
  looking=true;lookMoved=0;
 });
 canvas.addEventListener("pointermove",e=>{
+ if(drag&&e.pointerId!==drag.pid)return; // only the grabbing finger moves the card
  pointerNDC(e);
  if(drag){
    drag.moved+=Math.abs(e.movementX)+Math.abs(e.movementY);
@@ -656,8 +662,10 @@ canvas.addEventListener("pointermove",e=>{
  if(looking){yaw-=e.movementX*.0032;pitch=Math.max(-1.2,Math.min(1.2,pitch-e.movementY*.0032));lookMoved+=Math.abs(e.movementX)+Math.abs(e.movementY)}
 });
 addEventListener("pointerup",e=>{
+ if(drag&&e.pointerId!==drag.pid)return; // a second finger lifting must not drop the card
  if(drag){
    const o=drag.obj;o.scale.setScalar(o.userData.baseScale||1);
+   if(o.userData.restOrder!=null){o.renderOrder=o.userData.restOrder;o.userData.restOrder=null}
    // a tap (no real movement) on a draggable acts as a click — simpler than dragging
    if(drag.moved<6&&o.userData.onClick){
      o.position.copy(drag.grabPos);o.rotation.x=drag.grabRot;
@@ -676,6 +684,22 @@ addEventListener("pointerup",e=>{
  const was=looking;looking=false;
  if(was&&lookMoved<6)clickRay();
 });
+// a cancelled touch / lost capture must not strand a card mid-air
+addEventListener("pointercancel",e=>{
+ if(drag){
+  if(e.pointerId!==undefined&&e.pointerId!==drag.pid)return; // another finger's cancel is not ours
+  const o=drag.obj;o.scale.setScalar(o.userData.baseScale||1);
+  if(o.userData.restOrder!=null){o.renderOrder=o.userData.restOrder;o.userData.restOrder=null}
+  dropTargets.forEach(z=>{if(z.userData.setHot)z.userData.setHot(false)});
+  flyBack(o,drag.home);if(o.userData.dockTilt!=null)o.rotation.x=o.userData.dockTilt;
+  if(o.userData.onReturn)o.userData.onReturn(o); // keep widget state (zone assignments) in sync with the visual return
+  drag=null}
+ looking=false;
+});
+// alt-tab: release held keys and the push-to-talk mic, or the player walks
+// forever and the open mic streams room noise that keeps interrupting Saif
+addEventListener("blur",()=>{for(const k in keys)keys[k]=false;spaceHeldSafe()});
+function spaceHeldSafe(){try{pttUp()}catch(e){}}
 function clickRay(){
  ray.setFromCamera(mouse,camera);
  const hits=ray.intersectObjects(clicks,false);
@@ -767,14 +791,16 @@ const controllers=[0,1].map(i=>{
  rig.add(c); // controllers must move with the rig, or lasers detach when walking
  const line=new THREE.Line(
   new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-1)]),
-  new THREE.LineBasicMaterial({color:0x8fe0d6,transparent:true,opacity:.8}));
+  new THREE.LineBasicMaterial({color:0x8fe0d6,transparent:true,opacity:.8,depthTest:false}));
+ line.renderOrder=26; // the laser must stay visible over the x-ray question UI
  line.scale.z=6;line.visible=false;c.add(line);
  const handle=new THREE.Mesh(new THREE.CylinderGeometry(.013,.019,.11,10),
   new THREE.MeshStandardMaterial({color:INK,roughness:.5,metalness:.3}));
  handle.rotation.x=Math.PI/2.4;handle.position.set(0,-.012,.028);c.add(handle);
  const tip=new THREE.Mesh(new THREE.SphereGeometry(.016,10,8),goldMat);c.add(tip);
  const dot=new THREE.Mesh(new THREE.SphereGeometry(.035,12,10),
-  new THREE.MeshBasicMaterial({color:GOLD}));
+  new THREE.MeshBasicMaterial({color:GOLD,transparent:true,depthTest:false}));
+ dot.renderOrder=26; // aiming reticle above the x-ray UI it points at
  dot.visible=false;c.add(dot);
  c.userData.line=line;c.userData.dot=dot;
  c.addEventListener("connected",e=>{
@@ -890,7 +916,7 @@ addEventListener("keydown",e=>{
  if(e.target.tagName==="INPUT")return;
  if(e.code==="Space"){e.preventDefault();if(!e.repeat)pttDown();return}
  keys[e.key.toLowerCase()]=true;
- if(e.key==="Enter"&&S&&S.active)glideTo(S.st);
+ if(e.key==="Enter"&&S&&S.active&&!drag)glideTo(S.st); // gliding mid-drag smears the held card
  if(e.key.toLowerCase()==="t")toggleAsk(true);});
 addEventListener("keyup",e=>{
  if(e.code==="Space"){pttUp();return}
@@ -974,10 +1000,13 @@ function reactPrefix(){
 async function hostSend(it){
  const my=++HOST.seq;
  if(!(await hostEnsure())){ // no session: the scripted line still reaches the trainee
-  subtitle(it.who,it.sub);
+  if(it.kind!=="ASK")subtitle(it.who,it.sub); // an ASK's payload contains the ANSWER KEY — never print it (the question is already on screen)
   if(it.cb)setTimeout(it.cb,Math.max(2200,it.text.length*45));
   return}
- if(my!==HOST.seq)return; // a newer event arrived while we connected — it wins
+ if(my!==HOST.seq){ // a newer event arrived while we connected — it wins,
+  if(it.cb)try{it.cb()}catch(e){} // but the displaced line's flow must continue (a lost cb froze the tour for 15–30s)
+  return}
+ if(HOST.deferred&&HOST.deferred!==it&&HOST.deferred.cb)try{HOST.deferred.cb()}catch(e){} // parked line dies here — its flow continues
  HOST.deferred=null; // this line supersedes anything parked — stale narration must never replay
  const old=HOST.cur;HOST.cur=null;
  if(old&&old.cb)try{old.cb()}catch(e){} // the displaced line's moment has passed — let its flow continue
@@ -985,11 +1014,17 @@ async function hostSend(it){
  HOST.cur=it;HOST.talking=true;HOST.buf="";HOST.who=it.who;
  HOST.gotText=false;HOST.gotAct=false;HOST.sentAt=Date.now();
  hostArm();
- if(it.kind==="ASK"){live.muted=false;live.initMic()}
+ if(it.kind==="ASK"){live.muted=false;live.initMic();HOST.lastAsk=it} // stashed so a mid-listen disconnect can re-ask
  clog(`send [${it.kind}] ${it.text.slice(0,60)}`);
  live.sendText(`[${it.kind}] ${it.text}`);
- // if no voice materializes quickly, show the scripted line so nothing is lost
- setTimeout(()=>{if(HOST.cur===it&&!HOST.gotText)subtitle(it.who,it.sub)},4000);
+ // the preempted line's chunks are still in flight from the relay — swallow that
+ // tail for a beat (new-turn audio takes >400ms; window clears on turnComplete/
+ // interruption/user speech, so a genuinely fast reply is safe)
+ live.dropUntil=Date.now()+400;
+ // if no voice materializes quickly, show the scripted line so nothing is lost —
+ // except for ASKs, whose raw payload includes the answer key (their question is
+ // already displayed as a sticky subtitle by stageConv)
+ setTimeout(()=>{if(HOST.cur===it&&!HOST.gotText&&it.kind!=="ASK")subtitle(it.who,it.sub)},1800);
 }
 // End-of-turn detector. Gemini's turnComplete signal is UNRELIABLE (telemetry
 // showed greetings never receiving one → 10s dead-air stalls), so the ground
@@ -998,9 +1033,15 @@ function hostArm(){
  clearInterval(HOST.watch);
  HOST.watch=setInterval(()=>{
   if(!HOST.talking){clearInterval(HOST.watch);return}
-  if(live.speaking)return; // audio still audible — not done
+  // a suspended AudioContext (autostart before any gesture) never fires onended —
+  // queued sources would read as "speaking" forever and deadlock the whole tour
+  if(live.speaking&&!(live.playCtx&&live.playCtx.state==="suspended"))return; // audio still audible — not done
   const idle=Date.now()-Math.max(HOST.sentAt,HOST.lastAct);
-  if(HOST.gotAct?idle>2600:idle>5000){
+  // jittery streams (seen as underruns) also pause BETWEEN chunks — give the
+  // drain detector the same escalating patience as the jitter buffer, or turns
+  // get declared over mid-sentence and the tail audio is cut by the next line
+  const drainMs=2600+Math.min(live._under||0,4)*600;
+  if(HOST.gotAct?idle>drainMs:idle>5000){
    // Gemini occasionally returns an EMPTY turn (no audio, no text — seen in
    // telemetry as 8s of dead air). One automatic resend covers it.
    if(!HOST.gotAct&&HOST.cur&&!HOST.cur.retried){
@@ -1013,6 +1054,15 @@ function hostArm(){
 function hostDone(why){ // turn over (audio drained, genuine interruption, or turnComplete)
  clearInterval(HOST.watch);
  if(why==="watchdog"||HOST.cur)clog("turn done: "+(why||"forced"));
+ // a drain-declared end can still have straggler chunks in flight — playing
+ // them gave a half-word blip that the next line then cut off. Discard for a
+ // short window only (a sticky flag would eat the NEXT genuine reply whenever
+ // the server never sends turnComplete — its known flakiness).
+ if(why==="idle")live.dropUntil=Date.now()+1500;
+ // only a NATURAL end releases the floor-hold: pttDown/doAsk call hostDone()
+ // right after TAKING the hold, and an unconditional clear wiped it instantly —
+ // narration then talked over the trainee's own question
+ if(why==="idle"||why==="turnComplete")HOST.hold=0;
  HOST.talking=false;HOST.buf="";
  const c=HOST.cur;HOST.cur=null;
  if(c&&c.cb)try{c.cb()}catch(e){}
@@ -1025,6 +1075,7 @@ function hostNext(){ // floor is free: deliver the parked line, if still relevan
 }
 // a verbal question the trainee moved past must never play late
 function hostAbortAsk(){
+ HOST.lastAsk=null; // the question is off the table — a later disconnect must not re-ask it
  if(HOST.cur&&HOST.cur.kind==="ASK"){live.stopPlayback();live.drop=true;HOST.cur=null;HOST.talking=false;clearInterval(HOST.watch)}
 }
 async function hostEnsure(){
@@ -1035,6 +1086,9 @@ async function hostEnsure(){
 }
 async function _hostConnect(){
  HOST.on=false;
+ // two failures back off, but never permanently: a Render cold start could eat
+ // both attempts and the whole session ran silent with subtitles only
+ if(HOST.failed>=2&&Date.now()-(HOST.failedAt||0)>30000)HOST.failed=1;
  if(HOST.failed>=2||!AI_ON||!window.isSecureContext)return false;
  // NOTE: the mic is requested lazily (PTT / verbal questions) — Saif must be
  // able to greet and narrate even before the mic permission is answered
@@ -1064,26 +1118,37 @@ Rules of awareness: stage directions are ground truth about where the trainee is
     HOST.hold=0;hostDone("turnComplete")}
   };
   live.onInterrupt=()=>{
-   if(Date.now()-HOST.sentAt<1500){ // our own preemption echo, not a barge-in:
+   // a genuine barge-in is only possible while the mic is streaming; with the mic
+   // closed (or right after a send) the notice is our own preemption's echo — a
+   // late echo treated as barge-in used to kill the NEW line mid-sentence
+   if(Date.now()-HOST.sentAt<1500||(live.muted&&!live.hot)){
     if(!HOST.gotAct)live.stopPlayback(); // only silence the OLD turn's leftovers
     clog("interrupt-echo ignored");return}
    live.stopPlayback();clog("barge-in");hostDone("interrupted")}; // genuine barge-in by the trainee
   live.onUserText=(t)=>{HOST.lastUser=Date.now();const st=document.getElementById("convstat");
    if(!live.muted&&st.style.display!=="none")st.textContent="🎙 "+t};
   live.onActivity=()=>{HOST.lastAct=Date.now();HOST.gotAct=true}; // model output feeds the drain detector
-  live.onTool=async(n,a)=>{if(n==="score_answer"&&HOST.onScore){const f=HOST.onScore;HOST.onScore=null;f(a||{});hostNext()}return{ok:true}};
+  live.onTool=async(n,a)=>{if(n==="score_answer"&&HOST.onScore){const f=HOST.onScore;HOST.onScore=null;HOST.lastAsk=null;f(a||{});hostNext()}return{ok:true}};
   live.onClose=()=>{HOST.on=false;HOST.talking=false;clearInterval(HOST.watch);clog("live session closed");
-   setTimeout(()=>{if(S&&S.active)hostEnsure()},800)}; // warm reconnect: the next event speaks fast
+   const c=HOST.cur;HOST.cur=null;
+   const ask=HOST.lastAsk; // NOT HOST.cur — during the listening phase (most of the ASK) cur was already drain-cleared
+   if(HOST.onScore&&ask&&!ask.reasked){
+    // mid-question disconnect: the [ASK] text is self-contained, so re-asking in
+    // the fresh session restores full context (a bare reconnect knew nothing and
+    // fabricated verdicts on the trainee's answer)
+    ask.reasked=true;setTimeout(()=>{if(HOST.onScore&&S&&S.active)hostSend(ask)},1200);
+   }else if(c&&c.cb)try{c.cb()}catch(e){} // a stranded mid-line cb froze the tour until the failsafes
+   setTimeout(()=>{if(S&&S.active)hostEnsure().then(ok=>{if(ok&&HOST.onScore)live.muted=false})},800)}; // warm reconnect — and reopen the mic if a question is still pending
   await live.connect(sys,[{name:"score_answer",description:"Record the assessment of the trainee's verbal answer during an [ASK] moment. Call exactly once per question.",
     parameters:{type:"OBJECT",properties:{correct:{type:"BOOLEAN"},feedback:{type:"STRING",description:"one short in-character sentence"}},required:["correct"]}}]);
   live.muted=true; // mic opens only during [ASK] moments
   HOST.on=true;HOST.failed=0;
   return true;
- }catch(e){HOST.failed++;log("host error: "+e.message);clog("host connect FAILED #"+HOST.failed+": "+e.message);return false}
+ }catch(e){HOST.failed++;HOST.failedAt=Date.now();log("host error: "+e.message);clog("host connect FAILED #"+HOST.failed+": "+e.message);return false}
 }
 function hostReset(){
  HOST.on=false;HOST.failed=0;HOST.talking=false;HOST.onScore=null;HOST.who=null;HOST.buf="";HOST.lastUser=0;
- HOST.connecting=null;HOST.cur=null;HOST.hold=0;HOST.deferred=null;HOST.react=null;HOST.gotAct=false;HOST.seq++;
+ HOST.connecting=null;HOST.cur=null;HOST.hold=0;HOST.deferred=null;HOST.react=null;HOST.gotAct=false;HOST.lastAsk=null;HOST.seq++;
  clearInterval(HOST.watch);live.destroy();
 }
 let subTimer=null;
@@ -1158,7 +1223,14 @@ class LiveVoice{
     // anti-echo: don't stream the mic while Saif is speaking OR still generating —
     // audio gaps between chunks used to leak room noise upstream, and the server's
     // VAD would cut him off mid-sentence. Deliberate push-to-talk (hot) always streams.
-    if(this.muted||((this.sources.length>0||HOST.talking)&&!this.hot)||!this.ws||this.ws.readyState!==1)return;
+    // During an [ASK] the gate is playback-only: HOST.talking lingers 2.6-5s after
+    // the question's audio ends (drain detector), and that gate ate the trainee's
+    // first words — Saif looked deaf to his own question.
+    const genGate=HOST.talking&&!(HOST.cur&&HOST.cur.kind==="ASK");
+    // 300ms hangover after playback: in an inter-chunk underrun gap the drained
+    // sources opened the mic mid-question and speaker leakage tripped the VAD
+    const justPlayed=this.lastPlayEnd&&Date.now()-this.lastPlayEnd<300;
+    if(this.muted||((this.sources.length>0||genGate||justPlayed)&&!this.hot)||!this.ws||this.ws.readyState!==1)return;
     const i16=new Int16Array(f.length);
     for(let i=0;i<f.length;i++){const v=Math.max(-1,Math.min(1,f[i]));i16[i]=v<0?v*0x8000:v*0x7FFF}
     let bin="";const u8=new Uint8Array(i16.buffer);
@@ -1184,7 +1256,12 @@ class LiveVoice{
  async unlock(){
   try{
    if(!this.playCtx)this.playCtx=new AudioContext({sampleRate:24000});
-   if(this.playCtx.state==="suspended")await this.playCtx.resume();
+   if(this.playCtx.state==="suspended"){
+    // audio queued while suspended (autostart) is a stale backlog — resuming
+    // would machine-gun every stacked line at once. Drop it; live lines follow.
+    if(this.sources.length)this.stopPlayback();
+    await this.playCtx.resume();
+   }
    if(this.micCtx&&this.micCtx.state==="suspended")await this.micCtx.resume();
   }catch(e){}
  }
@@ -1221,13 +1298,23 @@ class LiveVoice{
      const sc=m.serverContent;
      // the interrupt handler decides what to stop — a blind stopPlayback here
      // used to kill the NEW turn's audio when preemption raced the notice
-     if(sc.interrupted){this.drop=false;if(this.onInterrupt)this.onInterrupt();else this.stopPlayback();return}
-     if(sc.turnComplete)this.drop=false; // old turn fully over — anything after is new
+     // snapshot BEFORE the clears below: a message that carries the old turn's
+     // final audio alongside its turnComplete must still discard that audio
+     const dropping=this.drop||(this.dropUntil&&Date.now()<this.dropUntil);
+     if(sc.interrupted){this.drop=false;this.dropUntil=0;if(this.onInterrupt)this.onInterrupt();else this.stopPlayback();return}
+     if(sc.turnComplete){this.drop=false;this.dropUntil=0} // old turn fully over — anything after is new
+     // the trainee's speech registering means a NEW user turn — whatever comes
+     // next is the reply, never a stale tail. Without this, a barge-in over a
+     // server-completed turn left `drop` set and the entire reply was eaten
+     // (subtitles with no voice on the app's flagship "talk to Saif" feature).
+     if(sc.inputTranscription?.text){this.drop=false;this.dropUntil=0}
      let act=false; // "activity" = MODEL output only; mic transcription must not feed turn watchdogs
      for(const p of (sc.modelTurn?.parts||[])){
-      if(p.inlineData?.data){this.enqueueAudio(p.inlineData.data);act=true}
+      if(p.inlineData?.data){this.enqueueAudio(p.inlineData.data);if(!dropping)act=true}
      }
-     if(sc.outputTranscription?.text){act=true;if(this.onText)this.onText(sc.outputTranscription.text,!!sc.turnComplete)}
+     // a discarded turn's transcription must not reach the subtitles or the
+     // watchdog either — it glued the dead line's tail onto the new line's text
+     if(sc.outputTranscription?.text&&!dropping){act=true;if(this.onText)this.onText(sc.outputTranscription.text,!!sc.turnComplete)}
      if(act&&this.onActivity)this.onActivity();
      if(sc.inputTranscription?.text&&this.onUserText)this.onUserText(sc.inputTranscription.text);
      if(sc.turnComplete&&this.onText)this.onText("",true);
@@ -1246,7 +1333,7 @@ class LiveVoice{
     else if(this.ws===sock&&!this.intentional){log(`live closed ${e.code} ${e.reason||""}`);if(this.onClose)this.onClose(e)}};
   });
  }
- sendText(t){this.drop=false; // a new turn's audio must play
+ sendText(t){this.drop=false;this.dropUntil=0; // a new turn's audio must play
   if(this.ws&&this.ws.readyState===1)this.ws.send(JSON.stringify({clientContent:{turns:[{role:"user",parts:[{text:t}]}],turnComplete:true}}))}
  sendSilence(){ // keeps the live session warm; pure zeros never trigger voice detection
   if(!this.ws||this.ws.readyState!==1)return;
@@ -1256,9 +1343,11 @@ class LiveVoice{
   this.ws.send(JSON.stringify({realtimeInput:{audio:{data:this._sil,mimeType:"audio/pcm;rate=16000"}}}));
  }
  enqueueAudio(b64){
+  if(!VOICE_ON)return; // mute means MUTE — the rest of the streamed turn stays silent
   // a cancelled turn keeps streaming its remaining chunks from the server —
   // playing those orphans (with the buffer freshly reset) WAS the stutter
   if(this.drop)return;
+  if(this.dropUntil){if(Date.now()<this.dropUntil)return;this.dropUntil=0}
   if(!this.playCtx)this.playCtx=new AudioContext({sampleRate:24000});
   if(this.playCtx.state==="suspended")this.playCtx.resume();
   const bin=atob(b64);const n=bin.length/2;
@@ -1273,7 +1362,16 @@ class LiveVoice{
   // cushion each time it happens so repeated hiccups can't machine-gun the voice.
   const now=this.playCtx.currentTime;
   let lead;
-  if(!this.playCursor){this._under=0;lead=.25}       // fresh turn: fixed head start
+  // a cursor far in the past is a finished turn, not an underrun: replies that
+  // don't pass through hostSend (voice answers) never reset it, and the stale
+  // value minted fake underruns that inflated every cushion and drain window
+  // (hostSend turns keep HOST.talking true through any sub-2.6s stall and reset
+  // the cursor themselves — only reply turns, where talking is false, go stale)
+  if(this.playCursor&&this.playCursor<now-.5&&!HOST.talking)this.playCursor=0;
+  // decay (not reset) the underrun memory across turns: on a chronically jittery
+  // link a hard reset re-learned the network from zero every line, and the first
+  // long stall of each turn cut it mid-sentence forever
+  if(!this.playCursor){this._under=Math.max(0,(this._under||0)-1);lead=.25}       // fresh turn: fixed head start
   else if(this.playCursor>now+.01)lead=0;            // stream healthy: butt-join chunks
   else{this._under=Math.min((this._under||0)+1,4);   // drained mid-stream: escalate
    lead=.15+.12*this._under;
@@ -1281,7 +1379,7 @@ class LiveVoice{
    console.log(msg);if(typeof clog==="function")clog(msg)}
   const t0=Math.max(now+lead,this.playCursor);
   src.start(t0);this.playCursor=t0+buf.duration;
-  this.sources.push(src);src.onended=()=>{this.sources=this.sources.filter(s=>s!==src)};
+  this.sources.push(src);src.onended=()=>{this.lastPlayEnd=Date.now();this.sources=this.sources.filter(s=>s!==src)};
  }
  stopPlayback(){for(const s of this.sources){try{s.stop()}catch(e){}}this.sources=[];this.playCursor=0}
  get speaking(){return this.sources.length>0}
@@ -1298,7 +1396,7 @@ function hud(){
  if(!S)return;
  document.getElementById("hq").innerHTML=`${T("q")} <b>${Math.min(S.done+1,24)}</b>/24`;
  document.getElementById("hs").innerHTML=`${T("score")} <b>${S.score}</b>/120`;
- document.getElementById("ha").innerHTML=`${T("attempt")} <b>${((S.attempt-1)%5)+1}</b>/5`;
+ document.getElementById("ha").innerHTML=`${T("attempt")} <b>${Math.min(S.attempt,5)}</b>/5`; // the modulo rolled attempt 6 back to "1/5"
  document.getElementById("progfill").style.width=(S.done/24*100)+"%";
 }
 function flash(ok){const f=document.getElementById("flash");
@@ -1336,7 +1434,8 @@ function fxTick(dt){
 /* ================= question staging ================= */
 let qGroup=null;
 function clearQ(){if(qGroup){scene.remove(qGroup);qGroup=null}setInteract([],[],[]);
- document.getElementById("conv").style.display="none";document.getElementById("convstat").style.display="none"}
+ document.getElementById("conv").style.display="none";document.getElementById("convstat").style.display="none";
+ document.getElementById("sub").classList.remove("lift")}
 function stageBase(i){
  clearQ();
  qGroup=new THREE.Group();
@@ -1348,10 +1447,14 @@ function stageBase(i){
 }
 // question UI renders "x-ray" (no depth test, high render order): station props
 // standing between the camera and the console can never cover cards or text
+// transparent:true forces every x-ray element into the transparent render pass —
+// otherwise translucent props (holo screens, chart bars, scan curtain) render
+// AFTER an opaque x-ray board and blend on top of it, spatially inverted
+function xray(m,order){m.material.transparent=true;m.material.depthWrite=false;m.material.depthTest=false;m.renderOrder=order;return m}
 function cardMesh(text,w,h){const m=textPanel(text,w,h,{size:34});
- m.userData.isCard=true;m.material.depthWrite=false;m.material.depthTest=false;m.renderOrder=10;return m}
+ m.userData.isCard=true;return xray(m,10)}
 function tileMesh(text,n){const m=textPanel(text,2.2,.9,{size:30,badge:n});
- m.userData.isCard=true;m.userData.label=text;m.material.depthWrite=false;m.material.depthTest=false;m.renderOrder=10;return m}
+ m.userData.isCard=true;m.userData.label=text;return xray(m,10)}
 // A tilted console desk in front of the trainee: question header on top,
 // numbered option tiles docked in slots on the glass deck.
 function dockPlace(meshes,promptText,headerY=3.35){
@@ -1405,7 +1508,7 @@ function makePad(g,label,wide){
  const glowRing=new THREE.Mesh(new THREE.TorusGeometry(wide?1.7:1.0,.045,10,60),mat(TEAL,TEAL,1));
  glowRing.rotation.x=Math.PI/2;glowRing.position.y=.22;grp.add(glowRing);
  grp.userData.ring=glowRing;
- const lbl=textPanel(label,2.7,.85,{size:26,bold:true,color:"#00736a",bg:"rgba(255,255,255,0.92)",border:"rgba(0,115,106,0.35)"});
+ const lbl=xray(textPanel(label,2.7,.85,{size:26,bold:true,color:"#00736a",bg:"rgba(255,255,255,0.92)",border:"rgba(0,115,106,0.35)"}),9);
  lbl.position.set(0,1.25,0);grp.add(lbl);grp.userData.lbl=lbl;
  // invisible generous catch surface for drops
  const catcher=new THREE.Mesh(new THREE.CylinderGeometry(wide?2.1:1.5,wide?2.1:1.5,2.4,20),
@@ -1423,7 +1526,10 @@ function playBeat(stIdx,q,onDone){
  // sending this line preempts whatever Saif was still saying (talk-over)
  speak(reactPrefix()+L(q.prompt)+" — "+T(INSTR[w]||"instrSingle"),T("saif"),L(q.prompt));
  const g=stageBase(stIdx);
- const finish=(ok,at)=>{score(q,ok,at);setTimeout(()=>onDone(),1100)};
+ // one-shot + immediate interaction clear: a double-clicked Confirm used to score
+ // twice (running the score past 120 and double-recording the beat)
+ let fin=false;
+ const finish=(ok,at)=>{if(fin)return;fin=true;setInteract([],[],[]);score(q,ok,at);setTimeout(()=>onDone(),1100)};
 
  if(w==="single"||w==="multi"){
    /* -------- drag tiles from the console onto the answer pad -------- */
@@ -1484,11 +1590,11 @@ function playBeat(stIdx,q,onDone){
  }else if(w==="sequence"){
    /* -------- touch console tiles in order; a light path follows -------- */
    const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
-   const hint=textPanel(T("seqHint"),6.4,.62,{size:28,color:"#61707a",bg:"rgba(255,255,255,0.85)",border:"rgba(0,0,0,0)"});
+   const hint=xray(textPanel(T("seqHint"),6.4,.62,{size:28,color:"#61707a",bg:"rgba(255,255,255,0.85)",border:"rgba(0,0,0,0)"}),9);
    hint.position.set(0,.4,4.1);g.add(hint);
    const seq=[];
    const cards=items.map((o,ix)=>{const m=cardMesh(L(o),2.2,.9);
-     m.userData.onClick=()=>{if(seq.includes(ix))return;
+     m.userData.onClick=()=>{if(seq.includes(ix)||seq.length>=q.correct.length)return; // sequence closed — no renumbering during the scoring beat
        seq.push(ix);
        m.userData.setText(seq.length+". "+L(o),{border:"#1fa877",bg:"rgba(234,250,244,0.97)"});
        beep(true);
@@ -1496,8 +1602,8 @@ function playBeat(stIdx,q,onDone){
          const a=cards[seq[seq.length-2]].position,b=m.position;
          const mid=a.clone().add(b).multiplyScalar(.5);
          const len=a.distanceTo(b);
-         const tube=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,len,10),
-           new THREE.MeshBasicMaterial({color:TEALL,transparent:true,opacity:.85}));
+         const tube=xray(new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,len,10),
+           new THREE.MeshBasicMaterial({color:TEALL,transparent:true,opacity:.85})),8);
          tube.position.copy(mid);
          tube.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),b.clone().sub(a).normalize());
          g.add(tube);
@@ -1513,12 +1619,14 @@ function playBeat(stIdx,q,onDone){
  }else if(w==="hotsingle"||w==="hotmulti"){
    /* -------- hotspots on an image board (map / wall) -------- */
    const isMap=/map/i.test(q.prompt.en)||q.id==="S1-Q4";
+   // the whole board is part of the question UI — x-ray it (layered under the
+   // markers/labels) so station props can never stand in front of the answers
    const board=new THREE.Mesh(new THREE.PlaneGeometry(7.6,4.3),new THREE.MeshBasicMaterial({color:0xffffff}));
-   board.position.set(0,2.55,-3.4);g.add(board);
+   board.position.set(0,2.55,-3.4);g.add(xray(board,7));
    const frame=new THREE.Mesh(new THREE.BoxGeometry(7.9,4.6,.08),mat(TEAL,TEAL,.35));
-   frame.position.set(0,2.55,-3.46);g.add(frame);
+   frame.position.set(0,2.55,-3.46);g.add(xray(frame,6));
    if(isMap)loadTex("img/uae-map.jpg",t=>{board.material.map=t;board.material.needsUpdate=true});
-   const hint=textPanel(T("hotHint"),6.4,.62,{size:28,color:"#61707a",bg:"rgba(255,255,255,0.85)",border:"rgba(0,0,0,0)"});
+   const hint=xray(textPanel(T("hotHint"),6.4,.62,{size:28,color:"#61707a",bg:"rgba(255,255,255,0.85)",border:"rgba(0,0,0,0)"}),9);
    hint.position.set(0,.5,-.6);g.add(hint);
    const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
    // stable spread across the board
@@ -1532,10 +1640,10 @@ function playBeat(stIdx,q,onDone){
      const cy=slot<cols?3.35:1.9;
      const grpM=new THREE.Group();
      const ringM=new THREE.Mesh(new THREE.RingGeometry(.14,.22,32),new THREE.MeshBasicMaterial({color:TEAL,transparent:true,opacity:.95,side:THREE.DoubleSide}));
-     grpM.add(ringM);grpM.userData.pulse=ringM;
+     grpM.add(xray(ringM,8));grpM.userData.pulse=ringM;
      const dot=new THREE.Mesh(new THREE.CircleGeometry(.09,20),new THREE.MeshBasicMaterial({color:TEAL}));
-     dot.position.z=.005;grpM.add(dot);
-     const lbl=textPanel(L(o),2.15,.72,{size:26});
+     dot.position.z=.005;grpM.add(xray(dot,8));
+     const lbl=xray(textPanel(L(o),2.15,.72,{size:26}),10);
      lbl.position.set(0,-.62,.01);grpM.add(lbl);
      grpM.position.set(cx,cy,-3.32);
      g.add(grpM);
@@ -1555,7 +1663,7 @@ function playBeat(stIdx,q,onDone){
    });
    const clickables=markers.flatMap(m=>[m.dot,m.lbl]);
    if(w==="hotmulti"){
-     confirmBtn=textPanel(T("confirm"),1.9,.72,{size:40,bold:true,color:"#ffffff",bg:"rgba(0,115,106,0.96)",border:"#005a53"});
+     confirmBtn=xray(textPanel(T("confirm"),1.9,.72,{size:40,bold:true,color:"#ffffff",bg:"rgba(0,115,106,0.96)",border:"#005a53"}),12);
      confirmBtn.position.set(3.4,1.1,-1.4);confirmBtn.visible=false;g.add(confirmBtn);
      confirmBtn.userData.onClick=()=>{
        const chosen=[...sel].map(i=>items[i].en).sort();
@@ -1590,11 +1698,13 @@ function playBeat(stIdx,q,onDone){
    const zw=2.9;
    const zoneM=zones.map((z,zi)=>{
      const grpZ=new THREE.Group();
+     // zone boards are answer targets — same x-ray layering as the cards, so
+     // props (cargo cranes, plinths, the visitor) can never stand in front of them
      const back=new THREE.Mesh(new THREE.BoxGeometry(zw,2.5,.1),mat(0xffffff));
-     back.position.y=1.25;grpZ.add(back);
-     const head=textPanel(zlabel(z),zw-.15,.62,{size:30,bold:true,color:"#ffffff",bg:"rgba(0,115,106,0.96)",border:"#005a53"});
+     back.position.y=1.25;grpZ.add(xray(back,7));
+     const head=xray(textPanel(zlabel(z),zw-.15,.62,{size:30,bold:true,color:"#ffffff",bg:"rgba(0,115,106,0.96)",border:"#005a53"}),9);
      head.position.set(0,2.22,.07);grpZ.add(head);
-     const slotsLbl=textPanel(T("dropZone"),zw-.5,.5,{size:24,color:"#9aa7ad",bg:"rgba(244,247,248,0.9)",border:"rgba(0,0,0,0)"});
+     const slotsLbl=xray(textPanel(T("dropZone"),zw-.5,.5,{size:24,color:"#9aa7ad",bg:"rgba(244,247,248,0.9)",border:"rgba(0,0,0,0)"}),8);
      slotsLbl.position.set(0,1.0,.07);grpZ.add(slotsLbl);grpZ.userData.slotsLbl=slotsLbl;
      // raised above the console deck — at floor level they were hidden behind it
     grpZ.position.set(-((zones.length-1)/2)*(zw+.35)+zi*(zw+.35),1.35,-1.6);
@@ -1602,6 +1712,7 @@ function playBeat(stIdx,q,onDone){
      back.userData.zi=zi;grpZ.userData.stack=[];
      back.userData.setHot=h=>{back.material.emissive=new THREE.Color(h?TEAL:0x000000);back.material.emissiveIntensity=h?.35:0};
      back.userData.onDrop=o=>{
+       if(o===selTile)setSel(null); // dragging the selected tile in must not leave a stale selection/glow
        const prev=assign[o.userData.ci];
        if(prev!=null){const pz=zoneM[prev];pz.grpZ.userData.stack=pz.grpZ.userData.stack.filter(x=>x!==o);restack(pz)}
        assign[o.userData.ci]=zi;
@@ -1621,7 +1732,7 @@ function playBeat(stIdx,q,onDone){
  function restack(z){
    z.grpZ.userData.stack.forEach((m,k)=>{
      // .68 scale × .9 tile height ≈ .61 — the .64 step keeps stacked cards clear of each other
-     m.scale.setScalar(.68);m.userData.baseScale=.68;m.rotation.x=0;
+     m.scale.setScalar(.68);m.userData.baseScale=.68;m.rotation.x=0;m.renderOrder=10; // stacked tiles shed any selection/drag order bump
      flyBack(m,z.grpZ.position.clone().add(new THREE.Vector3(0,1.78-k*.64,.14)));
    });
     if(!z.grpZ.userData.stack.length&&z.grpZ.userData.slotsLbl)z.grpZ.userData.slotsLbl.visible=true;
@@ -1630,9 +1741,10 @@ function playBeat(stIdx,q,onDone){
   let selTile=null;
   const setSel=m=>{
     if(selTile){selTile.userData.baseScale=selTile.userData.selPrev||1;selTile.scale.setScalar(selTile.userData.baseScale);
-      selTile.userData.setText(selTile.userData.label)}
+      selTile.renderOrder=10;selTile.userData.setText(selTile.userData.label)}
     selTile=m;
     if(m){m.userData.selPrev=m.userData.baseScale||1;m.userData.baseScale=m.userData.selPrev*1.16;m.scale.setScalar(m.userData.baseScale);
+      m.renderOrder=11; // enlarged card draws above its neighbours, never under them
       m.userData.setText(m.userData.label,{border:"#d7b56d"})} // gold border marks the selected card
     zoneM.forEach(z=>z.back.userData.setHot(!!m));
   };
@@ -1679,6 +1791,8 @@ async function pttDown(){
   live.drop=true} // ...and the rest of his cancelled line is discarded, not dribbled out
  HOST.hold=Date.now(); // the trainee owns the floor: new narration parks until Saif replies
  if(HOST.cur&&HOST.cur.kind!=="ASK")hostDone(); // release the interrupted line so its flow continues
+ if(!(HOST.cur&&HOST.cur.kind==="ASK")){ // mid-question, keep the question's text and speaker (the visitor stays the visitor)
+  HOST.buf="";HOST.gotText=false;HOST.who=T("saif")} // fresh subtitle: the reply must not glue onto the old line's text
  document.getElementById("askmic").classList.add("rec");
  vrHud.setMic(true);
  const st=document.getElementById("convstat");st.style.display="block";st.textContent=T("listenLive");
@@ -1708,46 +1822,61 @@ async function stageConv(stIdx,q,onDone){
  document.getElementById("convopts").textContent=T("showOpts");
  document.getElementById("convin").value="";
  document.getElementById("convin").placeholder=T("typeHint");
- const cleanup=()=>{conv.style.display="none";stat.style.display="none";sp.style.display="none";convOpen=false;curSubmit=null;liveActive=false;live.muted=true;HOST.who=null};
+ const cleanup=()=>{conv.style.display="none";stat.style.display="none";sp.style.display="none";convOpen=false;curSubmit=null;liveActive=false;live.muted=true;HOST.who=null;
+  document.getElementById("sub").classList.remove("lift")};
  const fallback=()=>{cleanup();
    hostAbortAsk(); // switching to cards: the spoken question must never replay later
    subtitle(who,L(q.prompt),true);
    const dis=realDis(q);const items=shuffled(q.correct.concat(dis),rng(S.seed+hash(q.id)));
+   let picked=false; // one answer only — a second click inside the scoring beat double-scored
    const cards=items.map((o,ix)=>{const m=tileMesh(L(o),ix+1);
-     m.userData.onClick=()=>{score(q,q.correct.some(c=>c.en===items[ix].en),m.position.clone());setTimeout(()=>onDone(),1100)};return m});
+     m.userData.onClick=()=>{if(picked)return;picked=true;setInteract([],[],[]);
+       score(q,q.correct.some(c=>c.en===items[ix].en),m.position.clone());setTimeout(()=>onDone(),1100)};return m});
    dockPlace(cards,L(q.prompt));setInteract(cards,[],[])};
  if(!hasAI()){stat.style.display="block";stat.textContent=T("key_no");setTimeout(fallback,50);return}
  const finish=(ok)=>{cleanup();score(q,ok,undefined,true);setTimeout(()=>onDone(),1100)};
 
  /* ---- verbal moment through the persistent live host session ---- */
  if(VOICE_ON&&await hostEnsure()){
-   let judged=false,guard=null,hardTo=null;
-   const stop=()=>{clearInterval(guard);clearTimeout(hardTo)};
+   let judged=false,guard=null;
+   const stop=()=>{clearInterval(guard)};
    HOST.who=who;
    HOST.onScore=(args)=>{if(judged)return;judged=true;stop();
      live.muted=true;HOST.who=null;
      if(args.feedback)subtitle(T("saif"),args.feedback,true);
-     setTimeout(()=>finish(!!args.correct),2600)};
+     // let the spoken feedback finish (2.6s floor, 9s cap) — a fixed timer cut
+     // longer Arabic feedback lines mid-word
+     const t0=Date.now();
+     const go=()=>{if(Date.now()-t0<2600||(live.speaking&&Date.now()-t0<9000)){setTimeout(go,300);return}finish(!!args.correct)};
+     setTimeout(go,2600)};
   const exp=q.correct.map(c=>L(c)).join(" / ");
   const wrong=realDis(q).map(d=>L(d)).join(" / ");
   HOST.lastUser=0;
-  say(`${q.id==="S5-Q3"?"For this one, roleplay a VISITOR at the reception desk. ":""}${reactPrefix()}Assessment question: "${L(q.prompt)}" | Correct idea: ${exp} | Wrong ideas (do not accept): ${wrong}`,"ASK");
+  say(`${q.id==="S5-Q3"?"For this one, roleplay a VISITOR at the reception desk. ":""}${reactPrefix()}Assessment question: "${L(q.prompt)}" | Correct idea: ${exp} | Wrong ideas (do not accept): ${wrong}`,"ASK",null,who);
   stat.style.display="block";stat.textContent=T("listenLive");
   conv.style.display="flex";convOpen=true;liveActive=true; // shows only the "Show choices" escape hatch
-  document.getElementById("convopts").onclick=()=>{if(judged)return;stop();HOST.onScore=null;fallback()};
+  document.getElementById("sub").classList.add("lift"); // subtitle card clears the pill
+  document.getElementById("convopts").onclick=()=>{if(judged)return;judged=true;stop();HOST.onScore=null;fallback()}; // judged: a late mic-denial bail must not re-stage stale cards over a newer beat
   // resilience: if the voice session dies or stalls, switch to clickable choices
   const bail=()=>{if(judged)return;judged=true;stop();HOST.onScore=null;
     clog("ASK bailed to cards");stat.textContent=T("ai_no");setTimeout(fallback,500)};
+  // no mic = no verbal answer possible — go straight to the cards, not a 45s wait
+  live.initMic().then(ok=>{if(!ok)bail()});
   let nudged=false;
+  const born=Date.now();let deadline=born+45000;
   guard=setInterval(()=>{
-    if(!HOST.on||!live.ws||live.ws.readyState!==1){bail();return}
+    // a live exchange keeps earning time — the old fixed 45s cut off trainees
+    // mid-conversation exactly when the AI showpiece was working
+    const lastEx=Math.max(HOST.lastUser||0,HOST.lastAct||0);
+    if(lastEx&&Date.now()-lastEx<8000)deadline=Math.max(deadline,Date.now()+20000);
+    if(Date.now()>deadline||Date.now()-born>150000){bail();return}
+    if(!HOST.on||!live.ws||live.ws.readyState!==1)return; // onClose re-asks in a fresh session; the deadline above backstops a dead one
     // model replied to the answer but forgot the score_answer call → remind it once
     if(!nudged&&HOST.onScore&&!live.speaking&&HOST.lastUser
        &&Date.now()-HOST.lastUser>6000&&Date.now()-HOST.lastAct>6000){
       nudged=true;live.sendText("[NUDGE] The trainee already answered. Call score_answer NOW with your verdict on that answer, and say one short feedback sentence.");
     }
   },3000);
-  hardTo=setTimeout(bail,45000);
    return;
  }
 
@@ -1788,6 +1917,7 @@ function startSession(name){
 let followSt=null;
 function escortTo(i){
  S.st=i;
+ clearQ(); // the answered station's UI must not x-ray through the walls during the walk
  stations.forEach((s,k)=>{s.group.userData.beam.visible=k===i});
  const a=stationAngle(i);
  saifTarget=new THREE.Vector3(Math.sin(a)*(R-5.4)+Math.cos(a)*1.8,0,-Math.cos(a)*(R-5.4)+Math.sin(a)*1.8);
@@ -1799,6 +1929,10 @@ function escortTo(i){
 }
 function beginStation(i){
  followSt=null; // arrival: the intro line below talks over any lingering "follow me"
+ // Saif steps aside as the exercises appear: at 1.8m off-axis he stood inside the
+ // question UI's footprint and the x-ray boards painted over him ("decapitated")
+ {const a=stationAngle(i);
+  saifTarget=new THREE.Vector3(Math.sin(a)*(R-5.4)+Math.cos(a)*5.0,0,-Math.cos(a)*(R-5.4)+Math.sin(a)*5.0)}
  const nm=L(CONTENT.skills[i].scene.name);
  // first beat starts only AFTER the intro was actually spoken — a fixed timer
  // used to let the beat's flush throw away the still-queued intro line
@@ -1890,13 +2024,16 @@ document.getElementById("btnAsk").onclick=()=>{toggleAsk(true);document.getEleme
 const btnVoice=document.getElementById("btnVoice");
 const paintVoice=()=>btnVoice.textContent=VOICE_ON?"🔊":"🔇";
 btnVoice.onclick=()=>{VOICE_ON=!VOICE_ON;localStorage.setItem("adc_voice",VOICE_ON?"on":"off");
- if(!VOICE_ON){HOST.deferred=null;live.stopPlayback()}paintVoice()};
+ if(!VOICE_ON){const d=HOST.deferred;HOST.deferred=null;if(d&&d.cb)try{d.cb()}catch(e){} // parked line's flow continues silently
+  live.stopPlayback()}paintVoice()};
 paintVoice();
 async function doAsk(){const i=document.getElementById("askin");const t=i.value.trim();if(!t)return;
  i.value="";subtitle(T("you"),t);
  if(VOICE_ON&&HOST.on&&live.ws&&live.ws.readyState===1){ // Saif answers in his own voice; narration parks
   HOST.hold=Date.now();
-  if(HOST.cur&&HOST.cur.kind!=="ASK")hostDone(); // typed question talks over the current line
+  if(HOST.cur&&HOST.cur.kind==="ASK"){ // mid-question: don't cut the question or reset the floor —
+   live.sendText(t);return}          // the model treats the text as the trainee talking (answer or aside)
+  if(HOST.cur)hostDone(); // typed question talks over the current line
   live.stopPlayback();HOST.sentAt=Date.now();HOST.who=T("saif");HOST.buf="";HOST.gotText=false;
   live.sendText(t);setTimeout(hostNext,12500);return}
  try{const r=await askSaif(t);subtitle(T("saif"),r.trim())}catch(e){subtitle(T("saif"),e.message==="nokey"?T("key_no"):T("ai_no"))}}
@@ -1908,7 +2045,11 @@ let adminAuthed=false;
 document.getElementById("btnAdmin").onclick=()=>{document.getElementById("drawer").classList.add("open");paintAdmin()};
 document.getElementById("dClose").onclick=()=>document.getElementById("drawer").classList.remove("open");
 function paintAdmin(){
- if(!document.getElementById("drawer").classList.contains("open"))return;
+ const drawer=document.getElementById("drawer");
+ if(!drawer.classList.contains("open"))return;
+ // a live session logs constantly — repainting while the admin types the PIN or
+ // AI key wiped the input mid-keystroke
+ if(document.activeElement&&document.activeElement.tagName==="INPUT"&&drawer.contains(document.activeElement))return;
  const body=document.getElementById("dBody");
  if(!adminAuthed){
   body.innerHTML=`<label>${T("pin")}</label><input id="pin" type="password" style="max-width:150px">
@@ -1935,10 +2076,11 @@ function paintAdmin(){
   DB.bypass={by:nm,ts:new Date().toISOString()};log(`gate.bypass · by ${nm}`);save();paintAdmin();
   if(!S||!S.active)showStart()};
  document.getElementById("csv").onclick=()=>{
+  const esc=v=>{const s=String(v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}; // a comma in a trainee name must not shift columns
   const rows=[["trainee","level","attempt","language","score","percent","pass","timestamp"]];
   DB.results.forEach(r=>rows.push([r.trainee,r.level,r.attempt,r.lang,r.score,Math.round(r.score/120*100)+"%",r.pass?"PASS":"FAIL",r.ts]));
   const a=document.createElement("a");
-  a.href="data:text/csv;charset=utf-8,﻿"+encodeURIComponent(rows.map(r=>r.join(",")).join("\r\n"));
+  a.href="data:text/csv;charset=utf-8,﻿"+encodeURIComponent(rows.map(r=>r.map(esc).join(",")).join("\r\n"));
   a.download="adc_poc3d_results.csv";a.click()};
 }
 
