@@ -4,85 +4,147 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ADC Training — Admin Panel</title>
+<link rel="icon" type="image/png" href="assets/adc-logo.png">
 <style>
-:root{--teal:#00736a;--teal-dk:#005a53;--ink:#1f2a2e;--muted:#61707a;--line:#dde5e8;--soft:#f4f7f8;--sand:#c8a45a;--green:#1fa877;--red:#d84a38}
+:root{--teal:#00736a;--teal-dk:#005a53;--teal-glow:#35c4b0;--ink:#1f2a2e;--muted:#61707a;
+ --line:#dde5e8;--soft:#f4f7f8;--sand:#c8a45a;--gold:#d7b56d;--green:#1fa877;--red:#d84a38;--paper:#ffffff}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:"Segoe UI",Tahoma,sans-serif;background:#e8eef1;color:var(--ink);min-height:100vh}
-header{background:#fff;border-bottom:1px solid var(--line);padding:14px 22px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:5}
-.brandmark{width:38px;height:38px;border-radius:8px;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}
-header .t1{font-weight:700;font-size:15px}
-header .t2{font-size:11px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
-header .right{margin-inline-start:auto;display:flex;gap:10px;align-items:center}
-#livechip{font-size:11.5px;color:var(--muted)}
-#livechip b{color:var(--green)}
-button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;font-size:13px}
-.btn{background:var(--teal);color:#fff;padding:9px 16px;font-weight:700}
-.btn:hover{background:var(--teal-dk)}
-.btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line);font-weight:600}
+body{font-family:"Segoe UI",Tahoma,sans-serif;background:#eef3f4;color:var(--ink);min-height:100vh}
+
+/* ---------- header ---------- */
+header{background:linear-gradient(135deg,#04302c 0%,var(--teal-dk) 55%,#0a7a6e 100%);color:#fff;
+ padding:0;position:sticky;top:0;z-index:5;box-shadow:0 6px 24px rgba(0,40,36,.25)}
+.hbar{max-width:1220px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;gap:16px}
+.logochip{background:#fff;border-radius:12px;padding:7px 10px;display:flex;align-items:center;box-shadow:0 3px 14px rgba(0,0,0,.25)}
+.logochip img{height:36px;width:auto;display:block}
+header .t1{font-weight:700;font-size:16px;letter-spacing:.01em}
+header .t2{font-size:11px;opacity:.75;letter-spacing:.14em;text-transform:uppercase;margin-top:2px}
+header .right{margin-inline-start:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#livechip{font-size:11.5px;opacity:.85;display:flex;align-items:center;gap:6px}
+#livechip .dot{width:8px;height:8px;border-radius:50%;background:#3ce39a;box-shadow:0 0 8px #3ce39a;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.45}}
+.goldline{height:3px;background:linear-gradient(90deg,transparent,var(--gold) 30%,var(--gold) 70%,transparent)}
+
+button{font-family:inherit;cursor:pointer;border:none;font-size:13px}
+button:active{transform:translateY(1px)}
+.btn{background:var(--teal);color:#fff;padding:9px 16px;font-weight:700;border-radius:9px;transition:filter .15s,transform .1s} /* on .btn, not button — the "Open app" ANCHOR needs the radius too */
+.btn:hover{filter:brightness(1.12)}
+.btn.ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.35);font-weight:600}
+.btn.ghost:hover{background:rgba(255,255,255,.24)}
+.btn.card{background:#fff;color:var(--ink);border:1.5px solid var(--line);font-weight:600}
+.btn.card:hover{border-color:var(--teal);color:var(--teal);filter:none}
 .btn.warn{background:#fff;color:var(--red);border:1.5px solid #f2c4bd;font-weight:600}
+.btn.warn:hover{background:#fdf1ef;filter:none}
 .btn.small{padding:5px 10px;font-size:12px}
-main{max-width:1180px;margin:0 auto;padding:20px 22px 60px}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
-.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 18px}
-.stat .v{font-size:26px;font-weight:800;color:var(--teal)}
-.stat .k{font-size:11.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
-.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:18px}
-.panel h2{font-size:14.5px;color:var(--teal);margin-bottom:10px;display:flex;align-items:center;gap:10px}
-.panel h2 .sub{font-weight:400;font-size:11.5px;color:var(--muted)}
-table{border-collapse:collapse;width:100%;font-size:12.5px}
-th{background:var(--soft);padding:8px 10px;text-align:start;font-weight:700;border:1px solid var(--line);white-space:nowrap}
-td{border:1px solid var(--line);padding:7px 10px;vertical-align:middle}
-tr:hover td{background:#f8fbfa}
-.tag{display:inline-block;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700}
-.tag.pass{background:#e7f6ef;color:var(--green)}
-.tag.fail{background:#fceceb;color:var(--red)}
-.tag.prog{background:#fdf6e7;color:#9a7822}
+
+main{max-width:1220px;margin:0 auto;padding:22px 22px 60px}
+
+/* ---------- stat cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:14px;margin-bottom:20px}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;
+ box-shadow:0 2px 10px rgba(0,40,36,.05)}
+.stat::before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:4px;background:var(--teal)}
+.stat.gold::before{background:var(--gold)}
+.stat.green::before{background:var(--green)}
+.stat .v{font-size:28px;font-weight:800;color:var(--teal-dk)}
+.stat.green .v{color:var(--green)}
+.stat .k{font-size:11px;color:var(--muted);letter-spacing:.09em;text-transform:uppercase;margin-top:3px;font-weight:600}
+
+/* ---------- panels ---------- */
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:20px;box-shadow:0 2px 10px rgba(0,40,36,.05)}
+.panel h2{font-size:14px;color:var(--teal-dk);margin-bottom:12px;display:flex;align-items:center;gap:10px;
+ letter-spacing:.06em;text-transform:uppercase}
+.panel h2::before{content:"";width:18px;height:3px;border-radius:2px;background:var(--gold)}
+.panel h2 .sub{font-weight:400;font-size:11px;color:var(--muted);letter-spacing:0;text-transform:none;margin-inline-start:auto}
+
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+th{background:var(--soft);padding:9px 12px;text-align:start;font-weight:700;color:var(--teal-dk);white-space:nowrap;
+ border-bottom:2px solid var(--line);font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+td{border-bottom:1px solid var(--line);padding:9px 12px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .12s}
+tbody tr:hover{background:#f4faf8}
+
+.tag{display:inline-block;border-radius:99px;padding:3px 11px;font-size:11px;font-weight:700}
+/* tag text darkened for WCAG AA on the tinted backgrounds — these carry the verdicts */
+.tag.pass{background:#e7f6ef;color:#0d6b4c}
+.tag.fail{background:#fceceb;color:#b23423}
+.tag.prog{background:#fdf6e7;color:#7a5f16}
 .tag.idle{background:var(--soft);color:var(--muted)}
-.bar{height:6px;border-radius:99px;background:var(--soft);overflow:hidden;min-width:90px}
-.bar i{display:block;height:100%;background:var(--teal);border-radius:99px}
+.tag.online{background:#e7f6ef;color:#0d6b4c}
+.tag.online::before{content:"●";margin-inline-end:5px} /* static: 15 online rows must not strobe in sync */
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.lvchip{display:inline-block;background:var(--teal);color:#fff;border-radius:6px;padding:1px 7px;font-size:10.5px;font-weight:800;margin-inline-end:6px}
+.lvchip.l2{background:var(--gold);color:#3d2f0d}
+.bar{height:7px;border-radius:99px;background:var(--soft);overflow:hidden;min-width:110px;margin-top:5px;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--teal-glow),var(--teal));border-radius:99px;transition:width .5s}
 .muted{color:var(--muted)}
 .nowrap{white-space:nowrap}
-#gate{position:fixed;inset:0;background:linear-gradient(rgba(8,26,30,.5),rgba(8,26,30,.75)),url("img/port-panorama.jpg") center/cover;display:flex;align-items:center;justify-content:center;z-index:50}
-#gate .box{background:#fff;border-radius:14px;padding:26px 30px;width:min(360px,92vw);box-shadow:0 30px 80px rgba(0,20,25,.45)}
-#gate h1{font-size:18px;margin:12px 0 4px}
-#gate p{font-size:12.5px;color:var(--muted);margin-bottom:14px}
-#gate input{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:9px;font-size:15px;letter-spacing:.3em;text-align:center}
-#gate input:focus{outline:none;border-color:var(--teal)}
+.avatar{display:inline-flex;width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal-dk));
+ color:#fff;align-items:center;justify-content:center;font-weight:800;font-size:13px;margin-inline-end:9px;vertical-align:middle;flex:none}
+.namecell{display:flex;align-items:center}
+
+/* ---------- PIN gate ---------- */
+#gate{position:fixed;inset:0;background:#04211e linear-gradient(rgba(4,38,34,.9),rgba(4,38,34,.96)),url("img/port-panorama.jpg") center/cover;
+ display:flex;align-items:center;justify-content:center;z-index:50} /* opaque enough that locked-out eyes can't read trainee data underneath */
+#gate .box{background:#fff;border-radius:16px;padding:0;width:min(380px,92vw);overflow:hidden;box-shadow:0 40px 90px rgba(0,15,13,.6)}
+#gate .band{background:linear-gradient(135deg,#04302c,var(--teal-dk));padding:22px 28px;display:flex;align-items:center;gap:14px}
+#gate .band img{height:42px;background:#fff;border-radius:10px;padding:6px}
+#gate .band .a{color:#fff;font-weight:700;font-size:15px}
+#gate .band .b{color:rgba(255,255,255,.7);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;margin-top:2px}
+#gate .inner{padding:22px 28px 26px}
+#gate h1{font-size:16px;margin-bottom:4px}
+#gate p{font-size:12px;color:var(--muted);margin-bottom:16px}
+#gate input{width:100%;padding:12px 13px;border:1.5px solid var(--line);border-radius:10px;font-size:16px;letter-spacing:.35em;text-align:center}
+#gate input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,115,106,.12)}
 #gate .err{color:var(--red);font-size:12px;min-height:16px;margin-top:8px}
-#gate .row{display:flex;gap:10px;margin-top:12px}
+#gate .row{display:flex;gap:10px;margin-top:12px;align-items:center}
+#gate a{font-size:12px;color:var(--muted)}
+
 #bypassRow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-#bypassState{font-size:12.5px}
 .empty{color:var(--muted);font-size:12.5px;padding:14px 4px}
-@media(max-width:760px){main{padding:14px 10px}th,td{padding:5px 6px;font-size:11.5px}}
+footer{max-width:1220px;margin:0 auto;padding:0 22px 30px;font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+.scrollwrap{overflow:auto;max-height:460px}
+.scrollwrap th{position:sticky;top:0;z-index:1} /* header survives scrolling 60 rows */
+@media(max-width:760px){main{padding:14px 10px}th,td{padding:6px 7px;font-size:11.5px}
+ .hbar{padding:12px 12px;flex-wrap:wrap}#livechip{display:none}footer{flex-wrap:wrap;gap:6px}}
 </style>
 </head>
 <body>
 
 <div id="gate"><div class="box">
-  <div class="brandmark">AC</div>
-  <h1>Admin Panel — ADC VR Training</h1>
-  <p>جمارك أبوظبي · Abu Dhabi Customs — supervisor access</p>
-  <input id="pin" type="password" placeholder="PIN" autocomplete="off">
-  <div class="err" id="gateErr"></div>
-  <div class="row"><button class="btn" id="enter" style="flex:1">Enter</button>
-  <a href="ADC_POC_3D.html" style="align-self:center;font-size:12px;color:var(--muted)">← back to app</a></div>
+  <div class="band">
+    <img src="assets/adc-logo.png" alt="Abu Dhabi Customs">
+    <div><div class="a">جمارك أبوظبي · Abu Dhabi Customs</div><div class="b">VR Training — Supervisor Access</div></div>
+  </div>
+  <div class="inner">
+    <h1>Admin Panel</h1>
+    <p>Enter the supervisor PIN to monitor trainees, unlock levels and export results.</p>
+    <input id="pin" type="password" placeholder="• • • •" autocomplete="off">
+    <div class="err" id="gateErr"></div>
+    <div class="row"><button class="btn" id="enter" style="flex:1">Enter</button>
+    <a href="ADC_POC_3D.html">← back to app</a></div>
+  </div>
 </div></div>
 
 <header>
-  <div class="brandmark">AC</div>
-  <div><div class="t1">ADC VR Training — Admin Panel</div><div class="t2">جمارك أبوظبي · Abu Dhabi Customs</div></div>
-  <div class="right">
-    <span id="livechip">refreshing…</span>
-    <button class="btn ghost small" id="csv">Export CSV</button>
-    <a class="btn ghost small" href="ADC_POC_3D.html" style="text-decoration:none;display:inline-flex;align-items:center">Open app ↗</a>
+  <div class="hbar">
+    <span class="logochip"><img src="assets/adc-logo.png" alt="Abu Dhabi Customs"></span>
+    <div><div class="t1">VR Training — Admin Panel</div><div class="t2">جمارك أبوظبي · Abu Dhabi Customs · Training Academy</div></div>
+    <div class="right">
+      <span id="livechip"><span class="dot"></span><span id="livetxt">connecting…</span></span>
+      <button class="btn ghost small" id="csv">Export CSV</button>
+      <a class="btn ghost small" href="ADC_POC_3D.html" style="text-decoration:none;display:inline-flex;align-items:center">Open app ↗</a>
+    </div>
   </div>
+  <div class="goldline"></div>
 </header>
 
 <main>
   <div class="cards">
     <div class="stat"><div class="v" id="stUsers">–</div><div class="k">Trainees</div></div>
-    <div class="stat"><div class="v" id="stActive">–</div><div class="k">Active now</div></div>
-    <div class="stat"><div class="v" id="stInProg">–</div><div class="k">Sessions in progress</div></div>
+    <div class="stat green"><div class="v" id="stActive">–</div><div class="k">Active now</div></div>
+    <div class="stat gold"><div class="v" id="stInProg">–</div><div class="k">Levels in progress</div></div>
     <div class="stat"><div class="v" id="stPass1">–</div><div class="k">Level 1 passed</div></div>
     <div class="stat"><div class="v" id="stPass2">–</div><div class="k">Level 2 passed</div></div>
   </div>
@@ -99,21 +161,22 @@ tr:hover td{background:#f8fbfa}
   <div class="panel">
     <h2>Trainees <span class="sub" id="updated"></span></h2>
     <div style="overflow-x:auto"><table id="usersTbl">
-      <thead><tr><th>Name</th><th>Lang</th><th>Status</th><th>Current progress</th><th>L1 best</th><th>L2 best</th><th>Attempts</th><th>Last seen</th><th></th></tr></thead>
+      <thead><tr><th>Trainee</th><th>Lang</th><th>Status</th><th>Current progress</th><th>L1 best</th><th>L2 best</th><th>Attempts</th><th>Last seen</th><th></th></tr></thead>
       <tbody></tbody>
     </table></div>
     <div class="empty" id="usersEmpty" style="display:none">No trainees yet — they appear here after their first login in the app.</div>
   </div>
 
   <div class="panel">
-    <h2>Recent results</h2>
-    <div style="overflow-x:auto"><table id="resTbl">
-      <thead><tr><th>When</th><th>Name</th><th>Level</th><th>Attempt</th><th>Lang</th><th>Score</th><th>Outcome</th></tr></thead>
+    <h2>Recent results <span class="sub">latest 60 shown — CSV exports everything</span></h2>
+    <div class="scrollwrap"><table id="resTbl">
+      <thead><tr><th>When</th><th>Trainee</th><th>Level</th><th>Attempt</th><th>Lang</th><th>Score</th><th>Outcome</th></tr></thead>
       <tbody></tbody>
     </table></div>
     <div class="empty" id="resEmpty" style="display:none">No completed attempts yet.</div>
   </div>
 </main>
+<footer><span>Proof of Concept — Virtual Worlds Studios</span><span>ADC VR Training · Module 1 “The Strategic Thinker”</span></footer>
 
 <script>
 "use strict";
@@ -133,12 +196,14 @@ async function api(path,opts={}){
 
 function ago(ts){
   const s=(Date.now()-new Date(ts).getTime())/1000;
+  if(isNaN(s))return"—";
   if(s<0)return"now";
   if(s<60)return Math.floor(s)+"s ago";
   if(s<3600)return Math.floor(s/60)+"m ago";
   if(s<86400)return Math.floor(s/3600)+"h ago";
   return Math.floor(s/86400)+"d ago";
 }
+const lvchip=lv=>`<span class="lvchip${lv===2?" l2":""}">L${lv}</span>`;
 
 function paint(){
   const d=DATA;if(!d)return;
@@ -149,13 +214,13 @@ function paint(){
 
   $("stUsers").textContent=d.players.length;
   $("stActive").textContent=active.length;
-  $("stInProg").textContent=d.progress.length;
+  $("stInProg").textContent=d.progress.length; // per-level checkpoints (a player can hold one for L1 and one for L2)
   $("stPass1").textContent=d.players.filter(p=>(resBy[p.id]||[]).some(r=>r.level===1&&r.pass)).length;
   $("stPass2").textContent=d.players.filter(p=>(resBy[p.id]||[]).some(r=>r.level===2&&r.pass)).length;
 
   $("bypassState").innerHTML=d.bypass
-    ?`<span class="tag prog">🔓 Level 2 bypass ACTIVE</span> <span class="muted">by ${esc(d.bypass.by)} · ${ago(d.bypass.ts)}</span>`
-    :`<span class="tag idle">🔒 Level 2 gated (pass Level 1)</span>`;
+    ?`<span class="tag prog">Level 2 bypass ACTIVE</span> <span class="muted">by ${esc(d.bypass.by)} · ${ago(d.bypass.ts)}</span>`
+    :`<span class="tag idle">Level 2 gated — pass Level 1</span>`;
   $("bypassBtn").textContent=d.bypass?"Remove bypass":"Unlock Level 2 for everyone";
   $("bypassBtn").className=d.bypass?"btn warn small":"btn small";
 
@@ -164,26 +229,27 @@ function paint(){
     const rs=resBy[p.id]||[];
     const pr=progBy[p.id];
     const best=lv=>{const s=rs.filter(r=>r.level===lv);if(!s.length)return"<span class='muted'>—</span>";
-      const b=s.reduce((a,r)=>r.score>a.score?r:a);
-      return `<span class="tag ${b.pass?"pass":"fail"}">${b.score}/120</span>`};
+      const b=s.reduce((a,r)=>+r.score>+a.score?r:a);
+      return `<span class="tag ${b.pass?"pass":"fail"}">${+b.score||0}/120</span>`}; // numbers only, same rule as the progress cell
     const isActive=Date.now()-new Date(p.last_seen).getTime()<120000;
     let cur="<span class='muted'>—</span>";
     if(pr&&pr.state){const st=pr.state;
       // state arrives from an unauthenticated endpoint — numbers only, never raw
       const lvN=+st.level||1,dnN=Math.max(0,Math.min(24,+st.done||0)),scN=Math.max(0,Math.min(120,+st.score||0));
       const pct=Math.round(dnN/24*100);
-      cur=`<div class="nowrap">L${lvN} · beat ${dnN}/24 · ${scN}/120</div>
+      cur=`<div class="nowrap">${lvchip(lvN)}beat ${dnN}/24 · ${scN}/120</div>
            <div class="bar"><i style="width:${pct}%"></i></div>`}
+    const initial=esc((p.name||"?").trim().charAt(0).toUpperCase());
     return `<tr>
-      <td><b>${esc(p.name)}</b></td>
+      <td><span class="namecell"><span class="avatar">${initial}</span><b>${esc(p.name)}</b></span></td>
       <td>${p.lang==="ar"?"العربية":"EN"}</td>
-      <td>${isActive?'<span class="tag pass">● online</span>':(pr?'<span class="tag prog">paused mid-level</span>':'<span class="tag idle">idle</span>')}</td>
+      <td>${isActive?'<span class="tag online">online</span>':(pr?'<span class="tag prog">paused</span>':'<span class="tag idle">idle</span>')}</td>
       <td>${cur}</td>
       <td>${best(1)}</td><td>${best(2)}</td>
       <td>${rs.length}</td>
       <td class="nowrap muted">${ago(p.last_seen)}</td>
       <td class="nowrap">
-        ${pr?`<button class="btn ghost small" onclick="resetProg(${p.id|0})">reset progress</button>`:""}
+        ${pr?`<button class="btn card small" onclick="resetProg(${p.id|0})">reset</button>`:""}
         <button class="btn warn small" onclick="delPlayer(${p.id|0})">delete</button>
       </td></tr>`;
   }).join("");
@@ -194,8 +260,8 @@ function paint(){
   rb.innerHTML=d.results.slice(0,60).map(r=>`<tr>
     <td class="nowrap muted">${ago(r.ts)}</td>
     <td><b>${esc(nameBy[r.player_id]||"?")}</b></td>
-    <td>L${r.level}</td><td>${r.attempt}</td><td>${r.lang==="ar"?"AR":"EN"}</td>
-    <td>${r.score}/120 (${Math.round(r.score/120*100)}%)</td>
+    <td>${lvchip(+r.level||1)}</td><td>${+r.attempt||1}</td><td>${r.lang==="ar"?"AR":"EN"}</td>
+    <td><b>${+r.score||0}</b>/120 <span class="muted">(${Math.round((+r.score||0)/120*100)}%)</span></td>
     <td><span class="tag ${r.pass?"pass":"fail"}">${r.pass?"PASS":"FAIL"}</span></td></tr>`).join("");
   $("resEmpty").style.display=d.results.length?"none":"";
   $("updated").textContent="updated "+new Date().toLocaleTimeString();
@@ -204,11 +270,11 @@ function paint(){
 async function refresh(){
   try{
     DATA=await api("/api/admin/overview");
-    $("livechip").innerHTML="<b>●</b> live · auto-refresh 5s";
+    $("livetxt").textContent="live · auto-refresh 5s";
     paint();
   }catch(e){
     if(e.pin){lock("Wrong or expired PIN");return}
-    $("livechip").textContent="⚠ "+e.message;
+    $("livetxt").textContent="offline: "+e.message;
   }
 }
 
@@ -254,12 +320,12 @@ window.delPlayer=async id=>{
 $("csv").onclick=()=>{
   if(!DATA)return;
   const nameBy={};DATA.players.forEach(p=>nameBy[p.id]=p.name);
-  const q=v=>{let s=String(v);if(/^[=+\-@]/.test(s))s="'"+s; // neutralize spreadsheet formulas in names
-    return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+  const q=v=>{let s=String(v);if(/^[=+\-@\t]/.test(s))s="'"+s; // neutralize spreadsheet formulas
+    return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
   const rows=[["trainee","level","attempt","language","score","percent","pass","timestamp"]];
   DATA.results.slice().reverse().forEach(r=>rows.push([nameBy[r.player_id]||"?",r.level,r.attempt,r.lang,r.score,Math.round(r.score/120*100)+"%",r.pass?"PASS":"FAIL",r.ts]));
   const a=document.createElement("a");
-  a.href="data:text/csv;charset=utf-8,﻿"+encodeURIComponent(rows.map(r=>r.map(q).join(",")).join("\r\n"));
+  a.href="data:text/csv;charset=utf-8,"+encodeURIComponent("﻿"+rows.map(r=>r.map(q).join(",")).join("\r\n"));
   a.download="adc_training_results.csv";a.click();
 };
 

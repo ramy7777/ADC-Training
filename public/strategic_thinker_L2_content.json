@@ -1,0 +1,641 @@
+{
+  "module": {
+    "number": 1,
+    "name": { "en": "The Strategic Thinker", "ar": "المفكر الاستراتيجي" },
+    "level": 2,
+    "note": "Level 2 bank — application & judgment (Level 1 is awareness & recognition). Arabic is a working draft pending human review."
+  },
+  "skills": [
+    {
+      "id": 1,
+      "questions": [
+        {
+          "id": "L2S1-Q1",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “A trader imports furniture by sea and electronics by air. Which ADC channels will process each of his shipments?”",
+            "ar": "المرشد: «تاجر يستورد الأثاث بحراً والإلكترونيات جواً. أي قنوات جمركية ستعالج كل شحنة من شحناته؟»"
+          },
+          "correct": [
+            { "en": "Sea cargo clears through the port customs centre; air cargo through airport cargo customs — each with its own declaration", "ar": "الشحنة البحرية تُخلَّص عبر مركز جمارك الميناء، والجوية عبر جمارك الشحن في المطار — ولكل منهما بيان جمركي خاص" }
+          ],
+          "distractors": [
+            { "en": "Everything goes through one single counter downtown", "ar": "كل شيء يمر عبر شباك واحد في وسط المدينة" },
+            { "en": "Air cargo needs no declaration if the sea shipment already has one", "ar": "الشحن الجوي لا يحتاج بياناً إذا كان للشحنة البحرية بيان" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S1-Q2",
+          "template": "T1",
+          "prompt": {
+            "en": "“A commercial sea container is being cleared. Touch every party that plays a role.”",
+            "ar": "«حاوية تجارية بحرية قيد التخليص. المس كل جهة لها دور في العملية.»"
+          },
+          "correct": [
+            { "en": "ADC declaration & inspection teams", "ar": "فرق البيانات والتفتيش في جمارك أبوظبي" },
+            { "en": "The port terminal operator", "ar": "مشغّل محطة الميناء" },
+            { "en": "The clearing agent / broker", "ar": "المخلّص الجمركي / الوكيل" }
+          ],
+          "distractors": [
+            { "en": "Municipality building-permit office", "ar": "مكتب رخص البناء في البلدية" },
+            { "en": "Tourism licensing department", "ar": "إدارة التراخيص السياحية" },
+            { "en": "School transport authority", "ar": "هيئة النقل المدرسي" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S1-Q3",
+          "template": "T1",
+          "prompt": {
+            "en": "“A passenger lands with commercial-quantity goods in his baggage. Touch the correct handling.”",
+            "ar": "«مسافر وصل وفي أمتعته بضائع بكمية تجارية. المس الإجراء الصحيح.»"
+          },
+          "correct": [
+            { "en": "Red channel — commercial goods in baggage require a customs declaration", "ar": "القناة الحمراء — البضائع التجارية في الأمتعة تتطلب بياناً جمركياً" }
+          ],
+          "distractors": [
+            { "en": "Green channel — baggage is always personal", "ar": "القناة الخضراء — الأمتعة دائماً شخصية" },
+            { "en": "Let him exit and email customs later", "ar": "يخرج ويراسل الجمارك لاحقاً بالبريد" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S1-Q4",
+          "template": "T4",
+          "prompt": {
+            "en": "“On the entry-points board, touch the TWO checkpoints where passengers (not cargo) are cleared.”",
+            "ar": "«على لوحة منافذ الدخول، المس النقطتين اللتين يُخلَّص فيهما المسافرون (وليس البضائع).»"
+          },
+          "correct": [
+            { "en": "Airport arrivals halls", "ar": "صالات القادمين في المطار" },
+            { "en": "Al Ghuweifat land crossing", "ar": "منفذ الغويفات البري" }
+          ],
+          "distractors": [
+            { "en": "Khalifa Port container terminal", "ar": "محطة حاويات ميناء خليفة" },
+            { "en": "Free-zone bonded warehouse", "ar": "مستودع الإيداع في المنطقة الحرة" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S1-Q5",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “A small business owner asks how ADC actually helps her trade move faster. Give her two concrete ways.”",
+            "ar": "المرشد: «صاحبة مشروع صغير تسأل كيف تساعدها الجمارك فعلياً على تسريع تجارتها. اذكر لها وسيلتين ملموستين.»"
+          },
+          "correct": [
+            { "en": "Digital declarations and smart services cut paperwork, and risk-based inspection fast-tracks compliant shipments", "ar": "البيانات الرقمية والخدمات الذكية تقلّص المعاملات الورقية، والتفتيش القائم على المخاطر يسرّع الشحنات الملتزمة" }
+          ],
+          "distractors": [
+            { "en": "Customs can skip inspection for anyone who asks politely", "ar": "يمكن للجمارك تجاوز التفتيش لمن يطلب ذلك بلطف" },
+            { "en": "ADC lends money to importers", "ar": "الجمارك تُقرض المستوردين المال" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S1-Q6",
+          "template": "T1",
+          "prompt": {
+            "en": "“You are preparing this month's environment scan. Touch what belongs in it.”",
+            "ar": "«تحضّر مسح بيئة الأعمال لهذا الشهر. المس ما ينتمي إليه.»"
+          },
+          "correct": [
+            { "en": "Trade volume trends at our ports", "ar": "اتجاهات حجم التجارة في موانئنا" },
+            { "en": "New free-zone and logistics openings", "ar": "افتتاح مناطق حرة ومراكز لوجستية جديدة" },
+            { "en": "Changes in airline cargo routes", "ar": "تغيّرات مسارات الشحن الجوي" }
+          ],
+          "distractors": [
+            { "en": "The school exam calendar", "ar": "جدول امتحانات المدارس" },
+            { "en": "This week's cinema releases", "ar": "أفلام السينما لهذا الأسبوع" }
+          ],
+          "ordered": false
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "questions": [
+        {
+          "id": "L2S2-Q1",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “Two ports abroad cut clearance time using AI risk engines. Before we adopt the idea, what must we study?”",
+            "ar": "المرشد: «ميناءان في الخارج قلّصا زمن التخليص باستخدام محركات مخاطر تعمل بالذكاء الاصطناعي. قبل أن نتبنى الفكرة، ماذا يجب أن ندرس؟»"
+          },
+          "correct": [
+            { "en": "Whether it fits our volumes, rules and systems — and whether our data is good enough to feed it", "ar": "مدى ملاءمتها لأحجامنا وأنظمتنا وقواعدنا — وما إذا كانت بياناتنا جيدة بما يكفي لتغذيتها" }
+          ],
+          "distractors": [
+            { "en": "Nothing — if it worked there it will work here", "ar": "لا شيء — ما نجح هناك سينجح هنا" },
+            { "en": "Only the price of the software", "ar": "سعر البرنامج فقط" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S2-Q2",
+          "template": "T1",
+          "prompt": {
+            "en": "“A new WCO standard is announced. Touch the BEST first source to verify what it really requires.”",
+            "ar": "«أُعلن عن معيار جديد لمنظمة الجمارك العالمية. المس أفضل مصدر أول للتحقق مما يتطلبه فعلاً.»"
+          },
+          "correct": [
+            { "en": "The official WCO publication, via ADC's policy team", "ar": "المنشور الرسمي لمنظمة الجمارك العالمية عبر فريق السياسات في الجمارك" }
+          ],
+          "distractors": [
+            { "en": "A colleague's WhatsApp group", "ar": "مجموعة واتساب لأحد الزملاء" },
+            { "en": "A vendor's sales brochure", "ar": "كتيّب مبيعات من مورّد" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S2-Q3",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the trends most likely to reshape inspection work within five years.”",
+            "ar": "«المس التوجهات الأرجح أن تعيد تشكيل عمل التفتيش خلال خمس سنوات.»"
+          },
+          "correct": [
+            { "en": "AI-assisted image analysis of scans", "ar": "تحليل صور الأشعة بمساعدة الذكاء الاصطناعي" },
+            { "en": "Explosive growth of e-commerce parcels", "ar": "النمو الهائل لطرود التجارة الإلكترونية" },
+            { "en": "Digital, pre-arrival cargo data sharing", "ar": "تبادل بيانات الشحنات رقمياً قبل الوصول" }
+          ],
+          "distractors": [
+            { "en": "A global return to paper manifests", "ar": "عودة عالمية إلى بيانات الشحن الورقية" },
+            { "en": "The end of online shopping", "ar": "نهاية التسوق عبر الإنترنت" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S2-Q4",
+          "template": "T4",
+          "prompt": {
+            "en": "“Order the steps for evaluating a leading practice before proposing it.”",
+            "ar": "«رتّب خطوات تقييم ممارسة رائدة قبل اقتراحها.»"
+          },
+          "correct": [
+            { "en": "Spot the practice and where it succeeded", "ar": "رصد الممارسة وأين نجحت" },
+            { "en": "Verify it through official sources", "ar": "التحقق منها عبر المصادر الرسمية" },
+            { "en": "Assess its fit and impact for ADC", "ar": "تقييم ملاءمتها وأثرها على جمارك أبوظبي" },
+            { "en": "Propose a small pilot to your supervisor", "ar": "اقتراح تجربة محدودة على مشرفك" }
+          ],
+          "distractors": [
+            { "en": "Announce it on social media", "ar": "الإعلان عنها على وسائل التواصل" }
+          ],
+          "ordered": true
+        },
+        {
+          "id": "L2S2-Q5",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “A vendor demos a scanner claiming 99% detection. What does a strategic thinker ask for before believing it?”",
+            "ar": "المرشد: «مورّد يعرض جهاز مسح يدّعي كشف ٩٩٪ من المخالفات. ماذا يطلب المفكر الاستراتيجي قبل أن يصدّق؟»"
+          },
+          "correct": [
+            { "en": "Independent trial data and a comparison against our current detection benchmarks", "ar": "بيانات تجربة مستقلة ومقارنة بمؤشرات الكشف الحالية لدينا" }
+          ],
+          "distractors": [
+            { "en": "A discount on the price", "ar": "خصماً على السعر" },
+            { "en": "Nothing — 99% sounds excellent", "ar": "لا شيء — ٩٩٪ رقم ممتاز" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S2-Q6",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the genuine LEADING practice — not the fad.”",
+            "ar": "«المس الممارسة الرائدة الحقيقية — وليست الموضة العابرة.»"
+          },
+          "correct": [
+            { "en": "Risk-based selectivity, proven across top customs authorities", "ar": "الانتقاء القائم على المخاطر، المثبت لدى كبرى الإدارات الجمركية" }
+          ],
+          "distractors": [
+            { "en": "Manually inspecting every single container", "ar": "تفتيش كل حاوية يدوياً دون استثناء" },
+            { "en": "Skipping inspections during rush hours", "ar": "إلغاء التفتيش في ساعات الذروة" }
+          ],
+          "ordered": false
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "questions": [
+        {
+          "id": "L2S3-Q1",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “You found three improvements: relabeling shelves saves 5 minutes a day, moving the printer saves 20, a new conveyor needs budget approval. Which do you act on first, and why?”",
+            "ar": "المرشد: «وجدت ثلاثة تحسينات: إعادة ترتيب الرفوف توفر ٥ دقائق يومياً، ونقل الطابعة يوفر ٢٠ دقيقة، والسير الناقل الجديد يحتاج موافقة ميزانية. بأيها تبدأ ولماذا؟»"
+          },
+          "correct": [
+            { "en": "Move the printer — the biggest saving that is within my own authority to do today", "ar": "نقل الطابعة — أكبر توفير يقع ضمن صلاحيتي وأستطيع تنفيذه اليوم" }
+          ],
+          "distractors": [
+            { "en": "Wait for the conveyor budget before doing anything", "ar": "انتظار ميزانية السير الناقل قبل فعل أي شيء" },
+            { "en": "The shelves — smallest change first, always", "ar": "الرفوف — الأصغر أولاً دائماً" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S3-Q2",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the improvement with the highest impact for the least effort.”",
+            "ar": "«المس التحسين ذا الأثر الأكبر مقابل الجهد الأقل.»"
+          },
+          "correct": [
+            { "en": "Pre-sort samples by risk category before scanning — no cost, large time saving", "ar": "فرز العينات مسبقاً حسب فئة المخاطر قبل المسح — بلا تكلفة وبتوفير كبير للوقت" }
+          ],
+          "distractors": [
+            { "en": "Purchase a second X-ray machine", "ar": "شراء جهاز أشعة ثانٍ" },
+            { "en": "Add another signature to every report", "ar": "إضافة توقيع آخر على كل تقرير" },
+            { "en": "Repaint the inspection bay", "ar": "إعادة طلاء منصة التفتيش" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S3-Q3",
+          "template": "T4",
+          "prompt": {
+            "en": "“The flow board shows the timing of each step. Touch the true bottleneck.”",
+            "ar": "«لوحة سير العمل تعرض زمن كل خطوة. المس عنق الزجاجة الحقيقي.»"
+          },
+          "correct": [
+            { "en": "Manual data re-entry — 14 minutes", "ar": "إعادة إدخال البيانات يدوياً — ١٤ دقيقة" }
+          ],
+          "distractors": [
+            { "en": "X-ray scan — 3 minutes", "ar": "المسح بالأشعة — ٣ دقائق" },
+            { "en": "Labeling — 2 minutes", "ar": "وضع الملصقات — دقيقتان" },
+            { "en": "Hand-over to release — 4 minutes", "ar": "التسليم للإفراج — ٤ دقائق" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S3-Q4",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “Your improvement idea would change another team's process too. What is the right move?”",
+            "ar": "المرشد: «فكرتك التحسينية ستغيّر إجراءات فريق آخر أيضاً. ما التصرف الصحيح؟»"
+          },
+          "correct": [
+            { "en": "Involve that team and my supervisor early — agree the change together before touching anything", "ar": "إشراك ذلك الفريق ومشرفي مبكراً — والاتفاق على التغيير معاً قبل تعديل أي شيء" }
+          ],
+          "distractors": [
+            { "en": "Change my side first and let them adapt", "ar": "أغيّر جانبي أولاً وليتكيفوا هم" },
+            { "en": "Drop the idea — other teams are not my business", "ar": "أتخلى عن الفكرة — الفرق الأخرى ليست شأني" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S3-Q5",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the TWO pieces of evidence that prove an opportunity is real.”",
+            "ar": "«المس الدليلين اللذين يثبتان أن فرصة التحسين حقيقية.»"
+          },
+          "correct": [
+            { "en": "Time measurements taken across a full week", "ar": "قياسات زمنية على مدى أسبوع كامل" },
+            { "en": "Error counts pulled from the system log", "ar": "أعداد الأخطاء المستخرجة من سجل النظام" }
+          ],
+          "distractors": [
+            { "en": "A feeling that the process is slow", "ar": "إحساس بأن العملية بطيئة" },
+            { "en": "One colleague's complaint from last year", "ar": "شكوى زميل واحدة من العام الماضي" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S3-Q6",
+          "template": "T1",
+          "prompt": {
+            "en": "“An idea saves time but weakens a control step. Touch the correct response.”",
+            "ar": "«فكرة توفر الوقت لكنها تُضعف خطوة رقابية. المس الرد الصحيح.»"
+          },
+          "correct": [
+            { "en": "Redesign or reject it — control is never traded for speed", "ar": "إعادة تصميمها أو رفضها — الرقابة لا تُقايَض بالسرعة أبداً" }
+          ],
+          "distractors": [
+            { "en": "Adopt it — speed is what management sees", "ar": "تبنّيها — فالسرعة هي ما تراه الإدارة" },
+            { "en": "Try it quietly without telling the supervisor", "ar": "تجربتها بهدوء دون إخبار المشرف" }
+          ],
+          "ordered": false
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "questions": [
+        {
+          "id": "L2S4-Q1",
+          "template": "T4",
+          "prompt": {
+            "en": "“A transshipment container is passing through. Touch its stations in the correct order.”",
+            "ar": "«حاوية مسافنة تمر عبر الميناء. المس محطاتها بالترتيب الصحيح.»"
+          },
+          "correct": [
+            { "en": "Pre-arrival manifest & risk screening", "ar": "فحص البيان وتقييم المخاطر قبل الوصول" },
+            { "en": "Vessel berthing & unloading", "ar": "رسو السفينة والتفريغ" },
+            { "en": "Inspection if flagged", "ar": "التفتيش عند الاشتباه" },
+            { "en": "Bonded transfer within the terminal", "ar": "النقل تحت الإشراف الجمركي داخل المحطة" },
+            { "en": "Loading onto the outbound vessel", "ar": "التحميل على سفينة المغادرة" }
+          ],
+          "distractors": [
+            { "en": "Delivery to a local shop", "ar": "التسليم إلى متجر محلي" }
+          ],
+          "ordered": true
+        },
+        {
+          "id": "L2S4-Q2",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “At 9am you hold a mis-declared container for four hours. Name two downstream effects of that delay.”",
+            "ar": "المرشد: «في التاسعة صباحاً حجزت حاوية مصرّحاً عنها بشكل خاطئ لأربع ساعات. اذكر أثرين لاحقين لهذا التأخير.»"
+          },
+          "correct": [
+            { "en": "Truck schedules slip and yard congestion builds, while the trader faces storage costs and the release queue grows", "ar": "تتأخر جداول الشاحنات ويزداد ازدحام الساحة، ويتحمّل التاجر رسوم تخزين ويطول طابور الإفراج" }
+          ],
+          "distractors": [
+            { "en": "Nothing — four hours disappear on their own", "ar": "لا شيء — الساعات الأربع تختفي من تلقاء نفسها" },
+            { "en": "Only the vessel captain is affected", "ar": "قبطان السفينة وحده يتأثر" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S4-Q3",
+          "template": "T1",
+          "prompt": {
+            "en": "“The scanner will be down for two hours. Touch everyone who must know immediately.”",
+            "ar": "«جهاز المسح سيتوقف ساعتين. المس كل من يجب إبلاغه فوراً.»"
+          },
+          "correct": [
+            { "en": "The shift supervisor", "ar": "مشرف الوردية" },
+            { "en": "The release-gate team", "ar": "فريق بوابة الإفراج" },
+            { "en": "The queue & booking controller", "ar": "منسّق الطابور والحجوزات" }
+          ],
+          "distractors": [
+            { "en": "Airport duty-free shops", "ar": "متاجر السوق الحرة في المطار" },
+            { "en": "The HR training unit", "ar": "وحدة التدريب في الموارد البشرية" },
+            { "en": "The staff cafeteria", "ar": "مقصف الموظفين" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S4-Q4",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “Why can one small data error at the declaration stage cost hours at the gate?”",
+            "ar": "المرشد: «لماذا قد يكلّف خطأ صغير واحد في مرحلة البيان ساعاتٍ عند البوابة؟»"
+          },
+          "correct": [
+            { "en": "Because it propagates — every downstream station re-checks the mismatch, triggering holds and re-work", "ar": "لأنه ينتقل عبر السلسلة — فكل محطة لاحقة تعيد التحقق من التعارض، فتتوالى عمليات الحجز وإعادة العمل" }
+          ],
+          "distractors": [
+            { "en": "It can't — small errors stay small", "ar": "لا يمكن — الأخطاء الصغيرة تبقى صغيرة" },
+            { "en": "Because the gate staff type slowly", "ar": "لأن موظفي البوابة يكتبون ببطء" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S4-Q5",
+          "template": "T1",
+          "prompt": {
+            "en": "“A station wants to speed up its own step by pushing extra work downstream. Touch the systems answer.”",
+            "ar": "«محطة تريد تسريع خطوتها بدفع عمل إضافي إلى المحطات التالية. المس جواب مَن يفكر بمنظور الأنظمة.»"
+          },
+          "correct": [
+            { "en": "Optimize the whole flow — a local gain that adds downstream cost is a net loss", "ar": "حسّن التدفق كاملاً — فالمكسب المحلي الذي يزيد كلفة المحطات التالية خسارة صافية" }
+          ],
+          "distractors": [
+            { "en": "Each station should look after itself", "ar": "كل محطة تهتم بنفسها" },
+            { "en": "Downstream teams should simply work faster", "ar": "على الفرق التالية أن تعمل أسرع فحسب" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S4-Q6",
+          "template": "T4",
+          "prompt": {
+            "en": "“The release gate reports duplicate holds all morning. Touch the TWO upstream causes on the board.”",
+            "ar": "«بوابة الإفراج تبلّغ عن حجوزات مكررة طوال الصباح. المس السببين الأساسيين في المراحل السابقة على اللوحة.»"
+          },
+          "correct": [
+            { "en": "Risk flags not cleared in the system after inspection", "ar": "إشارات المخاطر لم تُغلق في النظام بعد التفتيش" },
+            { "en": "Inspection results not synced to the gate", "ar": "نتائج التفتيش لم تُزامَن مع البوابة" }
+          ],
+          "distractors": [
+            { "en": "The gate printer's font", "ar": "نوع خط طابعة البوابة" },
+            { "en": "This morning's weather", "ar": "حالة الطقس هذا الصباح" }
+          ],
+          "ordered": false
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "questions": [
+        {
+          "id": "L2S5-Q1",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “'A world-class customs authority' — what does that actually mean, in numbers and in behavior?”",
+            "ar": "المرشد: «\"هيئة جمركية عالمية المستوى\" — ماذا تعني فعلياً، بالأرقام وبالسلوك؟»"
+          },
+          "correct": [
+            { "en": "Measurable benchmarks — clearance speed, compliance, customer satisfaction — delivered with consistent professional behavior every day", "ar": "مؤشرات قابلة للقياس — سرعة التخليص والامتثال ورضا المتعاملين — تتحقق بسلوك مهني ثابت كل يوم" }
+          ],
+          "distractors": [
+            { "en": "A nice slogan for the lobby wall", "ar": "شعار جميل لجدار الاستقبال" },
+            { "en": "Having the tallest headquarters building", "ar": "امتلاك أعلى مبنى رئيسي" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S5-Q2",
+          "template": "T1",
+          "prompt": {
+            "en": "“Speed and thoroughness collide this morning. Touch the decision that serves the vision.”",
+            "ar": "«السرعة والدقة تتعارضان هذا الصباح. المس القرار الذي يخدم الرؤية.»"
+          },
+          "correct": [
+            { "en": "Risk-based: fast-track the compliant, focus checks where the risk is", "ar": "قرار قائم على المخاطر: مسار سريع للملتزمين وتركيز الفحص حيث تكمن المخاطر" }
+          ],
+          "distractors": [
+            { "en": "Always choose the fastest option", "ar": "اختيار الأسرع دائماً" },
+            { "en": "Inspect absolutely everything, whatever the queues", "ar": "تفتيش كل شيء مهما طالت الطوابير" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S5-Q3",
+          "template": "T3",
+          "prompt": {
+            "en": "An investor tells you: “I worry customs will slow my new venture down.” Reassure him in one sentence rooted in ADC's vision.",
+            "ar": "مستثمر يقول لك: «أخشى أن تُبطئ الجمارك مشروعي الجديد.» طمئنه بجملة واحدة نابعة من رؤية جمارك أبوظبي."
+          },
+          "correct": [
+            { "en": "Our mission is to enable legitimate trade — smart services and risk-based clearance keep compliant business moving fast", "ar": "مهمتنا تمكين التجارة المشروعة — خدماتنا الذكية والتخليص القائم على المخاطر يُبقيان الأعمال الملتزمة تتحرك بسرعة" }
+          ],
+          "distractors": [
+            { "en": "Customs is slow everywhere; get used to it", "ar": "الجمارك بطيئة في كل مكان، اعتد على ذلك" },
+            { "en": "Pay extra and we will see what we can do", "ar": "ادفع مبلغاً إضافياً وسنرى ما يمكن فعله" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S5-Q4",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the behaviors that BUILD trust in the vision.”",
+            "ar": "«المس السلوكيات التي تبني الثقة بالرؤية.»"
+          },
+          "correct": [
+            { "en": "Consistent decisions for identical cases", "ar": "قرارات متسقة للحالات المتماثلة" },
+            { "en": "Explaining the rule transparently when refusing", "ar": "شرح القاعدة بشفافية عند الرفض" },
+            { "en": "Courteous service even under pressure", "ar": "خدمة مهذبة حتى تحت الضغط" }
+          ],
+          "distractors": [
+            { "en": "Bending rules for acquaintances", "ar": "تليين القواعد للمعارف" },
+            { "en": "Guessing when unsure instead of checking", "ar": "التخمين عند الشك بدل التحقق" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S5-Q5",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “Your team hit every target this quarter, but complaints doubled. Is the vision achieved?”",
+            "ar": "المرشد: «فريقك حقق كل المستهدفات هذا الربع، لكن الشكاوى تضاعفت. هل تحققت الرؤية؟»"
+          },
+          "correct": [
+            { "en": "No — world-class includes the customer's experience; numbers without service quality miss the vision", "ar": "لا — فالمستوى العالمي يشمل تجربة المتعامل؛ الأرقام دون جودة الخدمة لا تحقق الرؤية" }
+          ],
+          "distractors": [
+            { "en": "Yes — targets are all that count", "ar": "نعم — المستهدفات هي كل ما يُحتسب" },
+            { "en": "Complaints are the call centre's problem", "ar": "الشكاوى مشكلة مركز الاتصال" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S5-Q6",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the statement that truly links today's routine task to the vision.”",
+            "ar": "«المس العبارة التي تربط فعلاً مهمة اليوم الروتينية بالرؤية.»"
+          },
+          "correct": [
+            { "en": "Accurate data entry today becomes tomorrow's trusted trade statistics", "ar": "إدخال البيانات بدقة اليوم يصبح غداً إحصاءات تجارية موثوقة" }
+          ],
+          "distractors": [
+            { "en": "Routine tasks have nothing to do with vision", "ar": "المهام الروتينية لا علاقة لها بالرؤية" },
+            { "en": "Visions are for managers, tasks are for staff", "ar": "الرؤى للمديرين والمهام للموظفين" }
+          ],
+          "ordered": false
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "questions": [
+        {
+          "id": "L2S6-Q1",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “A new strategic pillar arrives: trade facilitation. Your current objective is 'zero data errors'. How do you evolve it to serve the new pillar too?”",
+            "ar": "المرشد: «وصلت ركيزة استراتيجية جديدة: تيسير التجارة. هدفك الحالي \"صفر أخطاء بيانات\". كيف تطوّره ليخدم الركيزة الجديدة أيضاً؟»"
+          },
+          "correct": [
+            { "en": "Keep the accuracy but add speed — first-time-right entries so compliant cargo is never delayed by rework", "ar": "أحافظ على الدقة وأضيف السرعة — إدخال صحيح من المرة الأولى حتى لا تتأخر الشحنات الملتزمة بسبب إعادة العمل" }
+          ],
+          "distractors": [
+            { "en": "Drop accuracy — speed is the new pillar", "ar": "أتخلى عن الدقة — فالسرعة هي الركيزة الجديدة" },
+            { "en": "Ignore the pillar until next year's review", "ar": "أتجاهل الركيزة حتى مراجعة العام المقبل" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S6-Q2",
+          "template": "T1",
+          "prompt": {
+            "en": "“Two objectives collide this week: clearing the audit backlog vs. the clearance-speed target. Touch the strategic move.”",
+            "ar": "«هدفان يتعارضان هذا الأسبوع: إنهاء المتأخرات الرقابية مقابل مستهدف سرعة التخليص. المس التصرف الاستراتيجي.»"
+          },
+          "correct": [
+            { "en": "Raise it to the supervisor with data and agree the priority together", "ar": "رفع الأمر للمشرف مدعوماً بالبيانات والاتفاق على الأولوية معاً" }
+          ],
+          "distractors": [
+            { "en": "Quietly drop one of them", "ar": "إسقاط أحدهما بصمت" },
+            { "en": "Split effort and do both badly", "ar": "توزيع الجهد وإنجاز الاثنين بشكل سيئ" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S6-Q3",
+          "template": "T4",
+          "prompt": {
+            "en": "“Order the strategy cascade from top to bottom.”",
+            "ar": "«رتّب تسلسل الاستراتيجية من الأعلى إلى الأسفل.»"
+          },
+          "correct": [
+            { "en": "Emirate priorities", "ar": "أولويات الإمارة" },
+            { "en": "ADC strategy & pillars", "ar": "استراتيجية الجمارك وركائزها" },
+            { "en": "Department objectives", "ar": "أهداف الإدارة" },
+            { "en": "Your personal objectives", "ar": "أهدافك الشخصية" }
+          ],
+          "distractors": [
+            { "en": "Personal preferences", "ar": "التفضيلات الشخصية" }
+          ],
+          "ordered": true
+        },
+        {
+          "id": "L2S6-Q4",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the TWO signs of a well-written objective.”",
+            "ar": "«المس علامتي الهدف المكتوب جيداً.»"
+          },
+          "correct": [
+            { "en": "A measurable target with a date", "ar": "مستهدف قابل للقياس وبتاريخ محدد" },
+            { "en": "A clear link to a strategic pillar", "ar": "ارتباط واضح بركيزة استراتيجية" }
+          ],
+          "distractors": [
+            { "en": "It sounds impressive in meetings", "ar": "يبدو مبهراً في الاجتماعات" },
+            { "en": "It is impossible to verify", "ar": "يستحيل التحقق منه" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S6-Q5",
+          "template": "T3",
+          "prompt": {
+            "en": "Mentor: “Mid-year, a strategic pillar changes. What happens to your personal objectives?”",
+            "ar": "المرشد: «في منتصف العام تتغيّر إحدى الركائز الاستراتيجية. ماذا يحدث لأهدافك الشخصية؟»"
+          },
+          "correct": [
+            { "en": "They are reviewed and realigned with the supervisor — objectives follow strategy, not the calendar", "ar": "تُراجَع ويُعاد ضبطها مع المشرف — فالأهداف تتبع الاستراتيجية لا التقويم" }
+          ],
+          "distractors": [
+            { "en": "Nothing until the annual appraisal", "ar": "لا شيء حتى التقييم السنوي" },
+            { "en": "They are deleted and I work without objectives", "ar": "تُلغى وأعمل بلا أهداف" }
+          ],
+          "ordered": false
+        },
+        {
+          "id": "L2S6-Q6",
+          "template": "T1",
+          "prompt": {
+            "en": "“Touch the objective that drives strategy — not just activity.”",
+            "ar": "«المس الهدف الذي يقود الاستراتيجية — لا مجرد النشاط.»"
+          },
+          "correct": [
+            { "en": "Cut the re-inspection rate 15% by Q4 — protecting the community while speeding trade", "ar": "خفض معدل إعادة التفتيش ١٥٪ بحلول الربع الرابع — حمايةً للمجتمع وتسريعاً للتجارة" }
+          ],
+          "distractors": [
+            { "en": "Attend more meetings each month", "ar": "حضور مزيد من الاجتماعات شهرياً" },
+            { "en": "Look busier every day", "ar": "الظهور بمظهر الانشغال كل يوم" }
+          ],
+          "ordered": false
+        }
+      ]
+    }
+  ]
+}
