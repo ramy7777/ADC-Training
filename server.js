@@ -63,7 +63,6 @@ if (process.env.DATABASE_URL) {
       `);
       // migrate a pre-level progress table (single slot per player) in place
       await pool.query(`
-        ALTER TABLE players ADD COLUMN IF NOT EXISTS bonus JSONB DEFAULT '{}';
         ALTER TABLE progress ADD COLUMN IF NOT EXISTS level INT NOT NULL DEFAULT 1;
         DO $$ BEGIN
           IF (SELECT count(*) FROM information_schema.key_column_usage
@@ -131,7 +130,7 @@ app.post("/api/login", wrap(async (req, res) => {
   if (!name) return res.status(400).json({ error: "name required" });
   const p = await db().query(
     `INSERT INTO players (name, lang) VALUES ($1,$2)
-     ON CONFLICT (name) DO UPDATE SET last_seen=now(), lang=$2 RETURNING id, name, bonus`,
+     ON CONFLICT (name) DO UPDATE SET last_seen=now(), lang=$2 RETURNING id, name`,
     [name, lang]);
   const id = p.rows[0].id;
   const [results, prog, bypass] = await Promise.all([
@@ -143,7 +142,6 @@ app.post("/api/login", wrap(async (req, res) => {
     playerId: id, name: p.rows[0].name,
     results: results.rows,
     progress: prog.rows, // one in-flight checkpoint per level
-    bonus: p.rows[0].bonus || {}, // admin-granted extra tries per level
     bypass,
   });
 }));
@@ -171,7 +169,8 @@ app.post("/api/result", wrap(async (req, res) => {
   if (!playerId || !level) return res.status(400).json({ error: "playerId and level required" });
   await db().query(
     `INSERT INTO results (player_id, level, attempt, score, pass, lang, answers) VALUES ($1,$2,$3,$4,$5,$6,$7)
-     ${resultDedupe ? "ON CONFLICT (player_id, level, attempt) DO NOTHING" : ""}`,
+     ${resultDedupe ? `ON CONFLICT (player_id, level, attempt) DO UPDATE
+       SET score = GREATEST(results.score, EXCLUDED.score), pass = results.pass OR EXCLUDED.pass` : ""}`,
     [playerId, level | 0, attempt | 0, score | 0, !!pass, lang === "ar" ? "ar" : "en", JSON.stringify(answers || [])]);
   await db().query("DELETE FROM progress WHERE player_id=$1 AND level=$2", [playerId, level | 0]);
   await db().query("UPDATE players SET last_seen=now() WHERE id=$1", [playerId]);
@@ -187,7 +186,7 @@ const adminOnly = (req, res, next) => {
 // Everything the admin panel shows, in one call.
 app.get("/api/admin/overview", adminOnly, wrap(async (req, res) => {
   const [players, results, progress, bypass] = await Promise.all([
-    db().query("SELECT id, name, lang, bonus, created_at, last_seen FROM players ORDER BY last_seen DESC"),
+    db().query("SELECT id, name, lang, created_at, last_seen FROM players ORDER BY last_seen DESC"),
     db().query("SELECT player_id, level, attempt, score, pass, lang, ts FROM results ORDER BY ts DESC"),
     db().query("SELECT player_id, level, state, updated_at FROM progress ORDER BY updated_at DESC"),
     getBypass(),
@@ -207,18 +206,6 @@ app.post("/api/admin/bypass", adminOnly, wrap(async (req, res) => {
     await db().query("DELETE FROM settings WHERE key='bypass'");
   }
   console.log(`[admin] bypass ${on ? "ON by " + by : "OFF"}`);
-  res.json({ ok: 1 });
-}));
-
-// Grant a player 5 extra tries on a level (the 5-try rule stays enforced;
-// history is preserved — this beats deleting their failed results).
-app.post("/api/admin/grant-tries", adminOnly, wrap(async (req, res) => {
-  const id = req.body.playerId | 0, lv = String(req.body.level | 0 || 1);
-  await db().query(
-    `UPDATE players SET bonus = jsonb_set(coalesce(bonus,'{}'::jsonb), ARRAY[$2],
-       to_jsonb(coalesce((bonus->>$2)::int, 0) + 5)) WHERE id=$1`,
-    [id, lv]);
-  console.log(`[admin] +5 tries for player ${id} on level ${lv}`);
   res.json({ ok: 1 });
 }));
 

@@ -235,7 +235,7 @@ const hasAI=()=>AI_ON||!!getKey();
 
 /* ---------- server persistence (progress survives logout; admin panel supervises) ---------- */
 let DB_ON=!!CFG.dbAvailable;
-const SRV={playerId:null,results:[],progress:[],bypass:null,bonus:{}};
+const SRV={playerId:null,results:[],progress:[],bypass:null};
 async function srvLogin(name){
  if(!DB_ON)return null;
  try{
@@ -243,29 +243,19 @@ async function srvLogin(name){
    body:JSON.stringify({name,lang:LANG})});
   if(!r.ok)throw new Error("login "+r.status);
   const d=await r.json();
-  SRV.playerId=d.playerId;SRV.results=d.results||[];SRV.progress=d.progress||[];SRV.bypass=d.bypass;SRV.bonus=d.bonus||{};
+  SRV.playerId=d.playerId;SRV.results=d.results||[];SRV.progress=d.progress||[];SRV.bypass=d.bypass;
   return d;
  }catch(e){
   // a failed login must never leave the PREVIOUS player's identity behind —
   // on a shared kiosk that silently wrote player B's run into player A's rows
-  SRV.playerId=null;SRV.results=[];SRV.progress=[];SRV.bypass=null;SRV.bonus={};
+  SRV.playerId=null;SRV.results=[];SRV.progress=[];SRV.bypass=null;
   log("srv login failed: "+e.message);return null} // offline: localStorage still works
 }
 const progFor=lv=>{const row=(SRV.progress||[]).find(p=>p.level===lv);
  const st=row&&row.state;return st&&st.done>0&&st.done<24?st:null};
-/* ---- the 5-tries rule (Modules2.xlsx: maxTries 5/level; admin can grant +5) ---- */
-function attemptsUsed(name,lv){
- return DB_ON&&SRV.playerId
-  ?SRV.results.filter(r=>r.level===lv).length
-  :DB.results.filter(r=>r.trainee===name&&r.level===lv).length;
-}
-const passedLv=(name,lv)=>DB_ON&&SRV.playerId
- ?SRV.results.some(r=>r.level===lv&&r.pass)
- :DB.results.some(r=>r.trainee===name&&r.level===lv&&r.pass);
-const triesAllowed=lv=>5+((DB_ON&&SRV.bonus&&+SRV.bonus[lv])||0);
-// a level is exhausted when every allowed try is spent without a pass —
-// resuming an in-flight try is always allowed (it IS one of the counted tries)
-const triesExhausted=(name,lv)=>!passedLv(name,lv)&&attemptsUsed(name,lv)>=triesAllowed(lv);
+// NOTE (ADC rule): tries are NOT capped. Tries 1–5 each get a different draw
+// from the pool; from try 6 the same five draws repeat with a new sequence
+// every time (see draw()). The trainee keeps trying until they pass.
 function srvSaveProgress(){ // checkpoint after every answered beat — fire and forget
  if(!DB_ON||!SRV.playerId||!S)return;
  const state=S.active?{level:S.level,attempt:S.attempt,score:S.score,done:S.done,answers:S.answers,lang:LANG}:null;
@@ -325,8 +315,6 @@ const UI={
   welcomeBack:"Welcome back, {name}! Your morning is exactly where you left it — let us continue.",
   resumeToast:"Continuing Level {lv} — attempt {a}, score {s}/120",
   level:"Level",
-  noTries:"All {n} attempts for Level {lv} are used. An administrator can grant more tries from the admin panel.",
-  noTriesShort:"No attempts left — ask your administrator",
   lvlNames:["Foundations","Advanced","Project scope","Project scope","Project scope"],
   l2Intro:"This is Level 2 — the advanced round. The situations are trickier: you will weigh priorities and judge trade-offs, not just recognize the right answer.",
   adminPanel:"Open admin panel ↗"},
@@ -373,8 +361,6 @@ const UI={
   welcomeBack:"أهلاً بعودتك يا {name}! صباحك ما زال كما تركته — لنكمل.",
   resumeToast:"استكمال المستوى {lv} — المحاولة {a}، النتيجة {s}/120",
   level:"المستوى",
-  noTries:"استُخدمت المحاولات الـ{n} كلها للمستوى {lv}. يمكن للمشرف منح محاولات إضافية من لوحة المشرف.",
-  noTriesShort:"لا محاولات متبقية — راجع المشرف",
   lvlNames:["الأساسيات","متقدم","نطاق المشروع","نطاق المشروع","نطاق المشروع"],
   l2Intro:"هذا هو المستوى الثاني — الجولة المتقدمة. المواقف هنا أدق: ستوازن بين الأولويات وتحكم على الخيارات، لا أن تتعرف على الإجابة فقط.",
   adminPanel:"فتح لوحة المشرف ↗"}
@@ -417,13 +403,19 @@ function qbank(sk){
  }
  return sk.questions;
 }
+// ADC rule: the pool changes the questions for each of the 5 tries; a trainee
+// who fails all 5 starts over on the SAME five draws, reshuffled each try.
+// Implementation: 5 deterministic 4-of-6 combos per skill (distinct by
+// construction), cycled by attempt; the within-try sequence reshuffles on
+// every attempt (rq depends on the attempt number).
 function draw(attempt){
  const per=[];
  for(const sk of CONTENT.skills){
    const qs=qbank(sk);
    const r=rng(S.seed+sk.id*7919);
-   const combo=shuffled(COMBOS,r)[(attempt-1)%COMBOS.length];
-   const rq=rng(S.seed+sk.id*104729+attempt*31);
+   const pool5=shuffled(COMBOS,r).slice(0,5);      // this trainee's five draws for this skill
+   const combo=pool5[(attempt-1)%5];               // try 6 replays try 1's questions…
+   const rq=rng(S.seed+sk.id*104729+attempt*31);   // …but never in the same order
    per.push(shuffled(combo.map(i=>qs[i]),rq).map(q=>({q,sk})));
  }
  return per; // 6 stations × 4 beats
@@ -1536,8 +1528,10 @@ function hud(){
  document.getElementById("hl").textContent=`${T("level")} ${S.level||1} · ${T("lvlNames")[(S.level||1)-1]||""}`;
  document.getElementById("hq").innerHTML=`${T("q")} <b>${Math.min(S.done+1,24)}</b>/24`;
  document.getElementById("hs").innerHTML=`${T("score")} <b>${S.score}</b>/120`;
- const ta=S.triesAllowed||5;
- document.getElementById("ha").innerHTML=`${T("attempt")} <b>${Math.min(S.attempt,ta)}</b>/${ta}`;
+ // 1-5 show the pool cycle; from 6 the counter keeps counting (pool replays, reshuffled)
+ document.getElementById("ha").innerHTML=S.attempt<=5
+  ?`${T("attempt")} <b>${S.attempt}</b>/5`
+  :`${T("attempt")} <b>${S.attempt}</b>`;
  document.getElementById("progfill").style.width=(S.done/24*100)+"%";
 }
 function flash(ok){const f=document.getElementById("flash");
@@ -2045,19 +2039,12 @@ async function startSession(name,level=1,resume=null){
    :DB.results.filter(r=>r.trainee===name&&r.level===level).length;
  // any half-finished run of this level resumes automatically (autostart included)
  if(!resume&&DB_ON)resume=progFor(level);
- if(!resume&&triesExhausted(name,level)){ // safety net for autostart/retry paths
-  document.getElementById("startOv").style.display="flex";
-  showStart();
-  document.getElementById("soHint").textContent=T("noTries").replace("{n}",triesAllowed(level)).replace("{lv}",level);
-  return;
- }
  if(resume){
   S={trainee:name,level,seed,attempt:resume.attempt||1,score:resume.score||0,done:resume.done||0,
      answers:(resume.answers||[]).slice(),active:true,st:0};
  }else{
   S={trainee:name,level,seed,attempt:prevAttempts+1,score:0,done:0,answers:[],active:true,st:0};
  }
- S.triesAllowed=triesAllowed(level);
  S.plan=draw(S.attempt);
  log(`session.${resume?"resume":"start"} · ${name} · L${level} · ${LANG} · attempt ${S.attempt}${resume?` · ${S.done}/24 · ${S.score}/120`:""}`);
  document.getElementById("startOv").style.display="none";
@@ -2144,10 +2131,7 @@ function endLevel(){
  document.getElementById("roVerdict").textContent=pass?T("passed"):T("failed");
  document.getElementById("roVerdict").className=pass?"pass":"fail";
  const rr=document.getElementById("roRetry");
- // retry only while tries remain (this attempt is already recorded above)
- const canRetry=!pass&&!triesExhausted(S.trainee,rec.level);
- rr.style.display=canRetry?"":"none";rr.textContent=T("retry");
- if(!pass&&!canRetry)document.getElementById("roVerdict").textContent=T("failed")+" · "+T("noTriesShort");
+ rr.style.display=pass?"none":"";rr.textContent=T("retry"); // unlimited retries: past try 5 the pool replays with fresh sequences
  rr.onclick=()=>{document.getElementById("resultOv").style.display="none";startSession(S.trainee,S.level||1)};
  document.getElementById("roHome").textContent=T("home");
  document.getElementById("roHome").onclick=()=>{document.getElementById("resultOv").style.display="none";hostReset();showStart()};
@@ -2206,13 +2190,8 @@ function showStart(){
       showStart(); // re-render with fresh state, then explain inside the overlay
       document.getElementById("soHint").textContent=T("l2locked");
       return}
-    const prog=DB_ON?progFor(lv):null;
-    if(!prog&&triesExhausted(nm,lv)){ // 5-tries rule: no fresh attempt without a pass or an admin grant
-      showStart();
-      document.getElementById("soHint").textContent=T("noTries").replace("{n}",triesAllowed(lv)).replace("{lv}",lv);
-      return}
     so.style.display="none";
-    startSession(nm,lv,prog); // half-finished level resumes exactly where it stopped
+    startSession(nm,lv,DB_ON?progFor(lv):null); // half-finished level resumes exactly where it stopped
    }finally{starting=false}
  });
 }
