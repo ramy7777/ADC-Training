@@ -67,7 +67,15 @@ button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;font-siz
 #sub{position:fixed;bottom:112px;left:50%;transform:translateX(-50%);max-width:780px;width:94vw;z-index:20;display:none;transition:bottom .2s}
 #sub.lift{bottom:150px} /* clears the "Show choices" pill during verbal moments */
 #sub .card{display:flex;gap:14px;align-items:flex-start;background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:14px;padding:12px 18px;box-shadow:0 14px 40px rgba(0,25,30,.25)}
-#sub img{width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:top;border:2px solid var(--teal);flex:none}
+/* Saif's abstract orb avatar — pulses while he speaks */
+.orbav{width:52px;height:52px;border-radius:50%;flex:none;position:relative;
+ background:radial-gradient(circle at 35% 30%,#c8fff4,#35c4b0 45%,#0d3a40 90%);
+ box-shadow:0 0 16px rgba(53,224,207,.55),inset 0 0 10px rgba(255,255,255,.35);border:2px solid rgba(53,167,154,.6)}
+.orbav.talk::after{content:"";position:absolute;inset:-5px;border-radius:50%;
+ border:2px solid rgba(53,224,207,.55);animation:orbtalk 1s ease-out infinite}
+.orbav.talk{animation:orbglow .8s ease-in-out infinite alternate}
+@keyframes orbtalk{0%{transform:scale(.85);opacity:.9}100%{transform:scale(1.3);opacity:0}}
+@keyframes orbglow{from{box-shadow:0 0 14px rgba(53,224,207,.5),inset 0 0 10px rgba(255,255,255,.35)}to{box-shadow:0 0 26px rgba(53,224,207,.95),inset 0 0 14px rgba(255,255,255,.6)}}
 #sub .fallbackav{width:52px;height:52px;border-radius:50%;background:var(--sand);color:#fff;display:none;align-items:center;justify-content:center;font-weight:800;font-size:20px;flex:none}
 #sub .who{color:var(--teal);font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 #sub .txt{font-size:16px;line-height:1.5;color:var(--ink);margin-top:2px}
@@ -130,7 +138,7 @@ td{border:1px solid var(--line);padding:5px 8px}
 </button>
 
 <div id="sub"><div class="card">
-  <img id="subav" src="img/saif-portrait.jpg" alt="" onerror="this.style.display='none';document.getElementById('subav2').style.display='flex'">
+  <div class="orbav" id="subav"></div>
   <div class="fallbackav" id="subav2">S</div>
   <div><div class="who" id="subwho"></div><div class="txt" id="subtxt"></div></div>
 </div></div>
@@ -222,6 +230,41 @@ let AI_ON=false,CFG={};
 try{CFG=await (await fetch("/api/config")).json();AI_ON=!!CFG.aiAvailable}catch(e){}
 const hasAI=()=>AI_ON||!!getKey();
 
+/* ---------- server persistence (progress survives logout; admin panel supervises) ---------- */
+let DB_ON=!!CFG.dbAvailable;
+const SRV={playerId:null,results:[],progress:[],bypass:null};
+async function srvLogin(name){
+ if(!DB_ON)return null;
+ try{
+  const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({name,lang:LANG})});
+  if(!r.ok)throw new Error("login "+r.status);
+  const d=await r.json();
+  SRV.playerId=d.playerId;SRV.results=d.results||[];SRV.progress=d.progress||[];SRV.bypass=d.bypass;
+  return d;
+ }catch(e){
+  // a failed login must never leave the PREVIOUS player's identity behind —
+  // on a shared kiosk that silently wrote player B's run into player A's rows
+  SRV.playerId=null;SRV.results=[];SRV.progress=[];SRV.bypass=null;
+  log("srv login failed: "+e.message);return null} // offline: localStorage still works
+}
+const progFor=lv=>{const row=(SRV.progress||[]).find(p=>p.level===lv);
+ const st=row&&row.state;return st&&st.done>0&&st.done<24?st:null};
+function srvSaveProgress(){ // checkpoint after every answered beat — fire and forget
+ if(!DB_ON||!SRV.playerId||!S)return;
+ const state=S.active?{level:S.level,attempt:S.attempt,score:S.score,done:S.done,answers:S.answers,lang:LANG}:null;
+ fetch("/api/progress",{method:"POST",headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({playerId:SRV.playerId,level:S.level||1,state}),keepalive:true}).catch(()=>{});
+}
+function srvSaveResult(rec,retried){
+ if(!DB_ON||!SRV.playerId)return;
+ const pid=SRV.playerId; // captured: the retry must never attribute to whoever logs in next
+ fetch("/api/result",{method:"POST",headers:{"Content-Type":"application/json"},
+  body:JSON.stringify(Object.assign({playerId:pid},rec)),keepalive:true})
+  .then(r=>{if(!r.ok)throw 0})
+  .catch(()=>{if(!retried)setTimeout(()=>{if(SRV.playerId===pid)srvSaveResult(rec,true)},2500)}); // one retry: a lost result re-locks Level 2 on the next login
+}
+
 const UI={
  en:{eyebrow:"VR TRAINING — 3D SCENARIO PROTOTYPE",title:"A Morning at Abu Dhabi Customs",
   desc:"You are a new ADC employee on your orientation morning. Saif, a senior officer, will walk you through six stations of the customs house. What you touch, move and say is your assessment — there is no quiz screen.",
@@ -261,7 +304,11 @@ const UI={
    "Our vision wall. Every tile up there is a promise to this city.",
    "Last station — where your goals meet the organisation's goals."],
   csv:"Export CSV",unlock:"Bypass: unlock Level 2",unlocked:"Level 2 unlocked",results:"Results",live:"Live",log:"Log",
-  pin:"Admin PIN",aname:"Admin name",wrongPin:"Wrong PIN",noresults:"No attempts yet",aikey:"AI key (Gemini)",keySaved:"Key saved"},
+  pin:"Admin PIN",aname:"Admin name",wrongPin:"Wrong PIN",noresults:"No attempts yet",aikey:"AI key (Gemini)",keySaved:"Key saved",
+  l2locked:"Level 2 unlocks after passing Level 1 — or with an admin bypass.",
+  welcomeBack:"Welcome back, {name}! Your morning is exactly where you left it — let us continue.",
+  resumeToast:"Continuing Level {lv} — attempt {a}, score {s}/120",
+  lvl2Badge:"L2",adminPanel:"Open admin panel ↗"},
  ar:{eyebrow:"تدريب الواقع الافتراضي — نموذج ثلاثي الأبعاد",title:"صباح في جمارك أبوظبي",
   desc:"أنت موظف جديد في يوم تعريفي. سيف، ضابط أول، سيرافقك عبر ست محطات في دار الجمارك. ما تلمسه وتحرّكه وتقوله هو تقييمك — لا توجد شاشة اختبار.",
   name:"اسمك",lang:"اللغة",lvl:"المستويات",open:"ادخل",locked:"مقفل",
@@ -300,7 +347,11 @@ const UI={
    "جدارية رؤيتنا. كل قطعة فوق وعدٌ لهذه المدينة.",
    "المحطة الأخيرة — حيث تلتقي أهدافك بأهداف المؤسسة."],
   csv:"تصدير CSV",unlock:"فتح استثنائي: المستوى ٢",unlocked:"المستوى ٢ مفتوح",results:"النتائج",live:"مباشر",log:"السجل",
-  pin:"رمز المشرف",aname:"اسم المشرف",wrongPin:"رمز خاطئ",noresults:"لا محاولات بعد",aikey:"مفتاح الذكاء الاصطناعي",keySaved:"تم الحفظ"}
+  pin:"رمز المشرف",aname:"اسم المشرف",wrongPin:"رمز خاطئ",noresults:"لا محاولات بعد",aikey:"مفتاح الذكاء الاصطناعي",keySaved:"تم الحفظ",
+  l2locked:"يُفتح المستوى 2 بعد اجتياز المستوى 1 — أو بصلاحية المشرف.",
+  welcomeBack:"أهلاً بعودتك يا {name}! صباحك ما زال كما تركته — لنكمل.",
+  resumeToast:"استكمال المستوى {lv} — المحاولة {a}، النتيجة {s}/120",
+  lvl2Badge:"م2",adminPanel:"فتح لوحة المشرف ↗"}
 };
 const T=k=>UI[LANG][k];
 const L=o=>(LANG==="ar"&&o.ar)?o.ar:o.en;
@@ -588,13 +639,45 @@ function buildStation(i,sk){
  scene.add(g);
  return {group:g,pos,sk};
 }
-// Saif — white kandura, black agal
+// Saif — an abstract presence: a glowing teal orb with gold orbit rings.
+// It breathes when idle and ripples/pulses while speaking (no humanoid mesh).
 const saif=new THREE.Group();
-{const body=new THREE.Mesh(new THREE.CapsuleGeometry(.36,.95,6,16),mat(0xf7f4ec));body.position.y=1.12;saif.add(body);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.27,20,16),mat(0xd9b58a));head.position.y=2.08;saif.add(head);
- const ghutra=new THREE.Mesh(new THREE.SphereGeometry(.29,20,16,0,Math.PI*2,0,Math.PI/2.1),mat(0xffffff));ghutra.position.y=2.12;saif.add(ghutra);
- const agal=new THREE.Mesh(new THREE.TorusGeometry(.26,.035,8,28),mat(0x1c1c1c));agal.position.y=2.3;agal.rotation.x=Math.PI/2;saif.add(agal);
- const glow=new THREE.PointLight(0x35a79a,1.6,5);glow.position.y=1.6;saif.add(glow);
+{const orbG=new THREE.Group();orbG.position.y=1.55;saif.add(orbG);saif.userData.orb=orbG;
+ const core=new THREE.Mesh(new THREE.SphereGeometry(.30,32,24),
+  new THREE.MeshStandardMaterial({color:0x0e3f44,emissive:0x35e0cf,emissiveIntensity:1.5,roughness:.2,metalness:.3}));
+ orbG.add(core);saif.userData.core=core;
+ // soft halo (canvas radial gradient sprite)
+ {const cv=document.createElement("canvas");cv.width=cv.height=128;const x=cv.getContext("2d");
+  const g=x.createRadialGradient(64,64,4,64,64,64);
+  g.addColorStop(0,"rgba(190,255,244,.95)");g.addColorStop(.35,"rgba(80,225,205,.38)");g.addColorStop(1,"rgba(80,225,205,0)");
+  x.fillStyle=g;x.fillRect(0,0,128,128);
+  const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthWrite:false,opacity:.85}));
+  halo.scale.set(1.7,1.7,1);orbG.add(halo);saif.userData.halo=halo}
+ // orbit rings: brand teal + gold
+ const ring1=new THREE.Mesh(new THREE.TorusGeometry(.50,.013,8,64),
+  new THREE.MeshBasicMaterial({color:0x8fe0d6,transparent:true,opacity:.8,depthWrite:false}));
+ ring1.rotation.x=1.15;orbG.add(ring1);
+ const ring2=new THREE.Mesh(new THREE.TorusGeometry(.63,.009,8,64),
+  new THREE.MeshBasicMaterial({color:0xd7b56d,transparent:true,opacity:.55,depthWrite:false}));
+ ring2.rotation.x=-.85;ring2.rotation.y=.6;orbG.add(ring2);
+ saif.userData.rings=[ring1,ring2];
+ // speech ripples: three re-used expanding rings, visible only while talking
+ saif.userData.ripples=[0,1,2].map(k=>{
+  const rp=new THREE.Mesh(new THREE.TorusGeometry(1,.014,6,48),
+   new THREE.MeshBasicMaterial({color:0xbdfff5,transparent:true,opacity:0,depthWrite:false}));
+  rp.rotation.x=Math.PI/2;rp.userData.ph=k/3;orbG.add(rp);return rp});
+ // slow particle swirl around the core
+ {const N=42,pos=new Float32Array(N*3);
+  for(let i=0;i<N;i++){const a=Math.random()*7,r=.55+Math.random()*.45,y=(Math.random()-.5)*.9;
+   pos[i*3]=Math.cos(a)*r;pos[i*3+1]=y;pos[i*3+2]=Math.sin(a)*r}
+  const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.BufferAttribute(pos,3));
+  const pts=new THREE.Points(g,new THREE.PointsMaterial({color:0x9ff0e2,size:.035,transparent:true,opacity:.8,depthWrite:false}));
+  orbG.add(pts);saif.userData.sparks=pts}
+ // grounding glow so the orb doesn't look like it floats detached
+ const base=new THREE.Mesh(new THREE.CircleGeometry(.55,32),
+  new THREE.MeshBasicMaterial({color:0x35e0cf,transparent:true,opacity:.16,depthWrite:false}));
+ base.rotation.x=-Math.PI/2;base.position.y=.02;saif.add(base);
+ const glow=new THREE.PointLight(0x35e0cf,2.0,6);orbG.add(glow);saif.userData.glow=glow;
  saif.position.set(1.6,0,10);scene.add(saif)}
 let saifTarget=saif.position.clone(),saifSpeaking=0;
 
@@ -1493,6 +1576,9 @@ function score(q,ok,fxAt,quiet){
  if(ok)S.score+=5;
  S.answers.push({id:q.id,ok});
  S.done++;
+ // no checkpoint for the final beat: it raced the result POST (both fire-and-
+ // forget) and could resurrect a phantom "in progress" row after the DELETE
+ if(S.done<24)srvSaveProgress();
  beep(ok);flash(ok);hud();
  if(fxAt){const wp=fxAt.clone();qGroup&&qGroup.localToWorld(wp);burst(wp,ok)}
  subtitle(T("saif"),ok?T("correct"):T("wrong"));
@@ -1886,11 +1972,28 @@ async function stageConv(stIdx,q,onDone){
 }
 
 /* ================= session flow ================= */
-function startSession(name){
- const prev=DB.results.filter(r=>r.trainee===name&&r.level===1).length;
- S={trainee:name,seed:hash(name+"|adc-poc"),attempt:prev+1,score:0,done:0,answers:[],active:true,st:0};
+// small status toast reusing the mic pill (the app has no separate toast element)
+function noteToast(t,ms=4000){const el=document.getElementById("convstat");
+ el.style.display="block";el.textContent=t;clearTimeout(el._nt);
+ el._nt=setTimeout(()=>{if(!convOpen&&!pttOpen)el.style.display="none"},ms)}
+async function startSession(name,level=1,resume=null){
+ if(DB_ON&&!SRV.playerId)await srvLogin(name); // autostart path — clicks log in beforehand
+ // Level 1 keeps its historic seed (existing drafts stay reproducible); higher
+ // levels get their own question draws from the same authored bank
+ const seed=hash(name+"|adc-poc"+(level>1?"-L"+level:""));
+ const prevAttempts=DB_ON&&SRV.playerId
+   ?SRV.results.filter(r=>r.level===level).length
+   :DB.results.filter(r=>r.trainee===name&&r.level===level).length;
+ // any half-finished run of this level resumes automatically (autostart included)
+ if(!resume&&DB_ON)resume=progFor(level);
+ if(resume){
+  S={trainee:name,level,seed,attempt:resume.attempt||1,score:resume.score||0,done:resume.done||0,
+     answers:(resume.answers||[]).slice(),active:true,st:0};
+ }else{
+  S={trainee:name,level,seed,attempt:prevAttempts+1,score:0,done:0,answers:[],active:true,st:0};
+ }
  S.plan=draw(S.attempt);
- log(`session.start · ${name} · ${LANG} · attempt ${S.attempt}`);
+ log(`session.${resume?"resume":"start"} · ${name} · L${level} · ${LANG} · attempt ${S.attempt}${resume?` · ${S.done}/24 · ${S.score}/120`:""}`);
  document.getElementById("startOv").style.display="none";
  document.getElementById("ctrlhint").textContent=T("hint");
  hud();
@@ -1899,12 +2002,22 @@ function startSession(name){
  hostReset(); // fresh voice session with this trainee's name and language
  live.unlock(); // the Start click is our user gesture — wake the audio pipeline
  live.initMic(); // ask for the mic NOW but don't block the greeting on the permission prompt
- // the journey begins ON the central medallion: Saif waits there, greets,
- // explains the scope, then WALKS to station one — the trainee follows him
  followSt=null;glide=null;
  camPos.set(0,1.6,5);yaw=0;pitch=0;
  saif.position.set(.6,0,1.4);saifTarget=new THREE.Vector3(.6,0,1.4);
  stations.forEach(s=>s.group.userData.beam.visible=false);
+ if(resume&&S.done>0&&S.done<24){
+  // welcome back → straight to the next unanswered beat's station
+  const st=Math.floor(S.done/4);S.resumeB=S.done%4;
+  noteToast(T("resumeToast").replace("{lv}",level).replace("{a}",S.attempt).replace("{s}",S.score));
+  let went=false;const go=()=>{if(went)return;went=true;escortTo(st)};
+  speak(T("welcomeBack").replace("{name}",name),T("saif"),null,go);
+  setTimeout(go,15000);
+  if(FAST)go();
+  return;
+ }
+ // the journey begins ON the central medallion: Saif waits there, greets,
+ // explains the scope, then WALKS to station one — the trainee follows him
  let went=false;const go=()=>{if(went)return;went=true;escortTo(0)};
  // ONE briefing turn (greeting + mission): in conversational mode a second line
  // would instantly talk over the first
@@ -1936,7 +2049,8 @@ function beginStation(i){
  const nm=L(CONTENT.skills[i].scene.name);
  // first beat starts only AFTER the intro was actually spoken — a fixed timer
  // used to let the beat's flush throw away the still-queued intro line
- let started=false;const kick=()=>{if(started)return;started=true;runBeat(i,0)};
+ let started=false;const kick=()=>{if(started)return;started=true;
+  const rb=S.resumeB||0;S.resumeB=0;runBeat(i,rb)}; // resumed sessions re-enter mid-station
  speak(`(${S.trainee} has just walked up and arrived with you at "${nm}". Acknowledge the arrival in a word or two, then introduce the station — no more follow-me talk.) ${T("stationIntro")[i]}`,
    T("saif"),T("stationIntro")[i],kick);
  setTimeout(kick,FAST?350:15000); // failsafe: a dead voice session never blocks the assessment
@@ -1951,8 +2065,12 @@ function endLevel(){
  clearQ();
  const pass=S.score>=96;
  speak(T(pass?"resPass":"resFail").replace("{name}",S.trainee).replace("{score}",String(S.score)),T("saif"));
- DB.results.push({trainee:S.trainee,level:1,attempt:S.attempt,score:S.score,pass,lang:LANG,ts:new Date().toISOString(),answers:S.answers});
- save();log(`level.result · ${S.trainee} · ${S.score}/120 · ${pass?"PASS":"FAIL"}`);
+ const rec={trainee:S.trainee,level:S.level||1,attempt:S.attempt,score:S.score,pass,lang:LANG,ts:new Date().toISOString(),answers:S.answers};
+ DB.results.push(rec);
+ srvSaveResult({level:rec.level,attempt:rec.attempt,score:rec.score,pass,lang:LANG,answers:S.answers});
+ SRV.results.push({level:rec.level,attempt:rec.attempt,score:rec.score,pass,lang:LANG,ts:rec.ts}); // gating updates without a re-login
+ SRV.progress=(SRV.progress||[]).filter(p=>p.level!==rec.level); // this level's checkpoint is consumed
+ save();log(`level.result · ${S.trainee} · L${rec.level} · ${S.score}/120 · ${pass?"PASS":"FAIL"}`);
  S.active=false;hud();
  document.getElementById("roEyebrow").textContent=T("eyebrow");
  document.getElementById("roScore").textContent=S.score+" / 120";
@@ -1961,7 +2079,7 @@ function endLevel(){
  document.getElementById("roVerdict").className=pass?"pass":"fail";
  const rr=document.getElementById("roRetry");
  rr.style.display=pass?"none":"";rr.textContent=T("retry");
- rr.onclick=()=>{document.getElementById("resultOv").style.display="none";startSession(S.trainee)};
+ rr.onclick=()=>{document.getElementById("resultOv").style.display="none";startSession(S.trainee,S.level||1)};
  document.getElementById("roHome").textContent=T("home");
  document.getElementById("roHome").onclick=()=>{document.getElementById("resultOv").style.display="none";hostReset();showStart()};
  document.getElementById("resultOv").style.display="flex";
@@ -1970,8 +2088,12 @@ function endLevel(){
 /* ---------- start overlay ---------- */
 function lvState(n){
  if(n===1)return"open";
- const passed=DB.results.some(r=>r.pass&&r.level===1);
- if(n===2&&(passed||DB.bypass))return DB.bypass&&!passed?"bypassed":"open";
+ // server data wins once a player is logged in; localStorage keeps offline runs working
+ const passed=DB_ON&&SRV.playerId
+   ?SRV.results.some(r=>r.pass&&r.level===1)
+   :DB.results.some(r=>r.pass&&r.level===1);
+ const byp=(DB_ON&&SRV.playerId?SRV.bypass:null)||DB.bypass;
+ if(n===2&&(passed||byp))return byp&&!passed?"bypassed":"open";
  return"locked";
 }
 function showStart(){
@@ -1997,12 +2119,24 @@ function showStart(){
  const g=document.getElementById("lvGrid");
  g.innerHTML=[1,2,3,4,5].map(n=>{const st=lvState(n);
   return`<div class="level ${st}" data-lv="${n}"><div class="num">${n}</div><div class="st">${st==="locked"?"🔒 "+T("locked"):(st==="bypassed"?"🔓":T("open"))}</div></div>`}).join("");
- g.querySelectorAll(".level.open,.level.bypassed").forEach(el=>el.onclick=()=>{
-   const nm=document.getElementById("inName").value.trim();
-   if(!nm){document.getElementById("inName").focus();return}
-   DB.lastName=nm;save();
-   if(+el.dataset.lv===1){so.style.display="none";startSession(nm)}
-   else{so.style.display="none";subtitle(T("saif"),T("l2"));setTimeout(showStart,4200)}
+ let starting=false; // double-click guard while the async login runs
+ // ALL tiles are clickable (locked ones included): on a fresh browser only the
+ // login triggered by the click can reveal a server-side pass or admin bypass
+ g.querySelectorAll(".level").forEach(el=>el.onclick=async()=>{
+   if(starting)return;starting=true;
+   try{
+    const nm=document.getElementById("inName").value.trim();
+    if(!nm){document.getElementById("inName").focus();return}
+    DB.lastName=nm;save();
+    const lv=+el.dataset.lv;
+    await srvLogin(nm); // fresh gating + any saved progress (no-op offline)
+    if(lvState(lv)==="locked"){ // still locked with server data
+      showStart(); // re-render with fresh state, then explain inside the overlay
+      document.getElementById("soHint").textContent=T("l2locked");
+      return}
+    so.style.display="none";
+    startSession(nm,lv,DB_ON?progFor(lv):null); // half-finished level resumes exactly where it stopped
+   }finally{starting=false}
  });
 }
 document.querySelectorAll(".langbtn").forEach(b=>b.onclick=()=>{
@@ -2041,7 +2175,8 @@ document.getElementById("asksend").onclick=doAsk;
 document.getElementById("askin").addEventListener("keydown",e=>{if(e.key==="Enter")doAsk()});
 
 /* ---------- admin ---------- */
-let adminAuthed=false;
+let adminAuthed=false,adminPin="";
+const escH=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); // names render as text, never markup
 document.getElementById("btnAdmin").onclick=()=>{document.getElementById("drawer").classList.add("open");paintAdmin()};
 document.getElementById("dClose").onclick=()=>document.getElementById("drawer").classList.remove("open");
 function paintAdmin(){
@@ -2054,29 +2189,39 @@ function paintAdmin(){
  if(!adminAuthed){
   body.innerHTML=`<label>${T("pin")}</label><input id="pin" type="password" style="max-width:150px">
    <div style="margin-top:10px"><button class="btn small" id="go">OK</button></div><div id="perr" style="color:var(--red);font-size:12px;margin-top:6px"></div>`;
-  document.getElementById("go").onclick=()=>{if(document.getElementById("pin").value===ADMIN_PIN){adminAuthed=true;paintAdmin()}else document.getElementById("perr").textContent=T("wrongPin")};
+  document.getElementById("go").onclick=()=>{const v=document.getElementById("pin").value;
+   if(v===ADMIN_PIN){adminAuthed=true;adminPin=v;paintAdmin()}else document.getElementById("perr").textContent=T("wrongPin")};
   return;
  }
- const live=S&&S.active?`${S.trainee} · ${T("q")} ${Math.min(S.done+1,24)}/24 · ${S.score}/120`:"—";
+ const live=S&&S.active?`${escH(S.trainee)} · L${S.level||1} · ${T("q")} ${Math.min(S.done+1,24)}/24 · ${S.score}/120`:"—";
  body.innerHTML=`<h3>${T("live")}</h3><p>${live}</p>
+  ${DB_ON?`<p style="margin-top:8px"><a href="admin.html" target="_blank" style="color:var(--teal);font-weight:700;text-decoration:none">${T("adminPanel")}</a></p>`:""}
   <h3 style="margin-top:12px">${T("aikey")}</h3>
   <div style="display:flex;gap:6px"><input id="gk" type="password" placeholder="AIza…" value="${getKey()?"••••••••":""}" style="max-width:220px"><button class="btn small" id="gksave">✓</button></div>
   <h3 style="margin-top:12px">${T("results")}</h3>
   ${DB.results.length?`<table><tr><th>${T("name")}</th><th>#</th><th>${T("score")}</th><th></th></tr>
-   ${DB.results.map(r=>`<tr><td>${r.trainee}</td><td>${r.attempt}</td><td>${r.score}/120</td><td style="color:${r.pass?"var(--green)":"var(--red)"}">${r.pass?"✓":"✗"}</td></tr>`).join("")}</table>`:`<p style="color:var(--muted)">${T("noresults")}</p>`}
+   ${DB.results.map(r=>`<tr><td>${escH(r.trainee)}</td><td>${r.attempt}</td><td>${r.score}/120</td><td style="color:${r.pass?"var(--green)":"var(--red)"}">${r.pass?"✓":"✗"}</td></tr>`).join("")}</table>`:`<p style="color:var(--muted)">${T("noresults")}</p>`}
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn small" id="csv">${T("csv")}</button>
-   ${DB.bypass?`<span style="font-size:12px;color:var(--sand)">🔓 ${T("unlocked")} (${DB.bypass.by})</span>`:`<button class="btn small" id="bp">${T("unlock")}</button>`}</div>
+   ${DB.bypass?`<span style="font-size:12px;color:var(--sand)">🔓 ${T("unlocked")} (${escH(DB.bypass.by)})</span>`:`<button class="btn small" id="bp">${T("unlock")}</button>`}</div>
   ${!DB.bypass?`<label>${T("aname")}</label><input id="an" type="text" style="max-width:200px">`:""}
-  <h3 style="margin-top:12px">${T("log")}</h3><div class="loglines">${DB.log.slice(-60).reverse().map(l=>`<div>${l}</div>`).join("")}</div>`;
+  <h3 style="margin-top:12px">${T("log")}</h3><div class="loglines">${DB.log.slice(-60).reverse().map(l=>`<div>${escH(l)}</div>`).join("")}</div>`;
  document.getElementById("gksave").onclick=()=>{const v=document.getElementById("gk").value.trim();
   if(v&&!v.startsWith("•")){localStorage.setItem("adc_gemini_key",v);log("ai key updated");paintAdmin()}};
  const bp=document.getElementById("bp");
  if(bp)bp.onclick=()=>{const nm=(document.getElementById("an").value||"").trim();
   if(!nm){document.getElementById("an").focus();return}
-  DB.bypass={by:nm,ts:new Date().toISOString()};log(`gate.bypass · by ${nm}`);save();paintAdmin();
+  DB.bypass={by:nm,ts:new Date().toISOString()};
+  if(DB_ON){ // the bypass is a global gate — persist it so every device sees it
+   fetch("/api/admin/bypass",{method:"POST",headers:{"Content-Type":"application/json","X-Admin-Pin":adminPin},
+    body:JSON.stringify({on:true,by:nm})})
+    .then(r=>{if(!r.ok)log("bypass persist REJECTED ("+r.status+") — other devices will not see it")})
+    .catch(()=>{log("bypass persist failed — other devices will not see it")});
+   SRV.bypass=DB.bypass}
+  log(`gate.bypass · by ${nm}`);save();paintAdmin();
   if(!S||!S.active)showStart()};
  document.getElementById("csv").onclick=()=>{
-  const esc=v=>{const s=String(v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}; // a comma in a trainee name must not shift columns
+  const esc=v=>{let s=String(v);if(/^[=+\-@]/.test(s))s="'"+s; // neutralize spreadsheet formulas
+    return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}; // a comma in a trainee name must not shift columns
   const rows=[["trainee","level","attempt","language","score","percent","pass","timestamp"]];
   DB.results.forEach(r=>rows.push([r.trainee,r.level,r.attempt,r.lang,r.score,Math.round(r.score/120*100)+"%",r.pass?"PASS":"FAIL",r.ts]));
   const a=document.createElement("a");
@@ -2121,9 +2266,23 @@ function animate(){
  // follow-me: the trainee walked up to Saif's beacon → the station begins
  if(followSt!=null&&S&&S.active&&!glide&&
     Math.hypot(camPos.x-saifTarget.x,camPos.z-saifTarget.z)<4.2)beginStation(followSt);
- saif.children[1].position.y=2.08+Math.sin(t*2)*.04;
- saif.children[4].intensity=1.4+((saifSpeaking||live.speaking)?Math.sin(t*14)*1.1:0)+Math.sin(t*3)*.25;
- saif.lookAt(camPos.x,1.2,camPos.z);
+ {const u=saif.userData,talking=!!(saifSpeaking||live.speaking);
+  u.orb.position.y=1.55+Math.sin(t*1.6)*.07;                       // idle breathing float
+  u.core.material.emissiveIntensity=1.4+(talking?1.6+Math.sin(t*15)*1.1:Math.sin(t*2.4)*.25);
+  u.core.scale.setScalar(1+(talking?Math.sin(t*13)*.09:Math.sin(t*2.1)*.02));
+  const hs=1.7*(1+(talking?.14*Math.abs(Math.sin(t*7)):0));u.halo.scale.set(hs,hs,1);
+  u.rings[0].rotation.z=t*(talking?2.4:.7);
+  u.rings[1].rotation.z=-t*(talking?1.9:.5);
+  u.sparks.rotation.y=t*(talking?1.4:.45);
+  for(const rp of u.ripples){                                       // voice ripples expand outward while he speaks
+   const p=((t*.85)+rp.userData.ph)%1;
+   rp.scale.setScalar(.42+p*1.05);
+   rp.material.opacity=talking?(1-p)*.65:Math.max(0,rp.material.opacity-dt*3);
+  }
+  u.glow.intensity=1.8+(talking?Math.sin(t*16)*1.1+1.5:Math.sin(t*3)*.3);
+  const av=document.getElementById("subav");                        // DOM orb mirrors the talking state
+  if(av&&av._talk!==talking){av._talk=talking;av.classList.toggle("talk",talking)}
+ }
  stations.forEach((s,i)=>{
   s.group.userData.beam.rotation.y=t*.6;
   s.group.children.forEach(ch=>{if(ch.userData.spin)ch.rotation.y=(ch.userData.baseRy||0)+Math.sin(t*ch.userData.spin*8)*.22});

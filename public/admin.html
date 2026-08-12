@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADC Training — Admin Panel</title>
+<style>
+:root{--teal:#00736a;--teal-dk:#005a53;--ink:#1f2a2e;--muted:#61707a;--line:#dde5e8;--soft:#f4f7f8;--sand:#c8a45a;--green:#1fa877;--red:#d84a38}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Tahoma,sans-serif;background:#e8eef1;color:var(--ink);min-height:100vh}
+header{background:#fff;border-bottom:1px solid var(--line);padding:14px 22px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:5}
+.brandmark{width:38px;height:38px;border-radius:8px;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}
+header .t1{font-weight:700;font-size:15px}
+header .t2{font-size:11px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+header .right{margin-inline-start:auto;display:flex;gap:10px;align-items:center}
+#livechip{font-size:11.5px;color:var(--muted)}
+#livechip b{color:var(--green)}
+button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;font-size:13px}
+.btn{background:var(--teal);color:#fff;padding:9px 16px;font-weight:700}
+.btn:hover{background:var(--teal-dk)}
+.btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line);font-weight:600}
+.btn.warn{background:#fff;color:var(--red);border:1.5px solid #f2c4bd;font-weight:600}
+.btn.small{padding:5px 10px;font-size:12px}
+main{max-width:1180px;margin:0 auto;padding:20px 22px 60px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+.stat .v{font-size:26px;font-weight:800;color:var(--teal)}
+.stat .k{font-size:11.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:18px}
+.panel h2{font-size:14.5px;color:var(--teal);margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.panel h2 .sub{font-weight:400;font-size:11.5px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{background:var(--soft);padding:8px 10px;text-align:start;font-weight:700;border:1px solid var(--line);white-space:nowrap}
+td{border:1px solid var(--line);padding:7px 10px;vertical-align:middle}
+tr:hover td{background:#f8fbfa}
+.tag{display:inline-block;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700}
+.tag.pass{background:#e7f6ef;color:var(--green)}
+.tag.fail{background:#fceceb;color:var(--red)}
+.tag.prog{background:#fdf6e7;color:#9a7822}
+.tag.idle{background:var(--soft);color:var(--muted)}
+.bar{height:6px;border-radius:99px;background:var(--soft);overflow:hidden;min-width:90px}
+.bar i{display:block;height:100%;background:var(--teal);border-radius:99px}
+.muted{color:var(--muted)}
+.nowrap{white-space:nowrap}
+#gate{position:fixed;inset:0;background:linear-gradient(rgba(8,26,30,.5),rgba(8,26,30,.75)),url("img/port-panorama.jpg") center/cover;display:flex;align-items:center;justify-content:center;z-index:50}
+#gate .box{background:#fff;border-radius:14px;padding:26px 30px;width:min(360px,92vw);box-shadow:0 30px 80px rgba(0,20,25,.45)}
+#gate h1{font-size:18px;margin:12px 0 4px}
+#gate p{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+#gate input{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:9px;font-size:15px;letter-spacing:.3em;text-align:center}
+#gate input:focus{outline:none;border-color:var(--teal)}
+#gate .err{color:var(--red);font-size:12px;min-height:16px;margin-top:8px}
+#gate .row{display:flex;gap:10px;margin-top:12px}
+#bypassRow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#bypassState{font-size:12.5px}
+.empty{color:var(--muted);font-size:12.5px;padding:14px 4px}
+@media(max-width:760px){main{padding:14px 10px}th,td{padding:5px 6px;font-size:11.5px}}
+</style>
+</head>
+<body>
+
+<div id="gate"><div class="box">
+  <div class="brandmark">AC</div>
+  <h1>Admin Panel — ADC VR Training</h1>
+  <p>جمارك أبوظبي · Abu Dhabi Customs — supervisor access</p>
+  <input id="pin" type="password" placeholder="PIN" autocomplete="off">
+  <div class="err" id="gateErr"></div>
+  <div class="row"><button class="btn" id="enter" style="flex:1">Enter</button>
+  <a href="ADC_POC_3D.html" style="align-self:center;font-size:12px;color:var(--muted)">← back to app</a></div>
+</div></div>
+
+<header>
+  <div class="brandmark">AC</div>
+  <div><div class="t1">ADC VR Training — Admin Panel</div><div class="t2">جمارك أبوظبي · Abu Dhabi Customs</div></div>
+  <div class="right">
+    <span id="livechip">refreshing…</span>
+    <button class="btn ghost small" id="csv">Export CSV</button>
+    <a class="btn ghost small" href="ADC_POC_3D.html" style="text-decoration:none;display:inline-flex;align-items:center">Open app ↗</a>
+  </div>
+</header>
+
+<main>
+  <div class="cards">
+    <div class="stat"><div class="v" id="stUsers">–</div><div class="k">Trainees</div></div>
+    <div class="stat"><div class="v" id="stActive">–</div><div class="k">Active now</div></div>
+    <div class="stat"><div class="v" id="stInProg">–</div><div class="k">Sessions in progress</div></div>
+    <div class="stat"><div class="v" id="stPass1">–</div><div class="k">Level 1 passed</div></div>
+    <div class="stat"><div class="v" id="stPass2">–</div><div class="k">Level 2 passed</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>Level gate</h2>
+    <div id="bypassRow">
+      <span id="bypassState"></span>
+      <button class="btn small" id="bypassBtn"></button>
+      <span class="muted" style="font-size:11.5px">Level 2 normally unlocks by passing Level 1 (96/120). The bypass opens it for everyone and is logged.</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Trainees <span class="sub" id="updated"></span></h2>
+    <div style="overflow-x:auto"><table id="usersTbl">
+      <thead><tr><th>Name</th><th>Lang</th><th>Status</th><th>Current progress</th><th>L1 best</th><th>L2 best</th><th>Attempts</th><th>Last seen</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <div class="empty" id="usersEmpty" style="display:none">No trainees yet — they appear here after their first login in the app.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Recent results</h2>
+    <div style="overflow-x:auto"><table id="resTbl">
+      <thead><tr><th>When</th><th>Name</th><th>Level</th><th>Attempt</th><th>Lang</th><th>Score</th><th>Outcome</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <div class="empty" id="resEmpty" style="display:none">No completed attempts yet.</div>
+  </div>
+</main>
+
+<script>
+"use strict";
+let PIN=sessionStorage.getItem("adc_admin_pin")||"";
+let DATA=null,timer=null;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+async function api(path,opts={}){
+  const r=await fetch(path,Object.assign({},opts,{headers:Object.assign(
+    {"Content-Type":"application/json","X-Admin-Pin":PIN},opts.headers||{})}));
+  if(r.status===401)throw Object.assign(new Error("PIN"),{pin:true});
+  if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||("HTTP "+r.status));
+  return r.json();
+}
+
+function ago(ts){
+  const s=(Date.now()-new Date(ts).getTime())/1000;
+  if(s<0)return"now";
+  if(s<60)return Math.floor(s)+"s ago";
+  if(s<3600)return Math.floor(s/60)+"m ago";
+  if(s<86400)return Math.floor(s/3600)+"h ago";
+  return Math.floor(s/86400)+"d ago";
+}
+
+function paint(){
+  const d=DATA;if(!d)return;
+  // rows arrive newest-first; keep the most recent checkpoint per player
+  const progBy={};d.progress.forEach(p=>{if(!progBy[p.player_id])progBy[p.player_id]=p});
+  const resBy={};d.results.forEach(r=>{(resBy[r.player_id]=resBy[r.player_id]||[]).push(r)});
+  const active=d.players.filter(p=>Date.now()-new Date(p.last_seen).getTime()<120000);
+
+  $("stUsers").textContent=d.players.length;
+  $("stActive").textContent=active.length;
+  $("stInProg").textContent=d.progress.length;
+  $("stPass1").textContent=d.players.filter(p=>(resBy[p.id]||[]).some(r=>r.level===1&&r.pass)).length;
+  $("stPass2").textContent=d.players.filter(p=>(resBy[p.id]||[]).some(r=>r.level===2&&r.pass)).length;
+
+  $("bypassState").innerHTML=d.bypass
+    ?`<span class="tag prog">🔓 Level 2 bypass ACTIVE</span> <span class="muted">by ${esc(d.bypass.by)} · ${ago(d.bypass.ts)}</span>`
+    :`<span class="tag idle">🔒 Level 2 gated (pass Level 1)</span>`;
+  $("bypassBtn").textContent=d.bypass?"Remove bypass":"Unlock Level 2 for everyone";
+  $("bypassBtn").className=d.bypass?"btn warn small":"btn small";
+
+  const tb=$("usersTbl").querySelector("tbody");
+  tb.innerHTML=d.players.map(p=>{
+    const rs=resBy[p.id]||[];
+    const pr=progBy[p.id];
+    const best=lv=>{const s=rs.filter(r=>r.level===lv);if(!s.length)return"<span class='muted'>—</span>";
+      const b=s.reduce((a,r)=>r.score>a.score?r:a);
+      return `<span class="tag ${b.pass?"pass":"fail"}">${b.score}/120</span>`};
+    const isActive=Date.now()-new Date(p.last_seen).getTime()<120000;
+    let cur="<span class='muted'>—</span>";
+    if(pr&&pr.state){const st=pr.state;
+      // state arrives from an unauthenticated endpoint — numbers only, never raw
+      const lvN=+st.level||1,dnN=Math.max(0,Math.min(24,+st.done||0)),scN=Math.max(0,Math.min(120,+st.score||0));
+      const pct=Math.round(dnN/24*100);
+      cur=`<div class="nowrap">L${lvN} · beat ${dnN}/24 · ${scN}/120</div>
+           <div class="bar"><i style="width:${pct}%"></i></div>`}
+    return `<tr>
+      <td><b>${esc(p.name)}</b></td>
+      <td>${p.lang==="ar"?"العربية":"EN"}</td>
+      <td>${isActive?'<span class="tag pass">● online</span>':(pr?'<span class="tag prog">paused mid-level</span>':'<span class="tag idle">idle</span>')}</td>
+      <td>${cur}</td>
+      <td>${best(1)}</td><td>${best(2)}</td>
+      <td>${rs.length}</td>
+      <td class="nowrap muted">${ago(p.last_seen)}</td>
+      <td class="nowrap">
+        ${pr?`<button class="btn ghost small" onclick="resetProg(${p.id|0})">reset progress</button>`:""}
+        <button class="btn warn small" onclick="delPlayer(${p.id|0})">delete</button>
+      </td></tr>`;
+  }).join("");
+  $("usersEmpty").style.display=d.players.length?"none":"";
+
+  const nameBy={};d.players.forEach(p=>nameBy[p.id]=p.name);
+  const rb=$("resTbl").querySelector("tbody");
+  rb.innerHTML=d.results.slice(0,60).map(r=>`<tr>
+    <td class="nowrap muted">${ago(r.ts)}</td>
+    <td><b>${esc(nameBy[r.player_id]||"?")}</b></td>
+    <td>L${r.level}</td><td>${r.attempt}</td><td>${r.lang==="ar"?"AR":"EN"}</td>
+    <td>${r.score}/120 (${Math.round(r.score/120*100)}%)</td>
+    <td><span class="tag ${r.pass?"pass":"fail"}">${r.pass?"PASS":"FAIL"}</span></td></tr>`).join("");
+  $("resEmpty").style.display=d.results.length?"none":"";
+  $("updated").textContent="updated "+new Date().toLocaleTimeString();
+}
+
+async function refresh(){
+  try{
+    DATA=await api("/api/admin/overview");
+    $("livechip").innerHTML="<b>●</b> live · auto-refresh 5s";
+    paint();
+  }catch(e){
+    if(e.pin){lock("Wrong or expired PIN");return}
+    $("livechip").textContent="⚠ "+e.message;
+  }
+}
+
+function lock(msg){
+  clearInterval(timer);sessionStorage.removeItem("adc_admin_pin");PIN="";
+  $("gate").style.display="flex";$("gateErr").textContent=msg||"";$("pin").value="";$("pin").focus();
+}
+async function unlock(){
+  PIN=$("pin").value.trim();
+  if(!PIN)return;
+  try{
+    DATA=await api("/api/admin/overview");
+    sessionStorage.setItem("adc_admin_pin",PIN);
+    $("gate").style.display="none";
+    paint();
+    clearInterval(timer);timer=setInterval(refresh,5000);
+  }catch(e){$("gateErr").textContent=e.pin?"Wrong PIN":("Server: "+e.message)}
+}
+$("enter").onclick=unlock;
+$("pin").addEventListener("keydown",e=>{if(e.key==="Enter")unlock()});
+
+$("bypassBtn").onclick=async()=>{
+  const on=!(DATA&&DATA.bypass);
+  let by="admin panel";
+  if(on){by=prompt("Admin name for the bypass log:","");if(by===null)return;by=by.trim()||"admin panel"}
+  else if(!confirm("Remove the Level 2 bypass?"))return;
+  try{await api("/api/admin/bypass",{method:"POST",body:JSON.stringify({on,by})});refresh()}
+  catch(e){alert(e.message)}
+};
+// names are looked up here, never interpolated into onclick attributes — a
+// trainee-chosen name must not be able to break out into the admin's session
+const nameOf=id=>{const p=DATA&&DATA.players.find(p=>p.id===id);return p?p.name:"?"};
+window.resetProg=async id=>{
+  if(!confirm(`Reset ${nameOf(id)}'s in-progress levels? Their completed results stay.`))return;
+  try{await api("/api/admin/reset-progress",{method:"POST",body:JSON.stringify({playerId:id})});refresh()}
+  catch(e){alert(e.message)}
+};
+window.delPlayer=async id=>{
+  if(!confirm(`Delete ${nameOf(id)} and ALL their results? This cannot be undone.`))return;
+  try{await api("/api/admin/delete-player",{method:"POST",body:JSON.stringify({playerId:id})});refresh()}
+  catch(e){alert(e.message)}
+};
+$("csv").onclick=()=>{
+  if(!DATA)return;
+  const nameBy={};DATA.players.forEach(p=>nameBy[p.id]=p.name);
+  const q=v=>{let s=String(v);if(/^[=+\-@]/.test(s))s="'"+s; // neutralize spreadsheet formulas in names
+    return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+  const rows=[["trainee","level","attempt","language","score","percent","pass","timestamp"]];
+  DATA.results.slice().reverse().forEach(r=>rows.push([nameBy[r.player_id]||"?",r.level,r.attempt,r.lang,r.score,Math.round(r.score/120*100)+"%",r.pass?"PASS":"FAIL",r.ts]));
+  const a=document.createElement("a");
+  a.href="data:text/csv;charset=utf-8,﻿"+encodeURIComponent(rows.map(r=>r.map(q).join(",")).join("\r\n"));
+  a.download="adc_training_results.csv";a.click();
+};
+
+// auto-enter if a PIN from this browser session is still valid
+if(PIN){$("gate").style.display="none";refresh().then(()=>{if(PIN)timer=setInterval(refresh,5000)})}
+else $("pin").focus();
+</script>
+</body>
+</html>
