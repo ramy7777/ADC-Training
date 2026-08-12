@@ -766,19 +766,6 @@ let saifTarget=saif.position.clone(),saifSpeaking=0;
  sDiv.position.set(0,3.55,0);a.add(sDiv);
  a.position.set(0,0,17);scene.add(a)}
 
-// suspended brand emblem above the central plaza — a slow-turning white card
-// with the official mark, visible from every station and inside the headset
-const brandSpin=new THREE.Group();
-{const tilt=-.16; // nod toward eye level — viewed from below, a vertical card foreshortens
- const f=brandCard(4.6);f.position.z=.02;f.rotation.x=tilt;brandSpin.add(f);
- const b=brandCard(4.6);b.rotation.y=Math.PI;b.rotation.x=tilt;b.position.z=-.02;brandSpin.add(b);
- const div=new THREE.Mesh(new THREE.PlaneGeometry(4.6*.97,4.6*.42*.93), // opaque core against see-through ghosting
-  new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide}));
- div.rotation.x=tilt;brandSpin.add(div);
- const hang=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,3.2,8),goldMat);
- hang.position.y=2.4;brandSpin.add(hang); // gold suspension stem so it doesn't float unexplained
- brandSpin.position.set(0,5.2,0);scene.add(brandSpin)}
-
 CONTENT.skills.forEach((sk,i)=>stations.push(buildStation(i,sk)));
 // plaques are baked at boot in the boot language — repaint them when it changes
 function refreshStationTitles(){
@@ -2352,7 +2339,6 @@ function animate(){
  const xr=renderer.xr.isPresenting;
  if(!xr)dprTick(dt); // XR manages its own framebuffer scale
  if(window.__dust)window.__dust.rotation.y=t*.011;
- brandSpin.rotation.y=t*.22;brandSpin.position.y=5.2+Math.sin(t*.8)*.05; // stately turn, gentle float
  moveTick(dt);fxTick(dt);
  if(xr){
   vrMoveTick(dt);
