@@ -2147,10 +2147,8 @@ function escortTo(i){
 }
 function beginStation(i){
  followSt=null; // arrival: the intro line below talks over any lingering "follow me"
- // Saif steps aside as the exercises appear: at 1.8m off-axis he stood inside the
- // question UI's footprint and the x-ray boards painted over him ("decapitated")
- {const a=stationAngle(i);
-  saifTarget=new THREE.Vector3(Math.sin(a)*(R-5.4)+Math.cos(a)*5.0,0,-Math.cos(a)*(R-5.4)+Math.sin(a)*5.0)}
+ // Saif stays exactly where he walked to — he holds his spot at the station
+ // through the talking and the exercises, and only moves for the next escort
  const nm=L(CONTENT.skills[i].scene.name);
  // first beat starts only AFTER the intro was actually spoken — a fixed timer
  // used to let the beat's flush throw away the still-queued intro line
@@ -2353,7 +2351,6 @@ function dprTick(dt){
  else if(avg<.013&&dprIx<DPR_STEPS.length-1&&DPR_STEPS[dprIx+1]<=cap){dprIx++;renderer.setPixelRatio(DPR_STEPS[dprIx]);resize();dprCool=4}
 }
 const clock=new THREE.Clock();
-const _sv1=new THREE.Vector3(),_sv2=new THREE.Vector3(); // scratch for Saif's companion placement
 function animate(){
  const dt=Math.min(clock.getDelta(),.05);
  const t=clock.elapsedTime;
@@ -2372,19 +2369,11 @@ function animate(){
   camera.rotation.set(0,0,0);camera.rotateY(yaw);camera.rotateX(pitch);
   hoverTick();
  }
- saif.position.lerp(new THREE.Vector3(saifTarget.x,0,saifTarget.z),Math.min(1,dt*(qGroup?2.6:1.2))); // he closes in briskly when a question opens
+ saif.position.lerp(new THREE.Vector3(saifTarget.x,0,saifTarget.z),Math.min(1,dt*1.2));
  // follow-me: the trainee walked up to Saif's beacon → the station begins
  if(followSt!=null&&S&&S.active&&!glide&&
     Math.hypot(camPos.x-saifTarget.x,camPos.z-saifTarget.z)<4.2)beginStation(followSt);
  {const u=saif.userData,talking=!!(saifSpeaking||live.speaking);
-  // companion mode: while a question is staged, Saif stands just beside the
-  // player (ahead-right of their view) instead of parked at the station's edge
-  if(S&&S.active&&qGroup){
-   camera.getWorldPosition(_sv1);camera.getWorldDirection(_sv2);
-   _sv2.y=0;_sv2.normalize();
-   // ~28° off-axis at conversation distance: beside the trainee, never over the console
-   saifTarget.set(_sv1.x+_sv2.x*2.9-_sv2.z*1.55,0,_sv1.z+_sv2.z*2.9+_sv2.x*1.55);
-  }
   // the avatar breathes with the ACTUAL voice: RMS of the audio playing right
   // now, fast attack / slower release — consonants flash, pauses settle
   const raw=Math.min(1,live.voiceLevel()*3.4);
