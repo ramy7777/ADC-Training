@@ -235,7 +235,7 @@ const hasAI=()=>AI_ON||!!getKey();
 
 /* ---------- server persistence (progress survives logout; admin panel supervises) ---------- */
 let DB_ON=!!CFG.dbAvailable;
-const SRV={playerId:null,results:[],progress:[],bypass:null};
+const SRV={playerId:null,results:[],progress:[],bypass:null,bonus:{}};
 async function srvLogin(name){
  if(!DB_ON)return null;
  try{
@@ -243,16 +243,29 @@ async function srvLogin(name){
    body:JSON.stringify({name,lang:LANG})});
   if(!r.ok)throw new Error("login "+r.status);
   const d=await r.json();
-  SRV.playerId=d.playerId;SRV.results=d.results||[];SRV.progress=d.progress||[];SRV.bypass=d.bypass;
+  SRV.playerId=d.playerId;SRV.results=d.results||[];SRV.progress=d.progress||[];SRV.bypass=d.bypass;SRV.bonus=d.bonus||{};
   return d;
  }catch(e){
   // a failed login must never leave the PREVIOUS player's identity behind —
   // on a shared kiosk that silently wrote player B's run into player A's rows
-  SRV.playerId=null;SRV.results=[];SRV.progress=[];SRV.bypass=null;
+  SRV.playerId=null;SRV.results=[];SRV.progress=[];SRV.bypass=null;SRV.bonus={};
   log("srv login failed: "+e.message);return null} // offline: localStorage still works
 }
 const progFor=lv=>{const row=(SRV.progress||[]).find(p=>p.level===lv);
  const st=row&&row.state;return st&&st.done>0&&st.done<24?st:null};
+/* ---- the 5-tries rule (Modules2.xlsx: maxTries 5/level; admin can grant +5) ---- */
+function attemptsUsed(name,lv){
+ return DB_ON&&SRV.playerId
+  ?SRV.results.filter(r=>r.level===lv).length
+  :DB.results.filter(r=>r.trainee===name&&r.level===lv).length;
+}
+const passedLv=(name,lv)=>DB_ON&&SRV.playerId
+ ?SRV.results.some(r=>r.level===lv&&r.pass)
+ :DB.results.some(r=>r.trainee===name&&r.level===lv&&r.pass);
+const triesAllowed=lv=>5+((DB_ON&&SRV.bonus&&+SRV.bonus[lv])||0);
+// a level is exhausted when every allowed try is spent without a pass —
+// resuming an in-flight try is always allowed (it IS one of the counted tries)
+const triesExhausted=(name,lv)=>!passedLv(name,lv)&&attemptsUsed(name,lv)>=triesAllowed(lv);
 function srvSaveProgress(){ // checkpoint after every answered beat — fire and forget
  if(!DB_ON||!SRV.playerId||!S)return;
  const state=S.active?{level:S.level,attempt:S.attempt,score:S.score,done:S.done,answers:S.answers,lang:LANG}:null;
@@ -312,6 +325,8 @@ const UI={
   welcomeBack:"Welcome back, {name}! Your morning is exactly where you left it — let us continue.",
   resumeToast:"Continuing Level {lv} — attempt {a}, score {s}/120",
   level:"Level",
+  noTries:"All {n} attempts for Level {lv} are used. An administrator can grant more tries from the admin panel.",
+  noTriesShort:"No attempts left — ask your administrator",
   lvlNames:["Foundations","Advanced","Project scope","Project scope","Project scope"],
   l2Intro:"This is Level 2 — the advanced round. The situations are trickier: you will weigh priorities and judge trade-offs, not just recognize the right answer.",
   adminPanel:"Open admin panel ↗"},
@@ -358,6 +373,8 @@ const UI={
   welcomeBack:"أهلاً بعودتك يا {name}! صباحك ما زال كما تركته — لنكمل.",
   resumeToast:"استكمال المستوى {lv} — المحاولة {a}، النتيجة {s}/120",
   level:"المستوى",
+  noTries:"استُخدمت المحاولات الـ{n} كلها للمستوى {lv}. يمكن للمشرف منح محاولات إضافية من لوحة المشرف.",
+  noTriesShort:"لا محاولات متبقية — راجع المشرف",
   lvlNames:["الأساسيات","متقدم","نطاق المشروع","نطاق المشروع","نطاق المشروع"],
   l2Intro:"هذا هو المستوى الثاني — الجولة المتقدمة. المواقف هنا أدق: ستوازن بين الأولويات وتحكم على الخيارات، لا أن تتعرف على الإجابة فقط.",
   adminPanel:"فتح لوحة المشرف ↗"}
@@ -535,7 +552,9 @@ function textPanel(text,wm,hm,opts={}){
  const px=Math.round(wm*256),py=Math.round(hm*256);
  const m=new THREE.Mesh(new THREE.PlaneGeometry(wm,hm),
    new THREE.MeshBasicMaterial({map:textTexture(text,Object.assign({w:px,h:py},opts)),transparent:true,side:THREE.DoubleSide}));
- m.userData.setText=(t,o={})=>{m.material.map=textTexture(t,Object.assign({w:px,h:py},opts,o));m.material.needsUpdate=true};
+ m.userData.setText=(t,o={})=>{const old=m.material.map;
+  m.material.map=textTexture(t,Object.assign({w:px,h:py},opts,o));m.material.needsUpdate=true;
+  if(old)old.dispose()}; // repainted text must not leak the old GPU texture
  return m;
 }
 
@@ -659,7 +678,7 @@ function buildStation(i,sk){
  wash.position.set(0,5.5,-4.25);g.add(wash);
  // station title plaque
  const title=textPanel(`${i+1} · ${L(sk.scene.name)}`,7,.9,{size:52,bold:true,color:"#f7f3e8",bg:"rgba(10,45,50,0.92)",border:"#d7b56d"});
- title.position.set(0,6.15,-4.35);g.add(title);
+ title.position.set(0,6.15,-4.35);g.add(title);g.userData.title=title;
  addTheme(g,i);
  const beam=new THREE.Mesh(new THREE.CylinderGeometry(.5,1.4,7,24,1,true),
    new THREE.MeshBasicMaterial({color:TEALL,transparent:true,opacity:.14,side:THREE.DoubleSide,depthWrite:false}));
@@ -724,6 +743,10 @@ let saifTarget=saif.position.clone(),saifSpeaking=0;
  a.position.set(0,0,17);scene.add(a)}
 
 CONTENT.skills.forEach((sk,i)=>stations.push(buildStation(i,sk)));
+// plaques are baked at boot in the boot language — repaint them when it changes
+function refreshStationTitles(){
+ stations.forEach((s,i)=>s.group.userData.title.userData.setText(`${i+1} · ${L(s.sk.scene.name)}`,{size:52,bold:true,color:"#f7f3e8",bg:"rgba(10,45,50,0.92)",border:"#d7b56d"}));
+}
 
 /* ================= pointer: look / click / DRAG ================= */
 const ray=new THREE.Raycaster();const mouse=new THREE.Vector2();
@@ -1513,7 +1536,8 @@ function hud(){
  document.getElementById("hl").textContent=`${T("level")} ${S.level||1} · ${T("lvlNames")[(S.level||1)-1]||""}`;
  document.getElementById("hq").innerHTML=`${T("q")} <b>${Math.min(S.done+1,24)}</b>/24`;
  document.getElementById("hs").innerHTML=`${T("score")} <b>${S.score}</b>/120`;
- document.getElementById("ha").innerHTML=`${T("attempt")} <b>${Math.min(S.attempt,5)}</b>/5`; // the modulo rolled attempt 6 back to "1/5"
+ const ta=S.triesAllowed||5;
+ document.getElementById("ha").innerHTML=`${T("attempt")} <b>${Math.min(S.attempt,ta)}</b>/${ta}`;
  document.getElementById("progfill").style.width=(S.done/24*100)+"%";
 }
 function flash(ok){const f=document.getElementById("flash");
@@ -2021,12 +2045,19 @@ async function startSession(name,level=1,resume=null){
    :DB.results.filter(r=>r.trainee===name&&r.level===level).length;
  // any half-finished run of this level resumes automatically (autostart included)
  if(!resume&&DB_ON)resume=progFor(level);
+ if(!resume&&triesExhausted(name,level)){ // safety net for autostart/retry paths
+  document.getElementById("startOv").style.display="flex";
+  showStart();
+  document.getElementById("soHint").textContent=T("noTries").replace("{n}",triesAllowed(level)).replace("{lv}",level);
+  return;
+ }
  if(resume){
   S={trainee:name,level,seed,attempt:resume.attempt||1,score:resume.score||0,done:resume.done||0,
      answers:(resume.answers||[]).slice(),active:true,st:0};
  }else{
   S={trainee:name,level,seed,attempt:prevAttempts+1,score:0,done:0,answers:[],active:true,st:0};
  }
+ S.triesAllowed=triesAllowed(level);
  S.plan=draw(S.attempt);
  log(`session.${resume?"resume":"start"} · ${name} · L${level} · ${LANG} · attempt ${S.attempt}${resume?` · ${S.done}/24 · ${S.score}/120`:""}`);
  document.getElementById("startOv").style.display="none";
@@ -2113,7 +2144,10 @@ function endLevel(){
  document.getElementById("roVerdict").textContent=pass?T("passed"):T("failed");
  document.getElementById("roVerdict").className=pass?"pass":"fail";
  const rr=document.getElementById("roRetry");
- rr.style.display=pass?"none":"";rr.textContent=T("retry");
+ // retry only while tries remain (this attempt is already recorded above)
+ const canRetry=!pass&&!triesExhausted(S.trainee,rec.level);
+ rr.style.display=canRetry?"":"none";rr.textContent=T("retry");
+ if(!pass&&!canRetry)document.getElementById("roVerdict").textContent=T("failed")+" · "+T("noTriesShort");
  rr.onclick=()=>{document.getElementById("resultOv").style.display="none";startSession(S.trainee,S.level||1)};
  document.getElementById("roHome").textContent=T("home");
  document.getElementById("roHome").onclick=()=>{document.getElementById("resultOv").style.display="none";hostReset();showStart()};
@@ -2136,6 +2170,7 @@ function showStart(){
    autoStarted=true;
    LANG=PARAMS.get("lang")==="ar"?"ar":"en";
    document.documentElement.dir=LANG==="ar"?"rtl":"ltr";
+   refreshStationTitles();
    document.getElementById("startOv").style.display="none";
    startSession(PARAMS.get("name")||"Demo");
    return;
@@ -2171,8 +2206,13 @@ function showStart(){
       showStart(); // re-render with fresh state, then explain inside the overlay
       document.getElementById("soHint").textContent=T("l2locked");
       return}
+    const prog=DB_ON?progFor(lv):null;
+    if(!prog&&triesExhausted(nm,lv)){ // 5-tries rule: no fresh attempt without a pass or an admin grant
+      showStart();
+      document.getElementById("soHint").textContent=T("noTries").replace("{n}",triesAllowed(lv)).replace("{lv}",lv);
+      return}
     so.style.display="none";
-    startSession(nm,lv,DB_ON?progFor(lv):null); // half-finished level resumes exactly where it stopped
+    startSession(nm,lv,prog); // half-finished level resumes exactly where it stopped
    }finally{starting=false}
  });
 }
@@ -2180,6 +2220,7 @@ document.querySelectorAll(".langbtn").forEach(b=>b.onclick=()=>{
  LANG=b.dataset.l;
  document.documentElement.dir=LANG==="ar"?"rtl":"ltr";
  document.querySelectorAll(".langbtn").forEach(x=>x.classList.toggle("sel",x===b));
+ refreshStationTitles(); // 3D plaques follow the chosen language
  showStart();
 });
 

@@ -161,7 +161,7 @@ footer{max-width:1220px;margin:0 auto;padding:0 22px 30px;font-size:11px;color:v
   <div class="panel">
     <h2>Trainees <span class="sub" id="updated"></span></h2>
     <div style="overflow-x:auto"><table id="usersTbl">
-      <thead><tr><th>Trainee</th><th>Lang</th><th>Status</th><th>Current progress</th><th>L1 best</th><th>L2 best</th><th>Attempts</th><th>Last seen</th><th></th></tr></thead>
+      <thead><tr><th>Trainee</th><th>Lang</th><th>Status</th><th>Current progress</th><th>L1 best</th><th>L2 best</th><th>Tries used</th><th>Last seen</th><th></th></tr></thead>
       <tbody></tbody>
     </table></div>
     <div class="empty" id="usersEmpty" style="display:none">No trainees yet — they appear here after their first login in the app.</div>
@@ -232,6 +232,13 @@ function paint(){
       const b=s.reduce((a,r)=>+r.score>+a.score?r:a);
       return `<span class="tag ${b.pass?"pass":"fail"}">${+b.score||0}/120</span>`}; // numbers only, same rule as the progress cell
     const isActive=Date.now()-new Date(p.last_seen).getTime()<120000;
+    // 5-tries rule: exhausted levels get a grant button (+5 tries, history kept)
+    const bonus=p.bonus||{};
+    const tinfo=[1,2].map(lv=>({lv,used:rs.filter(r=>+r.level===lv).length,
+      allowed:5+(+bonus[lv]||0),passed:rs.some(r=>+r.level===lv&&r.pass)}));
+    const grants=tinfo.filter(x=>!x.passed&&x.used>=x.allowed)
+      .map(x=>`<button class="btn card small" onclick="grantTries(${p.id|0},${x.lv})">+5 tries L${x.lv}</button>`).join("");
+    const triesCell=tinfo.filter(x=>x.used).map(x=>`L${x.lv} ${x.used}/${x.allowed}`).join(" · ")||"<span class='muted'>—</span>";
     let cur="<span class='muted'>—</span>";
     if(pr&&pr.state){const st=pr.state;
       // state arrives from an unauthenticated endpoint — numbers only, never raw
@@ -246,9 +253,10 @@ function paint(){
       <td>${isActive?'<span class="tag online">online</span>':(pr?'<span class="tag prog">paused</span>':'<span class="tag idle">idle</span>')}</td>
       <td>${cur}</td>
       <td>${best(1)}</td><td>${best(2)}</td>
-      <td>${rs.length}</td>
+      <td class="nowrap">${triesCell}</td>
       <td class="nowrap muted">${ago(p.last_seen)}</td>
       <td class="nowrap">
+        ${grants}
         ${pr?`<button class="btn card small" onclick="resetProg(${p.id|0})">reset</button>`:""}
         <button class="btn warn small" onclick="delPlayer(${p.id|0})">delete</button>
       </td></tr>`;
@@ -307,6 +315,11 @@ $("bypassBtn").onclick=async()=>{
 // names are looked up here, never interpolated into onclick attributes — a
 // trainee-chosen name must not be able to break out into the admin's session
 const nameOf=id=>{const p=DATA&&DATA.players.find(p=>p.id===id);return p?p.name:"?"};
+window.grantTries=async(id,lv)=>{
+  if(!confirm(`Grant ${nameOf(id)} five extra tries on Level ${lv}?`))return;
+  try{await api("/api/admin/grant-tries",{method:"POST",body:JSON.stringify({playerId:id,level:lv})});refresh()}
+  catch(e){alert(e.message)}
+};
 window.resetProg=async id=>{
   if(!confirm(`Reset ${nameOf(id)}'s in-progress levels? Their completed results stay.`))return;
   try{await api("/api/admin/reset-progress",{method:"POST",body:JSON.stringify({playerId:id})});refresh()}
