@@ -550,6 +550,30 @@ function textPanel(text,wm,hm,opts={}){
  return m;
 }
 
+/* ---------- in-world branding (visible in VR, where the DOM chrome isn't) ---------- */
+// the official mark always sits on a white card — brand rule: never on dark
+// slight multiply-darken keeps the sage mark legible at distance under ACES tone mapping
+const brandLogoMat=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,color:0xaab6b1});
+loadTex("assets/adc-logo.png",t=>{brandLogoMat.map=t;brandLogoMat.opacity=1;brandLogoMat.needsUpdate=true});
+function brandCard(w,caption=true){
+ const g=new THREE.Group();
+ const h=w*(caption?.42:.34);
+ const card=textPanel("",w,h,{bg:"rgba(255,255,255,0.97)",border:"rgba(0,115,106,0.25)"});
+ g.add(card);
+ const lw=w*.88,lh=lw/4.182; // official wordmark aspect
+ const logo=new THREE.Mesh(new THREE.PlaneGeometry(lw,lh),brandLogoMat);
+ logo.position.set(0,caption?h*.17:0,.012);g.add(logo);
+ if(caption){
+  const line=new THREE.Mesh(new THREE.PlaneGeometry(w*.5,h*.014),
+   new THREE.MeshBasicMaterial({color:0xd7b56d}));
+  line.position.set(0,-h*.1,.012);g.add(line); // gold hairline, echoing the admin panel
+  const cap=textPanel("TRAINING ACADEMY · أكاديمية التدريب",w*.92,h*.3,
+   {size:Math.max(14,Math.round(w*11)),bold:true,color:"#00736a",bg:"rgba(0,0,0,0)",border:"rgba(0,0,0,0)"});
+  cap.position.set(0,-h*.28,.012);g.add(cap);
+ }
+ return g;
+}
+
 /* ---------- stations ---------- */
 const R=26, stations=[];
 const WALL_IMG=["img/st1-services.jpg","img/st2-innovation.jpg","img/st3-inspection.jpg","img/st4-cargo.jpg","img/st5-vision.jpg","img/st6-strategy.jpg"];
@@ -668,6 +692,8 @@ function buildStation(i,sk){
  // gallery wash light bar above the art (emissive, not a real light)
  const wash=new THREE.Mesh(new THREE.BoxGeometry(7.7,.08,.5),new THREE.MeshBasicMaterial({color:0xffe6b8}));
  wash.position.set(0,5.5,-4.25);g.add(wash);
+ // museum-style brand label on the free wall strip beside the artwork
+ const bp=brandCard(.95,false);bp.position.set(4.9,2.3,-4.42);g.add(bp);
  // station title plaque
  const title=textPanel(`${i+1} · ${L(sk.scene.name)}`,7,.9,{size:52,bold:true,color:"#f7f3e8",bg:"rgba(10,45,50,0.92)",border:"#d7b56d"});
  title.position.set(0,6.15,-4.35);g.add(title);g.userData.title=title;
@@ -725,14 +751,33 @@ const saif=new THREE.Group();
  saif.position.set(1.6,0,10);scene.add(saif)}
 let saifTarget=saif.position.clone(),saifSpeaking=0;
 
-// entrance arch — ivory columns, gold lintel, glowing welcome band
+// entrance arch — ivory columns, gold lintel, glowing welcome band,
+// and the official mark greeting both ways through the gate
 {const a=new THREE.Group();
  const c1=new THREE.Mesh(new THREE.CylinderGeometry(.32,.4,4.6,12),ivoryMat);c1.position.set(-2.6,2.3,0);a.add(c1);
  const c2=c1.clone();c2.position.x=2.6;a.add(c2);
  const lin=new THREE.Mesh(new THREE.BoxGeometry(6.2,.5,.7),goldMat);lin.position.set(0,4.85,0);a.add(lin);
  const glowb=new THREE.Mesh(new THREE.BoxGeometry(5.4,.09,.72),new THREE.MeshBasicMaterial({color:0x8fe0d6}));
  glowb.position.set(0,4.56,0);a.add(glowb);
+ const sIn=brandCard(4.3);sIn.position.set(0,3.55,-.1);sIn.rotation.y=Math.PI;a.add(sIn);  // faces the arena
+ const sOut=brandCard(4.3);sOut.position.set(0,3.55,.1);a.add(sOut);                       // faces arriving trainees
+ const sDiv=new THREE.Mesh(new THREE.PlaneGeometry(4.3*.97,4.3*.42*.93),                   // opaque core: the two faces must not ghost through each other
+  new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide}));
+ sDiv.position.set(0,3.55,0);a.add(sDiv);
  a.position.set(0,0,17);scene.add(a)}
+
+// suspended brand emblem above the central plaza — a slow-turning white card
+// with the official mark, visible from every station and inside the headset
+const brandSpin=new THREE.Group();
+{const tilt=-.16; // nod toward eye level — viewed from below, a vertical card foreshortens
+ const f=brandCard(4.6);f.position.z=.02;f.rotation.x=tilt;brandSpin.add(f);
+ const b=brandCard(4.6);b.rotation.y=Math.PI;b.rotation.x=tilt;b.position.z=-.02;brandSpin.add(b);
+ const div=new THREE.Mesh(new THREE.PlaneGeometry(4.6*.97,4.6*.42*.93), // opaque core against see-through ghosting
+  new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide}));
+ div.rotation.x=tilt;brandSpin.add(div);
+ const hang=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,3.2,8),goldMat);
+ hang.position.y=2.4;brandSpin.add(hang); // gold suspension stem so it doesn't float unexplained
+ brandSpin.position.set(0,5.2,0);scene.add(brandSpin)}
 
 CONTENT.skills.forEach((sk,i)=>stations.push(buildStation(i,sk)));
 // plaques are baked at boot in the boot language — repaint them when it changes
@@ -2307,6 +2352,7 @@ function animate(){
  const xr=renderer.xr.isPresenting;
  if(!xr)dprTick(dt); // XR manages its own framebuffer scale
  if(window.__dust)window.__dust.rotation.y=t*.011;
+ brandSpin.rotation.y=t*.22;brandSpin.position.y=5.2+Math.sin(t*.8)*.05; // stately turn, gentle float
  moveTick(dt);fxTick(dt);
  if(xr){
   vrMoveTick(dt);
@@ -2369,6 +2415,14 @@ function animate(){
 }
 renderer.setAnimationLoop(animate); // required for WebXR (rAF stops inside a session)
 window.__adc={get S(){return S},get qGroup(){return qGroup},get cam(){return camPos},get glide(){return glide},get t(){return clock.elapsedTime},stations};
+// screenshot/QA aid: ?pose=x,y,z,yaw[,pitch] pins the camera (used by headless captures)
+if(PARAMS.has("pose")){
+ const v=PARAMS.get("pose").split(",").map(Number);
+ setInterval(()=>{if(v.length>=3&&v.every(n=>isFinite(n))){
+  camPos.set(v[0],v[1],v[2]);glide=null;
+  if(v.length>3)yaw=v[3];if(v.length>4)pitch=v[4];
+ }},150);
+}
 showStart();
 </script>
 </body>
