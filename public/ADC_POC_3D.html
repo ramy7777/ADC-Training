@@ -2465,7 +2465,23 @@ function beginStation(i){
 function runBeat(i,b){
  if(b>=4){ if(i+1<6)escortTo(i+1); else endLevel(); return }
  const {q}=S.plan[i][b];
- playBeat(i,q,()=>runBeat(i,b+1),b);
+ playBeat(i,q,()=>afterBeat(i,b),b);
+}
+// Unity-parity sequencing: the verdict is a DEDICATED spoken line and the next
+// challenge spawns ONLY once it finishes (cb-chained). The old design merged
+// the reaction into the next line's preamble, where talk-over could clip it or
+// the parking slot could swallow it whole — heard as "feedback cut, then
+// nothing". A hard failsafe timer guarantees the tour can never hang on it.
+function afterBeat(i,b){
+ const r=HOST.react;HOST.react=null;
+ let went=false;const go=()=>{if(went)return;went=true;runBeat(i,b+1)};
+ if(!r){go();return} // verbal beats already carried their own spoken verdict
+ const who=S&&S.trainee?S.trainee:"The trainee";
+ const line=r.ok
+  ?`(${who} answered "${r.prompt||"the challenge"}" CORRECTLY — score ${r.score}/120. Congratulate them warmly and teach ONE genuinely interesting fact about this topic in real Abu Dhabi Customs work. Two full sentences. Do NOT mention or introduce any next challenge — that comes separately.)`
+  :`(${who} answered "${r.prompt||"the challenge"}" INCORRECTLY — score ${r.score}/120. Gently state the correct answer — ${r.corr||""} — and explain in one warm sentence why it is right. Do NOT mention or introduce any next challenge — that comes separately.)`;
+ speak(line,T("saif"),r.ok?T("correct"):T("wrong"),go);
+ setTimeout(go,16000); // dead voice must never freeze the assessment
 }
 function endLevel(){
  followSt=null;HOST.react=null; // the result line announces the score itself
