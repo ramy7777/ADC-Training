@@ -91,6 +91,11 @@ const db = () => { if (!dbReady) throw Object.assign(new Error("no database"), {
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
+// the app lives at the ROOT address; the old /ADC_POC_3D.html deep link keeps working
+app.get("/", (req, res) => {
+  res.setHeader("Cache-Control", "no-cache");
+  res.sendFile(path.join(__dirname, "public", "ADC_POC_3D.html"));
+});
 // HTML must revalidate on every load — stale cached pages kept resurrecting old bugs
 app.use(express.static(path.join(__dirname, "public"), {
   setHeaders: (res, p) => { if (p.endsWith(".html")) res.setHeader("Cache-Control", "no-cache"); },
