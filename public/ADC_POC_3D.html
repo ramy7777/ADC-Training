@@ -828,6 +828,7 @@ canvas.addEventListener("pointermove",e=>{
    // highlight hovered drop target
    const zh=ray.intersectObjects(dropTargets,false);
    dropTargets.forEach(z=>{if(z.userData.setHot)z.userData.setHot(zh.length&&zh[0].object===z)});
+   if(drag.obj.userData.stampCheck)drag.obj.userData.stampCheck(drag.obj); // touching a document stamps it
    return;
  }
  if(looking){yaw-=e.movementX*.0032;pitch=Math.max(-1.2,Math.min(1.2,pitch-e.movementY*.0032));lookMoved+=Math.abs(e.movementX)+Math.abs(e.movementY)}
@@ -856,6 +857,18 @@ addEventListener("pointerup",e=>{
  if(was&&lookMoved<6)clickRay();
 });
 // a cancelled touch / lost capture must not strand a card mid-air
+// while dragging, the wheel pushes the carried prop away / pulls it closer
+// (the drag plane is camera-parallel; stamping a farther document needs depth)
+addEventListener("wheel",e=>{
+ if(!drag)return;
+ const step=Math.sign(e.deltaY)*.28;
+ drag.plane.constant-=step; // slide the whole drag plane along its normal
+ const n=drag.plane.normal,wp=new THREE.Vector3();
+ drag.obj.getWorldPosition(wp);wp.addScaledVector(n,step);
+ const lp=drag.obj.parent?drag.obj.parent.worldToLocal(wp):wp;
+ drag.obj.position.copy(lp);
+ if(drag.obj.userData.stampCheck)drag.obj.userData.stampCheck(drag.obj);
+},{passive:true});
 addEventListener("pointercancel",e=>{
  if(drag){
   if(e.pointerId!==undefined&&e.pointerId!==drag.pid)return; // another finger's cancel is not ours
@@ -1170,8 +1183,8 @@ function reactPrefix(){
  if(!r)return"";
  const who=S&&S.trainee?S.trainee:"The trainee";
  return r.ok
-  ?`(${who} just answered "${r.prompt||"the previous challenge"}" CORRECTLY — score ${r.score}/120. Congratulate in a few words and teach ONE short interesting fact about this topic in real Abu Dhabi Customs work, then continue.) `
-  :`(${who} just answered "${r.prompt||"the previous challenge"}" INCORRECTLY — score ${r.score}/120. Gently give the correct answer — ${r.corr||""} — and explain in one short sentence why it is right, then continue.) `;
+  ?`(${who} just answered "${r.prompt||"the previous challenge"}" CORRECTLY — score ${r.score}/120. You MUST first react: congratulate them AND teach one genuinely interesting fact about this topic in real Abu Dhabi Customs work — two full sentences, not a passing word — and only then present what follows.) `
+  :`(${who} just answered "${r.prompt||"the previous challenge"}" INCORRECTLY — score ${r.score}/120. You MUST first react: state the correct answer — ${r.corr||""} — and explain in a sentence why it is right, encouraging tone — and only then present what follows.) `;
 }
 async function hostSend(it){
  const my=++HOST.seq;
@@ -1747,27 +1760,29 @@ function physCube(g,q,items,finish){
 /* -------- golden stamp → correct documents -------- */
 function physStamp(g,q,items,finish){
  const n=Math.max(1,q.correct.length);
- const dw=items.length*1.05+.6;
- box(g,dw,.08,.95,0x11393f,-.7,.93,2.1);
- box(g,dw+.08,.03,1.0,0xd7b56d,-.7,.985,2.1);
- box(g,.12,.9,.6,0xf2ead9,-.7-dw/2+.15,.45,2.1);
- box(g,.12,.9,.6,0xf2ead9,-.7+dw/2-.15,.45,2.1);
+ const dw=items.length*1.1+.9;
+ // low clearance desk; the stamp pad shares the desk so plane-dragging the
+ // stamp keeps it at document depth
+ box(g,dw,.08,.95,0x11393f,-.4,.74,2.05);
+ box(g,dw+.08,.03,1.0,0xd7b56d,-.4,.795,2.05);
+ box(g,.12,.7,.6,0xf2ead9,-.4-dw/2+.15,.35,2.05);
+ box(g,.12,.7,.6,0xf2ead9,-.4+dw/2-.15,.35,2.05);
  const stamped=new Set();
+ // documents STAND on the desk like framed cards — readable, and a fat ray
+ // target for desktop drops (flat docs were nearly edge-on = unhittable)
  const docs=items.map((o,k)=>{
-  const doc=new THREE.Mesh(new THREE.BoxGeometry(.95,.05,.68),new THREE.MeshStandardMaterial({color:0xfdfbf5,roughness:.7}));
-  doc.position.set(-.7+(k-(items.length-1)/2)*1.05,1.0,2.1);
-  doc.rotation.x=-.14; // slightly raised toward the trainee
-  const lbl=xray(textPanel(LANG==="ar"&&o.ar?o.ar:o.en,.92,.6,{size:16,badge:k+1}),11);
-  lbl.rotation.x=-Math.PI/2+.14;lbl.position.y=.06;doc.add(lbl);
+  const doc=xray(textPanel(LANG==="ar"&&o.ar?o.ar:o.en,1.0,.72,{size:17,badge:k+1}),9);
+  doc.position.set(-.4-dw/2+.85+k*1.1,1.18,2.05);
+  doc.rotation.x=-.1;
   doc.userData.en=o.en;g.add(doc);return doc;
  });
- // the stamp on its glowing pad, player side
+ // the golden stamp on its glowing pad at the desk's right end (same depth)
  const padGlow=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.02,24),mat(TEAL,TEAL,1));
- padGlow.position.set(2.4,.96,2.6);g.add(padGlow);
+ padGlow.position.set(-.4+dw/2+.55,.78,2.05);g.add(padGlow);
  const stamp=new THREE.Mesh(new THREE.BoxGeometry(.3,.1,.3),_pTeal());
  const handle=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.16,12),_pGold());handle.position.y=.13;stamp.add(handle);
  const knob=new THREE.Mesh(new THREE.SphereGeometry(.1,14,10),_pGold());knob.position.y=.26;stamp.add(knob);
- stamp.position.set(2.4,1.03,2.6);
+ stamp.position.set(-.4+dw/2+.55,.85,2.05);
  stamp.userData.home=stamp.position.clone();
  g.add(stamp);
  let cool=0;
@@ -1775,18 +1790,20 @@ function physStamp(g,q,items,finish){
   if(stamped.has(doc.userData.en)||clock.elapsedTime<cool)return;
   cool=clock.elapsedTime+.8;
   stamped.add(doc.userData.en);
-  const seal=xray(textPanel(T("cleared"),.7,.3,{size:15,bold:true,color:"#ffffff",bg:"rgba(23,110,98,0.92)",border:"#0b574e"}),12);
-  seal.rotation.x=-Math.PI/2+.14;seal.rotation.z=.18;seal.position.set(.12,.08,-.12);doc.add(seal);
+  const seal=xray(textPanel(T("cleared"),.72,.3,{size:15,bold:true,color:"#ffffff",bg:"rgba(23,110,98,0.92)",border:"#0b574e"}),12);
+  seal.rotation.z=.16;seal.position.set(.1,-.14,.05);doc.add(seal);
   tick();buzz(renderer.xr.isPresenting?controllers[0]:null,.8,70);
-  if(stamped.size>=n)setTimeout(()=>finish(physSameSet(stamped,q),doc.position.clone().add(new THREE.Vector3(0,1.2,0))),380);
+  if(stamped.size>=n)setTimeout(()=>finish(physSameSet(stamped,q),doc.position.clone().add(new THREE.Vector3(0,1.0,0))),380);
  };
  docs.forEach(doc=>{doc.userData.onDrop=o=>{if(o!==stamp)return false;press(doc);physFlyBackHome(stamp);return true}});
  stamp.userData.onReleaseXR=(o)=>{physFlyBackHome(o)};
- stamp.userData.stampCheck=o=>{ // XR: pressing the held stamp onto a document
+ // contact press — shared by XR holds AND desktop drags (checked every frame
+ // while the stamp is held/dragged): touching a document stamps it
+ stamp.userData.stampCheck=o=>{
   const sw=new THREE.Vector3();o.getWorldPosition(sw);
   for(const doc of docs){
    const dw2=new THREE.Vector3();doc.getWorldPosition(dw2);
-   if(sw.distanceTo(dw2)<.45)press(doc);
+   if(sw.distanceTo(dw2)<.62)press(doc);
   }
  };
  setInteract([],[stamp],docs);
