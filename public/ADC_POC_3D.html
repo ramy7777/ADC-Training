@@ -295,6 +295,10 @@ const UI={
   instrSeq:"Touch the tiles in the correct order.",
   instrHot:"Touch the correct spot on the board.",
   instrHotM:"Touch all the correct spots on the board.",
+  instrPhysCube:"Hold and drag the cube with the correct answer onto the glowing pedestal. In VR, grab it with the trigger and set it down.",
+  instrPhysStamp:"Pick up the golden stamp and press it onto the correct document.",
+  instrPhysToss:"Grab the ball with the correct answer and throw it into the glowing basket. On desktop, drag it in.",
+  cleared:"CLEARED",
   instrAssign:"Click a card, then click the board where it belongs.",
   resPass:"Congratulations, {name} — you passed with {score} out of 120!",
   resFail:"You reached {score} out of 120, {name}. You need 96 — let's try again with fresh situations.",
@@ -341,6 +345,10 @@ const UI={
   instrSeq:"المس اللوحات بالترتيب الصحيح.",
   instrHot:"المس النقطة الصحيحة على اللوحة.",
   instrHotM:"المس كل النقاط الصحيحة على اللوحة.",
+  instrPhysCube:"أمسك المكعب ذا الإجابة الصحيحة واسحبه إلى المنصة المضيئة. في النظارة أمسكه بالزناد وضعه عليها.",
+  instrPhysStamp:"التقط الختم الذهبي واضغطه على المستند الصحيح.",
+  instrPhysToss:"أمسك الكرة ذات الإجابة الصحيحة وارمها في السلة المضيئة. على الحاسوب اسحبها إليها.",
+  cleared:"تم التخليص",
   instrAssign:"انقر البطاقة ثم انقر اللوحة المناسبة لها.",
   resPass:"مبروك يا {name} — اجتزت المستوى بنتيجة {score} من 120!",
   resFail:"حصلت على {score} من 120 يا {name}. المطلوب 96 — لنحاول مجدداً بمواقف جديدة.",
@@ -971,7 +979,8 @@ const controllers=[0,1].map(i=>{
   line.visible=!!(e.data&&e.data.targetRayMode==="tracked-pointer");
  });
  c.addEventListener("disconnected",()=>{c.userData.src=null;line.visible=false;dot.visible=false});
- c.addEventListener("selectstart",()=>{live.unlock();vrClick(c)});
+ c.addEventListener("selectstart",()=>{live.unlock();if(!vrGrab(c))vrClick(c)});
+ c.addEventListener("selectend",()=>vrRelease(c));
  c.addEventListener("squeezestart",()=>{live.unlock();pttDown()});
  c.addEventListener("squeezeend",()=>pttUp());
  return c;
@@ -1622,9 +1631,274 @@ function fxTick(dt){
   else f.obj.position.lerp(f.to,Math.min(1,dt*9))}
 }
 
+/* ============ physical interactions (Unity parity: cubes / stamp / toss) ============
+   Desktop: the existing hold-and-drag moves the props; drop on the target scores.
+   WebXR: the trigger GRABS a prop (ray-hold); releasing throws it with the
+   controller's real velocity — balls fly ballistically into the basket. */
+let grabs=[],physFly=[];
+const _pWood=()=>new THREE.MeshStandardMaterial({color:0xf2ead9,roughness:.55,metalness:.06});
+const _pGold=()=>new THREE.MeshStandardMaterial({color:0xd7b56d,roughness:.3,metalness:.85});
+const _pTeal=()=>new THREE.MeshStandardMaterial({color:0x11393f,roughness:.45,metalness:.2});
+
+// two hands-on beats per station, dealt deterministically — SAME seed math as
+// the Unity app, so the layout logic matches across platforms
+function physAssign(i){
+ S.physMap=S.physMap||{};
+ if(S.physMap[i])return S.physMap[i];
+ const map={};
+ const elig=[];
+ S.plan[i].forEach((slot,b)=>{const w=widgetOf(slot.q);
+  if(w==="single"||w==="multi"||w==="hotsingle"||w==="hotmulti")elig.push(b)});
+ if(elig.length){
+  const r=rng((S.seed+i*577+S.attempt*131)>>>0);
+  const beats=shuffled(elig,r),types=shuffled(["cube","stamp","toss"],r);
+  const n=Math.min(beats.length,2);
+  for(let k=0;k<n;k++)map[beats[k]]=types[k];
+ }
+ S.physMap[i]=map;return map;
+}
+
+function physSameSet(chosenEn,q){
+ const a=[...chosenEn].sort(),b=q.correct.map(c=>c.en).sort();
+ return a.length===b.length&&a.every((v,i)=>v===b[i]);
+}
+
+function stagePhys(type,stIdx,q,dis,onDone){
+ const g=stageBase(stIdx);
+ let fin=false;
+ const finish=(ok,at)=>{if(fin)return;fin=true;setInteract([],[],[]);grabs=[];
+  score(q,ok,at);setTimeout(onDone,1100)};
+ const rp=reactPrefix();
+ speak(rp+(rp?"":"(The trainee has NOT answered this new challenge yet — never open with well done or congratulations; present it directly.) ")
+  +L(q.prompt)+" — "+T("instrPhys"+({cube:"Cube",stamp:"Stamp",toss:"Toss"})[type]),T("saif"),L(q.prompt));
+ // question header, same as the docked widgets
+ const head=textPanel(L(q.prompt),7.4,1.1,{size:33,bold:true,color:"#ffffff",bg:"rgba(15,50,55,0.94)",border:"rgba(53,167,154,0.7)"});
+ head.material.depthTest=false;head.renderOrder=12;head.position.set(0,3.35,0.5);g.add(head);
+ const items=shuffled(q.correct.concat(dis).slice(0,6),rng(S.seed+hash(q.id)+17));
+ if(type==="cube")physCube(g,q,items,finish);
+ else if(type==="stamp")physStamp(g,q,items,finish);
+ else physToss(g,q,items,finish);
+}
+
+function physShelf(g,x,w){
+ box(g,w,.08,.72,0xf2ead9,x,.94,2.1);
+ box(g,w+.08,.03,.78,0xd7b56d,x,.99,2.1);
+ box(g,.12,.9,.5,0xf2ead9,x-w/2+.15,.45,2.1);
+ box(g,.12,.9,.5,0xf2ead9,x+w/2-.15,.45,2.1);
+}
+function physLabel(o,text,n,y,w,h){
+ const lbl=xray(textPanel(text,w||1.5,h||.6,{size:20,badge:n}),11);
+ lbl.position.set(0,y,0);lbl.userData.isCard=false;o.add(lbl);return lbl;
+}
+function physFlyBackHome(o){ // return a scene-level flyer to its rack, in qGroup space
+ if(!qGroup){if(o.parent)o.parent.remove(o);return}
+ qGroup.attach(o);flyBack(o,o.userData.home);o.rotation.set(0,0,0);
+}
+
+/* -------- cubes → glowing pedestal -------- */
+function physCube(g,q,items,finish){
+ const n=Math.max(1,q.correct.length);
+ physShelf(g,-2.7,items.length*.78+.5);
+ const pad=makePad(g,"",false);pad.grp.position.set(2.7,0,2.0);
+ pad.grp.userData.lbl.visible=false; // no caption needed — the slot rings speak
+ // one slot ring per required answer
+ const slots=[];
+ for(let k=0;k<n;k++){
+  const a=k*Math.PI*2/n;
+  const pos=n===1?new THREE.Vector3(0,.26,0):new THREE.Vector3(Math.cos(a)*.55,.26,Math.sin(a)*.55);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.3,.02,8,26),mat(TEAL,TEAL,1));
+  ring.rotation.x=Math.PI/2;ring.position.copy(pos);pad.grp.add(ring);
+  slots.push({pos:pos.clone().add(pad.grp.position),cube:null}); // g-space
+ }
+ const cubes=items.map((o,k)=>{
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.6,.6,.6),_pWood());
+  const cap=new THREE.Mesh(new THREE.BoxGeometry(.62,.06,.62),_pGold());cap.position.y=.33;body.add(cap);
+  physLabel(body,LANG==="ar"&&o.ar?o.ar:o.en,k+1,k%2? .78:1.12,1.32,.55);
+  body.position.set(-2.7+(k-(items.length-1)/2)*.78,1.29,2.1);
+  body.userData.home=body.position.clone();
+  body.userData.en=o.en;
+  g.add(body);return body;
+ });
+ const placedSet=()=>slots.filter(s=>s.cube).map(s=>s.cube.userData.en);
+ const unplace=c=>{const s=slots.find(x=>x.cube===c);if(s)s.cube=null};
+ const tryVerify=()=>{if(slots.every(s=>s.cube))finish(physSameSet(placedSet(),q),pad.grp.position.clone().add(new THREE.Vector3(0,1.6,0)))};
+ const place=c=>{const s=slots.find(x=>!x.cube);if(!s)return false;
+  unplace(c);s.cube=c;
+  if(c.parent!==g)g.attach(c);
+  flyBack(c,s.pos.clone().add(new THREE.Vector3(0,.3,0)));c.rotation.set(0,0,0);
+  tick();buzz(renderer.xr.isPresenting?controllers[0]:null,.7,60);
+  setTimeout(tryVerify,420);return true};
+ pad.catcher.userData.onDrop=o=>{if(fin())return false;if(!cubes.includes(o))return false;return place(o)};
+ const fin=()=>slots.every(s=>s.cube);
+ cubes.forEach(c=>{
+  c.userData.onGrab=o=>unplace(o);
+  c.userData.onReturn=o=>unplace(o);
+  c.userData.onReleaseXR=(o,vel)=>{
+   const padW=new THREE.Vector3();pad.grp.getWorldPosition(padW);
+   const ow=new THREE.Vector3();o.getWorldPosition(ow);
+   if(Math.hypot(ow.x-padW.x,ow.z-padW.z)<1.5&&ow.y>padW.y&&ow.y<padW.y+2.2){place(o);return}
+   scene.attach(o);physFly.push({obj:o,vel:vel.clone().multiplyScalar(.5),onMiss:physFlyBackHome});
+  };
+ });
+ setInteract([],cubes,[pad.catcher]);
+ grabs=cubes.slice();
+}
+
+/* -------- golden stamp → correct documents -------- */
+function physStamp(g,q,items,finish){
+ const n=Math.max(1,q.correct.length);
+ const dw=items.length*1.05+.6;
+ box(g,dw,.08,.95,0x11393f,-.7,.93,2.1);
+ box(g,dw+.08,.03,1.0,0xd7b56d,-.7,.985,2.1);
+ box(g,.12,.9,.6,0xf2ead9,-.7-dw/2+.15,.45,2.1);
+ box(g,.12,.9,.6,0xf2ead9,-.7+dw/2-.15,.45,2.1);
+ const stamped=new Set();
+ const docs=items.map((o,k)=>{
+  const doc=new THREE.Mesh(new THREE.BoxGeometry(.95,.05,.68),new THREE.MeshStandardMaterial({color:0xfdfbf5,roughness:.7}));
+  doc.position.set(-.7+(k-(items.length-1)/2)*1.05,1.0,2.1);
+  doc.rotation.x=-.14; // slightly raised toward the trainee
+  const lbl=xray(textPanel(LANG==="ar"&&o.ar?o.ar:o.en,.92,.6,{size:16,badge:k+1}),11);
+  lbl.rotation.x=-Math.PI/2+.14;lbl.position.y=.06;doc.add(lbl);
+  doc.userData.en=o.en;g.add(doc);return doc;
+ });
+ // the stamp on its glowing pad, player side
+ const padGlow=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.02,24),mat(TEAL,TEAL,1));
+ padGlow.position.set(2.4,.96,2.6);g.add(padGlow);
+ const stamp=new THREE.Mesh(new THREE.BoxGeometry(.3,.1,.3),_pTeal());
+ const handle=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.16,12),_pGold());handle.position.y=.13;stamp.add(handle);
+ const knob=new THREE.Mesh(new THREE.SphereGeometry(.1,14,10),_pGold());knob.position.y=.26;stamp.add(knob);
+ stamp.position.set(2.4,1.03,2.6);
+ stamp.userData.home=stamp.position.clone();
+ g.add(stamp);
+ let cool=0;
+ const press=doc=>{
+  if(stamped.has(doc.userData.en)||clock.elapsedTime<cool)return;
+  cool=clock.elapsedTime+.8;
+  stamped.add(doc.userData.en);
+  const seal=xray(textPanel(T("cleared"),.7,.3,{size:15,bold:true,color:"#ffffff",bg:"rgba(23,110,98,0.92)",border:"#0b574e"}),12);
+  seal.rotation.x=-Math.PI/2+.14;seal.rotation.z=.18;seal.position.set(.12,.08,-.12);doc.add(seal);
+  tick();buzz(renderer.xr.isPresenting?controllers[0]:null,.8,70);
+  if(stamped.size>=n)setTimeout(()=>finish(physSameSet(stamped,q),doc.position.clone().add(new THREE.Vector3(0,1.2,0))),380);
+ };
+ docs.forEach(doc=>{doc.userData.onDrop=o=>{if(o!==stamp)return false;press(doc);physFlyBackHome(stamp);return true}});
+ stamp.userData.onReleaseXR=(o)=>{physFlyBackHome(o)};
+ stamp.userData.stampCheck=o=>{ // XR: pressing the held stamp onto a document
+  const sw=new THREE.Vector3();o.getWorldPosition(sw);
+  for(const doc of docs){
+   const dw2=new THREE.Vector3();doc.getWorldPosition(dw2);
+   if(sw.distanceTo(dw2)<.45)press(doc);
+  }
+ };
+ setInteract([],[stamp],docs);
+ grabs=[stamp];
+}
+
+/* -------- balls → glowing basket (real throws in VR) -------- */
+function physToss(g,q,items,finish){
+ const n=Math.max(1,q.correct.length);
+ physShelf(g,-2.7,items.length*.78+.5);
+ const bx=2.7,bz=2.0;
+ const stand=new THREE.Mesh(new THREE.CylinderGeometry(.42,.5,.5,18),_pWood());stand.position.set(bx,.25,bz);g.add(stand);
+ const wall=new THREE.Mesh(new THREE.CylinderGeometry(.85,.7,.75,18,1,true),
+  new THREE.MeshStandardMaterial({color:0xf2ead9,roughness:.5,side:THREE.DoubleSide,transparent:true,opacity:.92}));
+ wall.position.set(bx,.92,bz);g.add(wall);
+ const rim=new THREE.Mesh(new THREE.TorusGeometry(.86,.035,10,40),mat(TEAL,TEAL,1));
+ rim.rotation.x=Math.PI/2;rim.position.set(bx,1.3,bz);g.add(rim);
+ // generous invisible catcher for desktop drags
+ const catcher=new THREE.Mesh(new THREE.CylinderGeometry(1.25,1.25,2.2,16),new THREE.MeshBasicMaterial({visible:false}));
+ catcher.position.set(bx,1.3,bz);g.add(catcher);
+ catcher.userData.setHot=h=>{rim.material.emissiveIntensity=h?2.2:1;rim.scale.setScalar(h?1.06:1)};
+ const inBin=new Set();
+ const balls=items.map((o,k)=>{
+  const ball=new THREE.Mesh(new THREE.SphereGeometry(.3,18,14),_pWood());
+  const band=new THREE.Mesh(new THREE.TorusGeometry(.3,.03,8,26),_pGold());band.rotation.x=Math.PI/2;ball.add(band);
+  physLabel(ball,LANG==="ar"&&o.ar?o.ar:o.en,k+1,k%2? .62:.98,1.32,.55);
+  ball.position.set(-2.7+(k-(items.length-1)/2)*.78,1.3,2.1);
+  ball.userData.home=ball.position.clone();
+  ball.userData.en=o.en;
+  g.add(ball);return ball;
+ });
+ const settle=b=>{
+  inBin.add(b.userData.en);
+  if(b.parent!==g)g.attach(b);
+  flyBack(b,new THREE.Vector3(bx+(Math.random()-.5)*.5,.85+inBin.size*.16,bz+(Math.random()-.5)*.5));
+  tick();buzz(renderer.xr.isPresenting?controllers[0]:null,.7,60);
+  if(inBin.size>=n)setTimeout(()=>finish(physSameSet(inBin,q),new THREE.Vector3(bx,2.2,bz)),420);
+ };
+ catcher.userData.onDrop=o=>{if(!balls.includes(o)||inBin.has(o.userData.en))return false;settle(o);return true};
+ balls.forEach(b=>{
+  b.userData.onGrab=o=>inBin.delete(o.userData.en);
+  b.userData.onReturn=o=>inBin.delete(o.userData.en);
+  b.userData.onReleaseXR=(o,vel)=>{
+   scene.attach(o);
+   const rw=new THREE.Vector3();rim.getWorldPosition(rw);
+   physFly.push({obj:o,vel:vel.clone(),check:f=>{
+     const p=f.obj.position;
+     if(f.vel.y<0&&Math.hypot(p.x-rw.x,p.z-rw.z)<.95&&Math.abs(p.y-rw.y)<.5){settle(f.obj);return true}
+     return false;
+    },onMiss:physFlyBackHome});
+  };
+ });
+ setInteract([],balls,[catcher]);
+ grabs=balls.slice();
+}
+
+/* -------- XR grab / release / ballistics -------- */
+function vrGrab(c){
+ if(!grabs.length)return false;
+ ctrlRay(c);
+ const hits=ray.intersectObjects(grabs,false);
+ if(!hits.length||hits[0].distance>9)return false;
+ const o=hits[0].object;
+ if(o.userData.heldBy)return true;
+ if(o.userData.onGrab)o.userData.onGrab(o);
+ physFly=physFly.filter(f=>f.obj!==o); // grabbing a flying/resting ball reclaims it
+ c.attach(o);
+ o.userData.heldBy=c;c.userData.holding=o;c.userData.hist=[];
+ buzz(c,.5,50);
+ return true;
+}
+function vrRelease(c){
+ const o=c.userData.holding;if(!o)return false;
+ c.userData.holding=null;o.userData.heldBy=null;
+ const h=c.userData.hist||[];
+ const vel=new THREE.Vector3();
+ if(h.length>=2){
+  const a=h[0],b=h[h.length-1];const dt2=Math.max(.016,b.t-a.t);
+  vel.copy(b.p).sub(a.p).multiplyScalar(1.7/dt2); // Unity-style lively release
+ }
+ if(qGroup&&o.parent!==qGroup)qGroup.attach(o);
+ if(o.userData.onReleaseXR)o.userData.onReleaseXR(o,vel);
+ buzz(c,.35,40);
+ return true;
+}
+function physTick(dt){
+ if(typeof controllers!=="undefined")for(const c of controllers){
+  const o=c.userData.holding;
+  if(!o)continue;
+  const wp=new THREE.Vector3();o.getWorldPosition(wp);
+  (c.userData.hist=c.userData.hist||[]).push({p:wp.clone(),t:clock.elapsedTime});
+  if(c.userData.hist.length>6)c.userData.hist.shift();
+  if(o.userData.stampCheck)o.userData.stampCheck(o);
+ }
+ for(let i=physFly.length-1;i>=0;i--){
+  const f=physFly[i];
+  f.vel.y-=9.8*dt;
+  f.obj.position.addScaledVector(f.vel,dt);
+  f.obj.rotation.x+=dt*2;f.obj.rotation.z+=dt*1.3;
+  if(f.check&&f.check(f)){physFly.splice(i,1);continue}
+  if(f.obj.position.y<.2||f.obj.position.length()>70){
+   physFly.splice(i,1);
+   if(f.onMiss)f.onMiss(f.obj);
+  }
+ }
+}
+
 /* ================= question staging ================= */
 let qGroup=null;
 function clearQ(){if(qGroup){scene.remove(qGroup);qGroup=null}setInteract([],[],[]);
+ grabs=[];physFly.forEach(f=>{if(f.obj.parent===scene)scene.remove(f.obj)});physFly=[];
+ if(typeof controllers!=="undefined")controllers.forEach(c=>{if(c.userData.holding){c.userData.holding.userData.heldBy=null;c.userData.holding=null}});
  document.getElementById("conv").style.display="none";document.getElementById("convstat").style.display="none";
  document.getElementById("sub").classList.remove("lift")}
 function stageBase(i){
@@ -1714,10 +1988,12 @@ function makePad(g,label,wide){
  g.add(grp);
  return {grp,catcher};
 }
-function playBeat(stIdx,q,onDone){
+function playBeat(stIdx,q,onDone,beatIx){
  const w=widgetOf(q);
  const dis=realDis(q);
  if(w==="conv"){stageConv(stIdx,q,onDone);return}
+ const pt=physAssign(stIdx)[beatIx];
+ if(pt){stagePhys(pt,stIdx,q,dis,onDone);return}
  const INSTR={single:"instrSingle",multi:"instrMulti",sequence:"instrSeq",hotsingle:"instrHot",hotmulti:"instrHotM",assign:"instrAssign"};
  // sending this line preempts whatever Saif was still saying (talk-over).
  // With no pending reaction, forbid self-inserted praise (Unity parity: the
@@ -2172,7 +2448,7 @@ function beginStation(i){
 function runBeat(i,b){
  if(b>=4){ if(i+1<6)escortTo(i+1); else endLevel(); return }
  const {q}=S.plan[i][b];
- playBeat(i,q,()=>runBeat(i,b+1));
+ playBeat(i,q,()=>runBeat(i,b+1),b);
 }
 function endLevel(){
  followSt=null;HOST.react=null; // the result line announces the score itself
@@ -2368,7 +2644,7 @@ function animate(){
  const xr=renderer.xr.isPresenting;
  if(!xr)dprTick(dt); // XR manages its own framebuffer scale
  if(window.__dust)window.__dust.rotation.y=t*.011;
- moveTick(dt);fxTick(dt);
+ moveTick(dt);fxTick(dt);physTick(dt);
  if(xr){
   vrMoveTick(dt);
   rig.position.set(camPos.x,0,camPos.z); // local-floor: the headset supplies eye height
