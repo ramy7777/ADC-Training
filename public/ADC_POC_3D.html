@@ -1158,7 +1158,11 @@ function holdActive(){return HOST.hold&&Date.now()-HOST.hold<12000}
 // separate turn — a separate "well done" was always cut off by the next prompt
 function reactPrefix(){
  const r=HOST.react;HOST.react=null;
- return r?`(${S&&S.trainee?S.trainee:"The trainee"} just answered the previous challenge ${r.ok?"correctly":"incorrectly"} — score ${r.score}/120. React to that in a few words first, then continue.) `:"";
+ if(!r)return"";
+ const who=S&&S.trainee?S.trainee:"The trainee";
+ return r.ok
+  ?`(${who} just answered "${r.prompt||"the previous challenge"}" CORRECTLY — score ${r.score}/120. Congratulate in a few words and teach ONE short interesting fact about this topic in real Abu Dhabi Customs work, then continue.) `
+  :`(${who} just answered "${r.prompt||"the previous challenge"}" INCORRECTLY — score ${r.score}/120. Gently give the correct answer — ${r.corr||""} — and explain in one short sentence why it is right, then continue.) `;
 }
 async function hostSend(it){
  const my=++HOST.seq;
@@ -1260,7 +1264,7 @@ async function _hostConnect(){
   const name=S?S.trainee:"";
   const know=CONTENT.skills.map((sk,i)=>`${i+1}. "${sk.scene.name.en}" — assesses: ${sk.name.en} (${sk.levelAnchor.en}). Setting: ${sk.scene.description.en}`).join("\n");
   const sys=`You are Saif, a wise senior Abu Dhabi Customs officer and a wonderful storyteller, hosting a new employee named "${name}" through a 3D assessment, "A Morning at Abu Dhabi Customs" (currently LEVEL ${S?S.level||1:1}${S&&S.level===2?" — the ADVANCED round: situations demand judgment and prioritization, and you may say so":""}).
-Speak ONLY ${LANG==="ar"?"Arabic":"English"}. Warm, encouraging, a touch of humor; an educator who makes customs work fascinating.
+Speak ONLY ${LANG==="ar"?"Arabic, with a Khaleeji (Gulf / Emirati) flavour: clear Modern Standard Arabic delivery carried by a Gulf accent, with warm Gulf expressions (like هلا والله، يا طويل العمر) used sparingly and professionally — the voice of an Emirati senior officer":"English"}. Warm, encouraging, a touch of humor; an educator who makes customs work fascinating.
 About Abu Dhabi Customs (ADC): it protects the emirate's borders and society, secures trade flows through its ports and land crossings like Al Ghuweifat, collects duties, fights smuggling, and enables businesses through smart digital services. The trainee walks through six gallery stations, each with four assessment moments worth 5 marks (pass: 96 of 120):
 ${know}
 You receive bracketed system commands. The trainee never sees them; never mention or read them aloud:
@@ -1687,7 +1691,9 @@ function score(q,ok,fxAt,quiet){
  if(fxAt){const wp=fxAt.clone();qGroup&&qGroup.localToWorld(wp);burst(wp,ok)}
  subtitle(T("saif"),ok?T("correct"):T("wrong"));
  // quiet=true for verbal moments where Saif already reacted himself
- if(!quiet)HOST.react={ok,score:S.score}; // voiced as a quick aside on the next line
+ // prompt+correct answers ride along so the aside can TEACH (Unity parity):
+ // right → one real-ADC fact; wrong → the correct answer and why
+ if(!quiet)HOST.react={ok,score:S.score,prompt:L(q.prompt),corr:q.correct.map(c=>L(c)).join("; ")};
  log(`answer · ${q.id} · ${ok?"+5":"0"} · ${S.score}/120`);
 }
 /* the answer pad: a glowing pedestal that accepts dragged cards */
@@ -1713,8 +1719,12 @@ function playBeat(stIdx,q,onDone){
  const dis=realDis(q);
  if(w==="conv"){stageConv(stIdx,q,onDone);return}
  const INSTR={single:"instrSingle",multi:"instrMulti",sequence:"instrSeq",hotsingle:"instrHot",hotmulti:"instrHotM",assign:"instrAssign"};
- // sending this line preempts whatever Saif was still saying (talk-over)
- speak(reactPrefix()+L(q.prompt)+" — "+T(INSTR[w]||"instrSingle"),T("saif"),L(q.prompt));
+ // sending this line preempts whatever Saif was still saying (talk-over).
+ // With no pending reaction, forbid self-inserted praise (Unity parity: the
+ // model congratulated on its own before any answer was given)
+ const rp=reactPrefix();
+ speak(rp+(rp?"":"(The trainee has NOT answered this new challenge yet — never open with well done or congratulations; present it directly.) ")
+   +L(q.prompt)+" — "+T(INSTR[w]||"instrSingle"),T("saif"),L(q.prompt));
  const g=stageBase(stIdx);
  // one-shot + immediate interaction clear: a double-clicked Confirm used to score
  // twice (running the score past 120 and double-recording the beat)
@@ -2147,6 +2157,7 @@ function escortTo(i){
 }
 function beginStation(i){
  followSt=null; // arrival: the intro line below talks over any lingering "follow me"
+ stations[i].group.userData.beam.visible=false; // the guidance beam has done its job (Unity parity)
  // Saif stays exactly where he walked to — he holds his spot at the station
  // through the talking and the exercises, and only moves for the next escort
  const nm=L(CONTENT.skills[i].scene.name);
